@@ -89,7 +89,7 @@
   },
   "scripts": {
     "build:ts": "tsc -b . && node script/build.js",
-    "build:wasm": "cd ../../ && cargo xtask build-wasm",
+    "build:wasm": "sh script/build-wasi.sh",
     "build:wasm:debug": "cd ../../ && cargo xtask build-wasm --debug",
     "build": "npm run build:wasm && npm run build:ts",
     "build:debug": "npm run build:wasm:debug && npm run build:ts -- --debug",

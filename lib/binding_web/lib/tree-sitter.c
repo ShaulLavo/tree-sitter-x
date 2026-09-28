@@ -1,8 +1,15 @@
 #include "array.h"
 #include "point.h"
 
-#include <emscripten.h>
 #include <tree_sitter/api.h>
+
+// Callbacks into JS. Built with the WASI SDK, they are explicit imports from `env`.
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#define JS_IMPORT(name)
+#else
+#define JS_IMPORT(name) __attribute__((import_module("env"), import_name(name)))
+#endif
 
 /*****************************/
 /* Section - Data marshaling */
@@ -130,7 +137,7 @@ static void marshal_language_metadata(const TSLanguageMetadata *metadata) {
 /* Section - Parser */
 /********************/
 
-extern void tree_sitter_parse_callback(
+JS_IMPORT("tree_sitter_parse_callback") extern void tree_sitter_parse_callback(
   char *input_buffer,
   uint32_t index,
   uint32_t row,
@@ -138,17 +145,17 @@ extern void tree_sitter_parse_callback(
   uint32_t *length_read
 );
 
-extern void tree_sitter_log_callback(
+JS_IMPORT("tree_sitter_log_callback") extern void tree_sitter_log_callback(
   bool is_lex_message,
   const char *message
 );
 
-extern bool tree_sitter_progress_callback(
+JS_IMPORT("tree_sitter_progress_callback") extern bool tree_sitter_progress_callback(
   uint32_t current_offset,
   bool has_error
 );
 
-extern bool tree_sitter_query_progress_callback(
+JS_IMPORT("tree_sitter_query_progress_callback") extern bool tree_sitter_query_progress_callback(
   uint32_t current_offset
 );
 

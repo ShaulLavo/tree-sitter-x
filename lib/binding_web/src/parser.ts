@@ -2,6 +2,7 @@ import { C, INTERNAL, LogCallback, ParseCallback, Range, SIZE_OF_INT, SIZE_OF_RA
 import { Language } from './language';
 import { marshalRange, unmarshalRange } from './marshal';
 import { checkModule, initializeBinding } from './bindings';
+import type { ModuleOptions } from './wasi-module';
 import { Tree } from './tree';
 import { newFinalizer } from './finalization_registry';
 
@@ -111,7 +112,7 @@ export class Parser {
    * You can optionally pass in options to configure the Wasm module, the most common
    * one being `locateFile` to help the module find the `.wasm` file.
    */
-  static async init(moduleOptions?: Partial<EmscriptenModule>) {
+  static async init(moduleOptions?: ModuleOptions) {
     setModule(await initializeBinding(moduleOptions));
     TRANSFER_BUFFER = C._ts_init();
     LANGUAGE_VERSION = C.getValue(TRANSFER_BUFFER, 'i32');
