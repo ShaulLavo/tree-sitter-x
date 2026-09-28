@@ -16,6 +16,7 @@ export {
 export { Language } from './language';
 export { Tree } from './tree';
 export { TextBuffer } from './text_buffer';
+export { type ExtensionExports, loadExtension, heap } from './extension';
 export { Node } from './node';
 export { TreeCursor } from './tree_cursor';
 export {

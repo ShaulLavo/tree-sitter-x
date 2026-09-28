@@ -20,15 +20,22 @@ type Exports = Record<string, unknown> & {
 
 type SideExports = Record<string, unknown>;
 
-// wasi_snapshot_preview1 imports of the runtime: no files, and no entropy needed.
+// wasi_snapshot_preview1 imports of the runtime. It has no files, clock or entropy:
+// file calls report a bad descriptor, anything else is unsupported, and exit traps.
 const ERRNO_BADF = 8;
 const ERRNO_NOSYS = 52;
-const wasi = {
-  fd_close: () => ERRNO_BADF,
-  fd_seek: () => ERRNO_BADF,
-  fd_write: () => ERRNO_BADF,
-  random_get: () => ERRNO_NOSYS,
-};
+function wasiImports(module: WebAssembly.Module): Record<string, () => number> {
+  const wasi: Record<string, () => number> = {};
+  for (const { module: from, name } of WebAssembly.Module.imports(module)) {
+    if (from !== 'wasi_snapshot_preview1') continue;
+    if (name === 'proc_exit') {
+      wasi[name] = () => { throw new Error('tree-sitter runtime exited'); };
+    } else {
+      wasi[name] = name.startsWith('fd_') ? () => ERRNO_BADF : () => ERRNO_NOSYS;
+    }
+  }
+  return wasi;
+}
 
 const utf8Decoder = new TextDecoder();
 const utf8Encoder = new TextEncoder();
@@ -184,7 +191,6 @@ export default async function createModule(options: ModuleOptions = {}): Promise
   };
 
   const imports = {
-    wasi_snapshot_preview1: wasi,
     env: {
       tree_sitter_parse_callback(inputBufferAddress: number, index: number, row: number, column: number, lengthAddress: number) {
         const text = module.currentParseCallback?.(index, { row, column });
@@ -211,9 +217,8 @@ export default async function createModule(options: ModuleOptions = {}): Promise
   };
 
   const source = await runtimeBytes(options);
-  const instance = source instanceof WebAssembly.Module
-    ? await WebAssembly.instantiate(source, imports)
-    : (await WebAssembly.instantiate(source as BufferSource, imports)).instance;
+  const compiled = source instanceof WebAssembly.Module ? source : await WebAssembly.compile(source as BufferSource);
+  const instance = await WebAssembly.instantiate(compiled, { ...imports, wasi_snapshot_preview1: wasiImports(compiled) });
   runtime.exports = instance.exports as unknown as Exports;
   const exports = runtime.exports;
   exports._initialize();

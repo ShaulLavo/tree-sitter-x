@@ -2,14 +2,19 @@
 # Builds lib/web-tree-sitter.wasm with the WASI SDK: the runtime, the binding glue and
 # the libc subset grammars may import, with no Emscripten runtime. src/wasi-module.ts
 # instantiates it and links grammar modules into its memory and function table.
+# Grammars and extensions run on the runtime's stack: 1 MB, placed first so an overflow
+# traps instead of writing over data (wasm-ld's default is 64 KB after the data).
 set -eu
 cd "$(dirname "$0")/.."
 : "${WASI_SDK:=$HOME/.cache/tree-sitter/wasi-sdk}"
 : "${OPT:=-O3}"
 
-# lib/extra-exports.txt: libc functions published grammars import beyond
-# wasm-stdlib/imports.txt, which Emscripten's runtime provided implicitly.
+# lib/extra-exports.txt: libc functions beyond wasm-stdlib/imports.txt that published
+# grammars (Emscripten's runtime provided them implicitly) and extensions import.
 exports=$(cat ../src/wasm-stdlib/imports.txt lib/extra-exports.txt lib/exports.txt | tr -d '", ' | grep -v '^$')
+# The public C API, so extension modules (loadExtension) can work on trees directly.
+api=$(grep -oE '\bts_[a-z0-9_]+\(' ../include/tree_sitter/api.h | tr -d '(' | sort -u | grep -v 'wasm')
+exports="$exports $api"
 flags=''
 for name in $exports; do flags="$flags -Wl,--export=$name"; done
 
@@ -18,6 +23,7 @@ for name in $exports; do flags="$flags -Wl,--export=$name"; done
   -I../src -I../include \
   lib/tree-sitter.c ../src/lib.c \
   -Wl,--export-memory -Wl,--export-table -Wl,--growable-table \
+  -Wl,-z,stack-size=1048576 -Wl,--stack-first \
   -Wl,--export=__stack_pointer -Wl,--strip-debug $flags \
   -o lib/web-tree-sitter.wasm
 printf 'web-tree-sitter.wasm: %s raw, %s gzip -9\n' \
