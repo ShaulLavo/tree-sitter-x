@@ -102,44 +102,51 @@ export default async function createModule(options: ModuleOptions = {}): Promise
   const runtime = { exports: undefined as unknown as Exports };
   let heapBuffer: ArrayBufferLike | null = null;
   let heap = new DataView(new ArrayBuffer(0));
-  let heapBytes = new Uint8Array(0);
+  let heap8 = new Int8Array(0);
+  let heapU8 = new Uint8Array(0);
+  let heap16 = new Int16Array(0);
+  let heap32 = new Int32Array(0);
   // Memory can grow during any call into the runtime, detaching earlier views.
-  const view = () => {
-    if (runtime.exports.memory.buffer !== heapBuffer) {
-      heapBuffer = runtime.exports.memory.buffer;
-      heap = new DataView(heapBuffer);
-      heapBytes = new Uint8Array(heapBuffer);
-    }
-    return heap;
+  const refresh = () => {
+    const buffer = runtime.exports.memory.buffer;
+    if (buffer === heapBuffer) return;
+    heapBuffer = buffer;
+    heap = new DataView(buffer);
+    heap8 = new Int8Array(buffer);
+    heapU8 = new Uint8Array(buffer);
+    heap16 = new Int16Array(buffer);
+    heap32 = new Int32Array(buffer);
   };
   const bytes = () => {
-    view();
-    return heapBytes;
+    refresh();
+    return heapU8;
   };
 
+  // Typed-array reads, as Emscripten's getValue does: the bindings only pass aligned
+  // addresses, and these calls are the hot path of query and node unmarshaling.
   const getValue = (ptr: number, type = 'i8'): number => {
-    const memory = view();
+    refresh();
     switch (type) {
+      case 'i32': case '*': return heap32[ptr >> 2];
+      case 'i16': return heap16[ptr >> 1];
       case 'i1':
-      case 'i8': return memory.getInt8(ptr);
-      case 'i16': return memory.getInt16(ptr, true);
-      case 'i32': case '*': return memory.getInt32(ptr, true);
-      case 'i64': return Number(memory.getBigInt64(ptr, true));
-      case 'float': return memory.getFloat32(ptr, true);
-      case 'double': return memory.getFloat64(ptr, true);
+      case 'i8': return heap8[ptr];
+      case 'i64': return Number(heap.getBigInt64(ptr, true));
+      case 'float': return heap.getFloat32(ptr, true);
+      case 'double': return heap.getFloat64(ptr, true);
       default: throw new Error(`getValue: invalid type ${type}`);
     }
   };
   const setValue = (ptr: number, value: number, type = 'i8'): void => {
-    const memory = view();
+    refresh();
     switch (type) {
+      case 'i32': case '*': heap32[ptr >> 2] = value; return;
+      case 'i16': heap16[ptr >> 1] = value; return;
       case 'i1':
-      case 'i8': memory.setInt8(ptr, value); return;
-      case 'i16': memory.setInt16(ptr, value, true); return;
-      case 'i32': case '*': memory.setInt32(ptr, value, true); return;
-      case 'i64': memory.setBigInt64(ptr, BigInt(value), true); return;
-      case 'float': memory.setFloat32(ptr, value, true); return;
-      case 'double': memory.setFloat64(ptr, value, true); return;
+      case 'i8': heap8[ptr] = value; return;
+      case 'i64': heap.setBigInt64(ptr, BigInt(value), true); return;
+      case 'float': heap.setFloat32(ptr, value, true); return;
+      case 'double': heap.setFloat64(ptr, value, true); return;
       default: throw new Error(`setValue: invalid type ${type}`);
     }
   };
@@ -168,10 +175,11 @@ export default async function createModule(options: ModuleOptions = {}): Promise
   };
   const stringToUTF16 = (str: string, outPtr: number, maxBytesToWrite = 0x7fffffff): number => {
     if (maxBytesToWrite < 2) return 0;
-    const memory = view();
     const length = Math.min(str.length, (maxBytesToWrite - 2) >> 1);
-    for (let i = 0; i < length; i++) memory.setUint16(outPtr + 2 * i, str.charCodeAt(i), true);
-    memory.setUint16(outPtr + 2 * length, 0, true);
+    // wasm32 is little-endian, like every host that runs it, so a Uint16Array writes UTF-16LE.
+    const units = new Uint16Array(bytes().buffer, outPtr, length + 1);
+    for (let i = 0; i < length; i++) units[i] = str.charCodeAt(i);
+    units[length] = 0;
     return 2 * length;
   };
 

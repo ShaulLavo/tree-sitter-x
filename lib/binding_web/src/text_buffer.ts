@@ -60,9 +60,20 @@ export class TextBuffer {
     return result;
   }
 
+  // The last chunk read decoded: node text for query predicates asks for many small
+  // ranges near each other, and decoding a chunk per request dominated query time.
+  private chunkStart = -1;
+  private chunk = '';
+
   /** The text from `index` on, in chunks, for {@link Tree#textCallback}. */
-  readonly read = (index: number): string =>
-    this.slice(index, Math.min(this.length, index + DECODE_CHUNK));
+  readonly read = (index: number): string => {
+    const start = index - (index % DECODE_CHUNK);
+    if (start !== this.chunkStart) {
+      this.chunk = this.slice(start, Math.min(this.length, start + DECODE_CHUNK));
+      this.chunkStart = start;
+    }
+    return this.chunk.slice(index - start);
+  };
 
   /** Free the buffer's memory. */
   delete(): void {
@@ -78,6 +89,7 @@ export class TextBuffer {
   }
 
   private write(at: number, text: string): void {
+    this.chunkStart = -1;
     const units = this.units(at + text.length);
     for (let i = 0; i < text.length; i++) units[at + i] = text.charCodeAt(i);
   }
