@@ -1288,7 +1288,10 @@ fn test_node_first_child_for_byte_in_hidden_trailing_content() {
 
     for byte in [1, 2] {
         assert_eq!(root.first_child_for_byte(byte).unwrap().start_byte(), 3);
-        assert_eq!(root.first_named_child_for_byte(byte).unwrap().start_byte(), 3);
+        assert_eq!(
+            root.first_named_child_for_byte(byte).unwrap().start_byte(),
+            3
+        );
         let mut cursor = root.walk();
         assert_eq!(cursor.goto_first_child_for_byte(byte), Some(1));
         assert_eq!(cursor.node().start_byte(), 3);
