@@ -1865,8 +1865,17 @@ __name(createModule, "createModule");
 
 // src/bindings.ts
 var Module = null;
+var initialization = null;
 async function initializeBinding(moduleOptions) {
-  return Module ??= await createModule(moduleOptions);
+  if (Module) return Module;
+  initialization ??= createModule(moduleOptions).then((module) => {
+    Module = module;
+    return module;
+  }).catch((error) => {
+    initialization = null;
+    throw error;
+  });
+  return initialization;
 }
 __name(initializeBinding, "initializeBinding");
 function checkModule() {

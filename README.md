@@ -1,3 +1,8 @@
+# tree-sitter-x built package
+
+Built JavaScript bindings for tree-sitter-x. Source: `fix/concurrent-init`,
+commit `9ad71847`. Includes shared initialization for concurrent callers.
+
 # Web Tree-sitter
 
 [![npmjs.com badge]][npmjs.com]
