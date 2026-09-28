@@ -8,7 +8,7 @@ same as upstream.
 
 - **No Emscripten.** The web version (`web-tree-sitter`) is built with plain clang from the WASI
   SDK. Same API, so it drops in for the original. Grammars built by the tree-sitter CLI load
-  unchanged. Loading is about twice as fast.
+  unchanged.
 - **Faster typing on big files.** New `TextBuffer`: keep a document's text inside the parser and
   edit it in place. The parser reads it directly instead of asking JavaScript for text. On a 1 MB
   markdown file, reparsing after a keystroke goes from 0.8 ms to 0.35 ms.
