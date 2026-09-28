@@ -1,7 +1,7 @@
 {
-  "name": "web-tree-sitter",
+  "name": "@singapore-editor/tree-sitter-x",
   "version": "0.28.0",
-  "description": "Tree-sitter bindings for the web",
+  "description": "Tree-sitter-x WASI runtime for JavaScript, with shared text buffers and C extensions",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ShaulLavo/tree-sitter-x.git",
@@ -100,5 +100,9 @@
     "prepack": "cp ../../LICENSE .",
     "postpack": "rm LICENSE",
     "prepublishOnly": "tsx script/check-artifacts-fresh.ts"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }

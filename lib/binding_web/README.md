@@ -1,69 +1,30 @@
-# Web Tree-sitter
+# Tree-sitter-x for JavaScript
 
-[![npmjs.com badge]][npmjs.com]
-
-[npmjs.com]: https://www.npmjs.org/package/web-tree-sitter
-[npmjs.com badge]: https://img.shields.io/npm/v/web-tree-sitter.svg?color=%23BF4A4A
-
-WebAssembly bindings to the [Tree-sitter](https://github.com/tree-sitter/tree-sitter) parsing library.
+WASI bindings for [tree-sitter-x](https://github.com/ShaulLavo/tree-sitter-x), with shared text buffers and C extensions.
 
 ## Setup
 
-You can download the `web-tree-sitter.js` and `web-tree-sitter.wasm` files from [the latest GitHub release][gh release] and load
-them using a standalone script:
-
-```html
-<script src="/the/path/to/web-tree-sitter.js"></script>
-
-<script>
-  const { Parser } = window.TreeSitter;
-  Parser.init().then(() => { /* the library is ready */ });
-</script>
+```sh
+npm install @singapore-editor/tree-sitter-x
 ```
 
-You can also install [the `web-tree-sitter` module][npm module] from NPM and load it using a system like Webpack:
-
 ```js
-const { Parser } = require('web-tree-sitter');
-Parser.init().then(() => { /* the library is ready */ });
-```
-
-or Vite:
-
-```js
-import { Parser }  from 'web-tree-sitter';
-Parser.init().then(() => { /* the library is ready */ });
-```
-
-With Vite, you also need to make sure your server provides the `tree-sitter.wasm`
-file to your `public` directory. You can do this automatically with a `postinstall`
-[script](https://docs.npmjs.com/cli/v10/using-npm/scripts) in your `package.json`:
-
-```js
-"postinstall": "cp node_modules/web-tree-sitter/tree-sitter.wasm public"
-```
-
-You can also use this module with [deno](https://deno.land/):
-
-```js
-import { Parser } from "npm:web-tree-sitter";
+import { Parser, Language } from '@singapore-editor/tree-sitter-x';
 await Parser.init();
-// the library is ready
 ```
 
-To use the debug version of the library, replace your import of `web-tree-sitter` with `web-tree-sitter/debug`:
+CommonJS is also supported:
 
 ```js
-import { Parser } from 'web-tree-sitter/debug'; // or require('web-tree-sitter/debug')
-
-Parser.init().then(() => { /* the library is ready */ });
+const { Parser, Language } = require('@singapore-editor/tree-sitter-x');
+Parser.init().then(() => {
+  const parser = new Parser();
+});
 ```
 
-This will load the debug version of the `.js` and `.wasm` file, which includes debug symbols and assertions.
+The package includes `web-tree-sitter.wasm`. Browser bundles must serve that asset alongside the runtime or pass its bytes to `Parser.init({ wasmBinary })`.
 
-> [!NOTE]
-> The `web-tree-sitter.js` file on GH releases is an ES6 module. If you are interested in using a pure CommonJS library, such
-> as for Electron, you should use the `web-tree-sitter.cjs` file instead.
+Import `@singapore-editor/tree-sitter-x/debug` for the build with debug symbols and assertions.
 
 ### Basic Usage
 
@@ -76,7 +37,7 @@ const parser = new Parser();
 Then assign a language to the parser. Tree-sitter languages are packaged as individual `.wasm` files (more on this below):
 
 ```js
-const { Language } = require('web-tree-sitter');
+const { Language } = require('@singapore-editor/tree-sitter-x');
 const JavaScript = await Language.load('/path/to/tree-sitter-javascript.wasm');
 parser.setLanguage(JavaScript);
 ```
@@ -212,7 +173,7 @@ Notice that executing `.wasm` files in Node.js is considerably slower than runni
 However, this could be useful for testing purposes:
 
 ```javascript
-const Parser = require('web-tree-sitter');
+const Parser = require('@singapore-editor/tree-sitter-x');
 
 (async () => {
   await Parser.init();
@@ -285,5 +246,5 @@ following to your webpack config:
 [gh release]: https://github.com/tree-sitter/tree-sitter/releases/latest
 [gh release js]: https://github.com/tree-sitter/tree-sitter-javascript/releases/latest
 [node bindings]: https://github.com/tree-sitter/node-tree-sitter
-[npm module]: https://www.npmjs.com/package/web-tree-sitter
+[npm module]: https://www.npmjs.com/package/@singapore-editor/tree-sitter-x
 [wasi-sdk]: https://github.com/WebAssembly/wasi-sdk

@@ -26,14 +26,24 @@ same as upstream.
 
 ## Install
 
-The built package lives on the `web-tree-sitter` branch. Pin a commit from it:
+Install the WASI JavaScript runtime from npm:
 
-```json
-"web-tree-sitter": "github:ShaulLavo/tree-sitter-x#c5049e2"
+```sh
+npm install @singapore-editor/tree-sitter-x
 ```
 
-CI rebuilds that branch after each green run on master (`.github/workflows/package.yml`).
-`lib/binding_web/script/package-branch.sh --push` does the same by hand.
+```js
+import { Parser, Language, TextBuffer } from '@singapore-editor/tree-sitter-x'
+```
+
+Projects that import `web-tree-sitter` can install the runtime under that dependency name:
+
+```json
+"web-tree-sitter": "npm:@singapore-editor/tree-sitter-x@0.28.0"
+```
+
+CI also publishes built artifacts on the `web-tree-sitter` Git branch after source checks pass.
+Run `sh lib/binding_web/script/package-branch.sh --push` to refresh that branch manually.
 
 ## Build and test
 

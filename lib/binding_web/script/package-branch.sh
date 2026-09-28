@@ -17,7 +17,7 @@ npm run build
 CJS=1 node script/build.js
 npm run build:dts
 npm pack --pack-destination "$work"
-tar xzf "$work"/web-tree-sitter-*.tgz -C "$work"
+tar xzf "$work"/*.tgz -C "$work"
 node -e '
 const fs = require("fs");
 const file = process.argv[1];
