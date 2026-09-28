@@ -4,7 +4,6 @@ mod bump;
 mod check_regex_error_kinds;
 mod check_wasm_exports;
 mod clippy;
-mod embed_sources;
 mod fetch;
 mod generate;
 mod test;
@@ -36,8 +35,6 @@ enum Commands {
     CheckWasmExports(CheckWasmExports),
     /// Runs `cargo clippy`.
     Clippy(Clippy),
-    /// Fetches emscripten.
-    FetchEmscripten,
     /// Fetches the fixtures for testing tree-sitter.
     FetchFixtures,
     /// Generate the Rust bindings from the C library.
@@ -82,26 +79,15 @@ struct Benchmark {
 #[derive(Args)]
 struct BuildWasm {
     /// Compile the library more quickly, with fewer optimizations
-    /// and more runtime assertions.
+    /// and debug information.
     #[arg(long, short = '0')]
     debug: bool,
-    /// Run emscripten using docker, even if \`emcc\` is installed.
-    /// By default, \`emcc\` will be run directly when available.
-    #[arg(long, short)]
-    docker: bool,
-    /// Run emscripten with verbose output.
+    /// Run clang with verbose output.
     #[arg(long, short)]
     verbose: bool,
     /// Rebuild when relevant files are changed.
     #[arg(long, short)]
     watch: bool,
-    /// Emit TypeScript type definitions for the generated bindings,
-    /// requires `tsc` to be available.
-    #[arg(long, short)]
-    emit_tsd: bool,
-    /// Generate `CommonJS` modules instead of ES modules.
-    #[arg(long, short, env = "CJS")]
-    cjs: bool,
 }
 
 #[derive(Args)]
@@ -180,12 +166,6 @@ struct UpgradeWasmtime {
 
 const BUILD_VERSION: &str = env!("CARGO_PKG_VERSION");
 const BUILD_SHA: Option<&str> = option_env!("BUILD_SHA");
-const EMSCRIPTEN_VERSION: &str = include_str!("../../loader/emscripten-version").trim_ascii();
-const EMSCRIPTEN_TAG: &str = concat!(
-    "docker.io/emscripten/emsdk:",
-    include_str!("../../loader/emscripten-version")
-)
-.trim_ascii();
 
 fn main() {
     let result = run();
@@ -235,7 +215,6 @@ fn run() -> Result<()> {
         Commands::CheckRegexErrorKinds => check_regex_error_kinds::run()?,
         Commands::CheckWasmExports(check_options) => check_wasm_exports::run(&check_options)?,
         Commands::Clippy(clippy_options) => clippy::run(&clippy_options)?,
-        Commands::FetchEmscripten => fetch::run_emscripten()?,
         Commands::FetchFixtures => {
             fetch::run_fixtures()?;
         }
@@ -347,8 +326,7 @@ macro_rules! watch_wasm {
         let watch_files = [
             "lib/tree-sitter.c",
             "lib/exports.txt",
-            "lib/imports.js",
-            "lib/prefix.js",
+            "lib/extra-exports.txt",
         ]
         .iter()
         .map(PathBuf::from)

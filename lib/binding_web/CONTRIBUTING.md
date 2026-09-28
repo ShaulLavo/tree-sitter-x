@@ -12,8 +12,9 @@ To make changes to Web-tree-sitter, you should have:
 
 1. A [Rust toolchain][rust], for running the xtasks necessary to build the library.
 2. Node.js and NPM (or an equivalent package manager).
-3. Either [Emscripten][emscripten], [Docker][docker], or [podman][podman] for
-compiling the library to Wasm.
+3. Nothing else: `cargo xtask build-wasm` compiles the library with clang from the [WASI SDK][wasi-sdk] and optimizes it
+with binaryen's `wasm-opt`, downloading both on first use (or set `TREE_SITTER_WASI_SDK_PATH` and
+`TREE_SITTER_BINARYEN_PATH`).
 
 ### Building
 
@@ -39,8 +40,6 @@ npm run build
 Note that the build process requires a Rust toolchain to be installed. If you don't have one installed, you can install it
 by visiting the [Rust website][rust] and following the instructions there.
 
-If you use a local Emscripten installation, it must match the [version pinned in this repository][emscripten-version].
-
 > [!NOTE]
 > By default, the build process will emit an ES6 module. If you need a CommonJS module, export `CJS` to `true`, or just
 > run `CJS=true npm run build` (or the equivalent command for Windows).
@@ -53,9 +52,10 @@ If you use a local Emscripten installation, it must match the [version pinned in
 
 #### The C side
 
-There are several components that come together to build the final JS and Wasm files. First, we use `emscripten` in our
-xtask located at `xtask/src/build_wasm.rs` from the root directory to compile the Wasm files. This Wasm module is output into the
-local `lib` folder, and is used only in [`src/bindings.ts`][bindings.ts] to handle loading the Wasm module. The C code that
+There are several components that come together to build the final JS and Wasm files. First, the xtask located at
+`xtask/src/build_wasm.rs` from the root directory compiles the Wasm module with clang from the WASI SDK. It is output into
+the local `lib` folder, and loaded by [`src/wasi-module.ts`][wasi-module.ts] (through [`src/bindings.ts`][bindings.ts]),
+which also links grammar modules into it. The C code that
 is compiled into the Wasm module is located in at [`lib/tree-sitter.c`][tree-sitter.c], and contains all the necessary
 glue code to interact with the JS environment. If you need to update the imported functions from the tree-sitter library,
 or anywhere else, you must update [`lib/exports.txt`][exports.txt]. Lastly, the type information for the Wasm module is
@@ -121,24 +121,22 @@ npm test
 
 ### Debugging
 
-You might have noticed that when you ran `npm build`, the build process generated a couple of [sourcemaps][sourcemap]:
-`web-tree-sitter.js.map` and `web-tree-sitter.wasm.map`. These sourcemaps can be used to debug the library in the browser, and are
-shipped with the library on both NPM and the GitHub releases.
+You might have noticed that when you ran `npm build`, the build process generated a [sourcemap][sourcemap],
+`web-tree-sitter.js.map`, which can be used to debug the library in the browser. `npm run build:debug` builds the Wasm module
+with debug information.
 
-#### Tweaking the Emscripten build
+#### Tweaking the Wasm build
 
-If you're trying to tweak the Emscripten build, or are trying to debug an issue, the code for this lies in `xtask/src/build_wasm.rs`
+If you're trying to tweak the Wasm build, or are trying to debug an issue, the code for this lies in `xtask/src/build_wasm.rs`
 file mentioned earlier, namely in the `run_wasm` function.
 
 [bindings.ts]: src/bindings.ts
+[wasi-module.ts]: src/wasi-module.ts
+[wasi-sdk]: https://github.com/WebAssembly/wasi-sdk
 [build.js]: script/build.js
 [covenant]: https://www.contributor-covenant.org/version/1/4/code-of-conduct
-[docker]: https://www.docker.com
 [dts-buddy]: https://github.com/Rich-Harris/dts-buddy
-[emscripten]: https://emscripten.org
-[emscripten-version]: ../../crates/loader/emscripten-version
 [exports.txt]: lib/exports.txt
-[podman]: https://podman.io
 [rust]: https://www.rust-lang.org/tools/install
 [sourcemap]: https://developer.mozilla.org/en-US/docs/Glossary/Source_map
 [tree-sitter.c]: lib/tree-sitter.c

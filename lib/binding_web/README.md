@@ -264,7 +264,7 @@ where the loader expects the script to be. It returns the path where the loader 
 case, we want to return just the `scriptName` so that the loader will look at `http://localhost:3000/tree-sitter.wasm`
 and not `http://localhost:3000/_next/static/chunks/pages/tree-sitter.wasm`.
 
-For more information on the module options you can pass in, see the [emscripten documentation][emscripten-module-options].
+`Parser.init` also accepts `wasmBinary`: the runtime's bytes or a compiled `WebAssembly.Module`, instead of fetching it.
 
 #### "Can't resolve 'fs' in 'node_modules/web-tree-sitter"
 
@@ -282,12 +282,8 @@ following to your webpack config:
 }
 ```
 
-[docker]: https://www.docker.com
-[emscripten]: https://emscripten.org
-[emscripten-module-options]: https://emscripten.org/docs/api_reference/module.html#affecting-execution
 [gh release]: https://github.com/tree-sitter/tree-sitter/releases/latest
 [gh release js]: https://github.com/tree-sitter/tree-sitter-javascript/releases/latest
 [node bindings]: https://github.com/tree-sitter/node-tree-sitter
 [npm module]: https://www.npmjs.com/package/web-tree-sitter
-[podman]: https://podman.io
 [wasi-sdk]: https://github.com/WebAssembly/wasi-sdk

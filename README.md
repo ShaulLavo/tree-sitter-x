@@ -29,7 +29,7 @@ same as upstream.
 ```sh
 cd lib/binding_web
 npm install
-npm run build   # needs the WASI SDK; set WASI_SDK, or it uses the tree-sitter CLI's copy
+npm run build   # runs `cargo xtask build-wasm`, which downloads the WASI SDK and binaryen
 npm test        # upstream's tests, plus a comparison against the original web-tree-sitter
 ```
 

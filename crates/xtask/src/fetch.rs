@@ -1,4 +1,4 @@
-use crate::{EMSCRIPTEN_VERSION, bail_on_err, root_dir};
+use crate::{bail_on_err, root_dir};
 use anyhow::Result;
 use std::{fs, path::Path, process::Command};
 
@@ -187,46 +187,4 @@ pub fn run_fixtures() -> Result<()> {
     }
 
     Ok(())
-}
-
-pub fn run_emscripten() -> Result<()> {
-    let emscripten_dir = root_dir().join("target").join("emsdk");
-    if emscripten_dir.exists() {
-        println!("Emscripten SDK already exists");
-        return Ok(());
-    }
-    println!("Cloning the Emscripten SDK...");
-
-    let mut command = Command::new("git");
-    command.args([
-        "clone",
-        "https://github.com/emscripten-core/emsdk.git",
-        &emscripten_dir.to_string_lossy(),
-    ]);
-    bail_on_err(
-        &command.spawn()?.wait_with_output()?,
-        "Failed to clone the Emscripten SDK",
-    )?;
-
-    std::env::set_current_dir(&emscripten_dir)?;
-
-    let emsdk = if cfg!(windows) {
-        "emsdk.bat"
-    } else {
-        "./emsdk"
-    };
-
-    let mut command = Command::new(emsdk);
-    command.args(["install", EMSCRIPTEN_VERSION]);
-    bail_on_err(
-        &command.spawn()?.wait_with_output()?,
-        "Failed to install Emscripten",
-    )?;
-
-    let mut command = Command::new(emsdk);
-    command.args(["activate", EMSCRIPTEN_VERSION]);
-    bail_on_err(
-        &command.spawn()?.wait_with_output()?,
-        "Failed to activate Emscripten",
-    )
 }
