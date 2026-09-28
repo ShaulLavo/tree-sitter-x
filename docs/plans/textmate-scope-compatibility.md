@@ -56,6 +56,31 @@ Run the reference implementations against equivalent inputs before scoring the n
 
 Where a reference difference remains intentional, record a named profile expectation with a minimal fixture. Do not modify a golden or discard an input merely to make the native score improve.
 
+### Cross-project dependencies and execution order
+
+[Fregat's execution roadmap](https://github.com/ShaulLavo/fregat/blob/main/PLAN.md) remains the scheduler; this fork owns the scope compiler and its compatibility evidence, not a replacement cross-project queue. The dependency review used Fregat `43d14690319abb1499e8b556d0bda19194486ed7` and its [roadmap](https://github.com/ShaulLavo/fregat/blob/43d14690319abb1499e8b556d0bda19194486ed7/PLAN.md). Links below identify that inspected snapshot. Recheck each owning plan and implementation before its dependent cutover; historical statuses are not fresh completion evidence.
+
+**The experiment can proceed independently. Production integration is contract-gated.** Phases 0–5 do not wait for the entire wave-2 queue, Plan 197, full Plan 099, or full Plan 198 acceptance. Isolated native edit/lifetime tests may run in the harness before consumer contracts are ready. Phase 6 must use the relevant landed owners rather than inventing replacement application plumbing.
+
+| Owner / plan | Relationship to this work | Ordering rule |
+| --- | --- | --- |
+| [197: highlighting service](https://github.com/ShaulLavo/fregat/blob/43d14690319abb1499e8b556d0bda19194486ed7/plans/197-editor-highlighting-service.md) | Owns provider/service lifetime, language/theme loading, standalone highlighting and prepared-diff syntax. This plan supplies a backend, not another service or cache. | Establish the service boundary needed by each production consumer migration first. 197 ships with existing backends and must not wait for native parity. Its standalone path does not require 198's retained-document lifetime. |
+| [099: document contributions](https://github.com/ShaulLavo/fregat/blob/43d14690319abb1499e8b556d0bda19194486ed7/plans/099-document-contributions.md) | Unit 1 owns canonical revision-tagged publication; common consumer synchronization stays with its existing owner. The inspected unit 1 remains open. | Retained-document integration consumes the relevant publication and synchronization contracts. Do not require all of 099 or its unrelated minimap/LSP migrations. Units 2–7 retain their authorization gate; a dependent adapter waits for its needed contract, rather than creating a parallel journal. |
+| [198: document-owned analysis](https://github.com/ShaulLavo/fregat/blob/43d14690319abb1499e8b556d0bda19194486ed7/plans/198-document-owned-editor-analysis.md) | Retained analysis code has partly landed; acquisition, result admission, cancellation, retention and attachment still need their stated acceptance proof. | Reuse and prove the specific guarantees required by retained editor/view integration. Do not recreate an analysis owner or require completion of unrelated work. Standalone snippets and fork-level experiments do not wait on retained-view acceptance. |
+| [200: content views](https://github.com/ShaulLavo/fregat/blob/43d14690319abb1499e8b556d0bda19194486ed7/plans/200-document-backed-content-views.md) | Owns comparison/preview content acquisition and view attachment. Its prerequisites are the relevant 099/198 contracts and 197's diff service. | Neither plan is a blanket prerequisite for the other. 200 proceeds using current backends. A later native backend swap preserves its landed source/attachment contracts; it does not repeat its migration or own another diff cache. |
+| [201: large-file typing](https://github.com/ShaulLavo/fregat/blob/43d14690319abb1499e8b556d0bda19194486ed7/plans/201-cheap-overlay-marks.md) | Owns typing-cost attribution, overlay fixes, language-service policy and the large-file highlighter decision in step 4. | Overlay and measurement work proceed without native parity. Coordinate evidence for step 4; this plan is not an assumed fix for overlay or LSP cost. Refresh the end-to-end baseline against current Shiki improvements before cutover. |
+| [176: Markdown parser](https://github.com/ShaulLavo/fregat/blob/43d14690319abb1499e8b556d0bda19194486ed7/plans/176-markdown-parser.md) / [189: later improvements](https://github.com/ShaulLavo/fregat/blob/43d14690319abb1499e8b556d0bda19194486ed7/plans/189-tree-sitter-md-improvement.md) | 176 records the released shared-runtime parser and Editor integration; 189 owns subsequent parser improvements. Some older release-blocker text is superseded by 176's implementation evidence. | Reuse the current MarkdownDocument/extension owner and coordinate shared runtime files. Markdown/injection acceptance requires the relevant parser behavior, not every future 189 pass. TS/TSX/JSON work proceeds independently. Do not repeat the shipped parser migration. |
+| [112: file ceiling](https://github.com/ShaulLavo/fregat/blob/43d14690319abb1499e8b556d0bda19194486ed7/plans/112-large-file-ceiling.md) / Editor E015–E016 | 112 is recorded complete; E015 owns massive-file loading and E016 bounded structural parsing in that lane. | Reuse the existing ceiling benchmark. Full-source scope compilation does not wait for paging or bounded parsing. Any partial-tree mode must first establish an explicit context/coverage contract with those owners; it cannot be introduced as a scope optimization that silently loses context. |
+| [170: language census](https://github.com/ShaulLavo/fregat/blob/43d14690319abb1499e8b556d0bda19194486ed7/plans/170-language-census.md) | Main census/warm-up phases are implemented; some measurement rows remain. 197 owns the service-side takeover. | Preserve existing alias resolution, lazy loading and prewarming during integration. Remaining census measurements do not block the harness or native pilot. |
+
+The resulting order has parallel lanes: the fork's harness and native compatibility work; 197's service work; the relevant 099/198 document contracts; and 201's independent performance work. They meet at the affected production cutovers. No new dependency from 197, 200, 201, or unrelated wave work to this experiment is introduced. Plans 171/182 keep composer/search ownership; this backend does not absorb those migrations.
+
+**Resolve the Plan 197 wording at cutover.** Its inspected semantics say imported VS Code themes retain Shiki/TextMate colors. Treat Shiki as the initial implementation, while preserving observable scope/style behavior and language coverage. Before selecting the native backend in production, reconcile that wording with 197's owner in the consumer PR so backend identity is not accidentally made a permanent public contract. This fork PR does not edit 197 or authorize an early engine switch.
+
+**Do not revive the rejected transport work.** 099 records Editor E057's completed SAB text-transport removal and keeps separate workers. Sharing the parser's Wasm heap with a native extension inside the same runtime is not cross-worker shared text. The existing Editor buffer remains authoritative; parser-local storage is its synchronized analysis representation. No worker consolidation, replacement document storage, shared allocator project, or revival of E010/E012/E013 is a prerequisite. A broader transport change requires a separate measured decision.
+
+**Keep the roadmap link explicit without expanding this PR.** Record this fork plan as an external backend experiment in the next authorized Fregat roadmap/index reconciliation, with only the cutover dependencies above. That bookkeeping is not an execution prerequisite and must not reorder the owner's remaining queue. This PR changes no Fregat/Singapore files.
+
 ## 3. Proposed implementation boundaries
 
 Keep parser core, scope packs, theme resolution, and editor adapters separate. Prefer an optional component so upstream parser users do not inherit theme catalogs or TextMate tooling.
@@ -293,6 +318,8 @@ Compare equivalent work in separate lanes:
 
 Compare against the agreed current incremental Shiki implementation. Disable diagnostic explanations on both sides for the production-like lane; measure diagnostics separately. Never compare whole-document reference output with viewport-only native output as if they did equal work.
 
+Reuse Plan 112's existing benchmark and coordinate with Plan 201's metric/attribution work. Reference grammar/theme locks remain deterministic correctness inputs; the performance control may be refreshed in a separately recorded run as Shiki and common rendering improve. Pending consumer measurements do not block the isolated harness or native prototype, but current comparable measurements are required before claiming end-to-end gains or approving a production cutover. Keep overlay, language-server and tokenizer costs separately attributed; do not count another plan's shared rendering fix as a native-engine speedup.
+
 Measure cold/warm open, first viewport result, full completion, repeated edits, edits near the beginning, huge single lines, deep nesting, theme switches, view reopen/dispose cycles, and multiple documents. Use size/density buckets including small files, megabyte-scale files, and larger stress inputs; document exact fixture bytes and token density.
 
 Report latency distributions and maximum stalls, bytes scanned, regions invalidated, copied/transported bytes, peak/live retained memory, Wasm capacity, token/scope counts, cache counts, and allocation/reclamation behavior. Separate source-buffer suffix movement from scope work while retaining both in end-to-end totals. Distinguish live allocations from Wasm's retained high-water capacity; capacity alone is not a leak diagnosis. [R14]
@@ -301,7 +328,7 @@ Record hardware, OS/browser/runtime/compiler versions, optimization flags, warmu
 
 ## 11. Phases and stop/go gates
 
-Each phase should become a separately reviewed implementation unit. The checkboxes below are intentionally unchecked.
+Each phase should become a separately reviewed implementation unit. The checkboxes below are intentionally unchecked. Cross-project prerequisites apply to the affected Phase 6 consumer cutover, not to the fork's isolated experiment; see [dependency order](#cross-project-dependencies-and-execution-order).
 
 ### Phase 0: lock target and inventory
 
@@ -309,9 +336,10 @@ Each phase should become a separately reviewed implementation unit. The checkbox
 - [ ] Inventory target languages, aliases, parser availability, scope-pack status, injection dependencies, and fixture sources.
 - [ ] Review provenance and license handling; choose vendored versus fetched assets.
 - [ ] Establish reference differences and document the primary target for each fixture class.
-- [ ] Record the current Shiki performance baseline and a measurement protocol after coordinating with its ongoing optimization work.
+- [ ] Record the current Shiki baseline identity and measurement protocol, reusing Plan 112/201 evidence where applicable. Collect pending end-to-end measurements in parallel and refresh them before Phase 5's release evaluation; do not block oracle/harness work on the concurrent Shiki optimization.
+- [ ] Record the required downstream contracts from 197 and 099/198 as Phase 6 prerequisites, without creating dependencies on their unrelated units or changing their authorization gates.
 
-**Gate:** a reproducible manifest and explicit compatibility contract exist. No parity claim is made without a denominator and a profile.
+**Gate:** a reproducible correctness manifest, explicit compatibility contract and named performance-control revision exist. Pending consumer performance runs do not block Phase 1. No parity claim is made without a denominator and a profile.
 
 ### Phase 1: trustworthy harness
 
@@ -328,7 +356,7 @@ Each phase should become a separately reviewed implementation unit. The checkbox
 - [ ] Prove existing-tree/shared-source operation through the current extension seam.
 - [ ] Implement deterministic full-document scope composition and the minimum supported native predicates.
 - [ ] Start with TypeScript and TSX as explicit variants, plus JSON as a simpler control. Record JavaScript/JSX as distinct variants rather than assuming TS coverage implies them.
-- [ ] Add one mixed-language pilot, such as Markdown fences containing TypeScript, before concluding that the architecture generalizes.
+- [ ] Add one mixed-language pilot, such as Markdown fences containing TypeScript, before concluding that the architecture generalizes. For Markdown, reuse the parser/runtime integration recorded by 176 and verify the current release; do not wait for every 189 improvement or recreate its document owner.
 - [ ] Compare native scopes using the reference matcher and emit minimized mismatch reports.
 
 **Gate:** memory/ownership/schema safety tests pass; the candidate improves on named baselines without altering the oracle. Publish actual remaining mismatches. No cutover based solely on a favorable aggregate percentage.
@@ -356,21 +384,23 @@ Each phase should become a separately reviewed implementation unit. The checkbox
 - [ ] Extend to JavaScript/JSX, Python, Rust, HTML/CSS, Markdown variants, shell/heredocs, and further catalog languages in evidence-driven waves.
 - [ ] Exercise grammar-specific hard cases: YAML indentation, C/C++ preprocessing, SQL dialects, nested injections, and incomplete source as their packs are added.
 - [ ] Run the locked theme catalog and held-out corpus; publish per-language/theme results and unsupported entries.
-- [ ] Run the performance/memory protocol and define explicit product cutover budgets.
+- [ ] Run the performance/memory protocol against the current agreed Shiki and common-rendering baseline, define explicit product cutover budgets, and provide evidence to Plan 201's step 4 decision without blocking its overlay work.
 - [ ] Decide for each mismatch class whether to fix the pack/parser, accept a documented deviation, or keep that pack experimental.
 
 **Gate:** each promoted pack passes its mandatory exact fixtures and agreed numeric coverage/style/scope/performance thresholds. Thresholds are approved before the release evaluation, not retrofitted to the score. Full catalog accounting is mandatory even when only a subset is promotable.
 
 ### Phase 6: downstream integration and eventual removal
 
-- [ ] In later Singapore/Fregat PRs, integrate behind explicit experimental selection using the existing provider/session and packed-token boundaries after re-inspecting their current APIs.
-- [ ] Preserve folding, selection, brackets, injections, diff/prepared-document behavior, viewport queries, and theme switching without duplicate document owners.
+- [ ] For each consumer cutover, record the exact landed commits and acceptance evidence for the contracts it needs: 197's service/provider and diff ownership; for retained documents, 099's canonical publication/relevant adapter contract and 198's acquisition, revision/range/configuration admission, cancellation, retention and attachment. Reuse landed code. Do not require unrelated units or bypass any remaining authorization gate.
+- [ ] In later Singapore/Fregat PRs, integrate the backend through 197's service and existing provider/session and packed-token boundaries after re-inspecting their current APIs. Standalone snippets do not acquire a retained document merely to satisfy 198.
+- [ ] Reconcile 197's imported-theme wording in the consumer PR: preserve approved highlighting behavior and coverage, with Shiki as the initial backend rather than a permanent API requirement. Keep existing production selection until this migration is accepted.
+- [ ] Preserve folding, selection, brackets, injections, diff/prepared-document behavior, viewport queries, and theme switching without duplicate document owners. Preserve 170's loading/warm-up and 200's landed source/attachment contracts where present; do not make full 200 completion a new prerequisite.
 - [ ] Test the same source/theme across editor, diffs, previews, and Markdown consumers where they share the supported contract.
 - [ ] Promote only approved packs; retain the application's pre-existing behavior outside the experiment until an explicit migration decision.
 - [ ] Remove Shiki/TextMate from the selected production path only after coverage is approved; enforce a dependency/build artifact check proving they are not accidentally bundled by the optional component.
 - [ ] Document remaining limitations and the final coverage contract before advertising broad theme compatibility.
 
-**Gate:** reviewed consumer evidence and rollback procedure exist. This phase requires separate changes outside this repository; this plan does not authorize or perform them. A full removal must not silently drop previously supported languages.
+**Gate:** the affected consumer's named prerequisite contracts are proven, current compatibility/performance evidence is reviewed, and a rollback procedure exists. This phase requires separate changes outside this repository; this plan does not authorize or perform them. A full removal must not silently drop previously supported languages. Other plans do not wait for this gate to ship their existing-backend work.
 
 ## 12. CI and maintenance contract
 
@@ -395,11 +425,12 @@ For implementation changes, reconcile tests with the fork's current contribution
 | Reference changes invalidate historical scores | Lock all assets and settings; regenerate through an explicit upgrade workflow. |
 | Error recovery cannot match selected lexical behavior economically | Preserve the mismatch and make a product decision. Do not smuggle in a second native tokenizer as an unreviewed fix. |
 | Shared memory is mistaken for isolation or cross-worker safety | Trust only approved modules; specify synchronization, revision, and lifetime rules explicitly. |
+| Cross-plan dependency cycles or duplicate owners | Keep the fork experiment independent, use 197 and the relevant 099/198 contracts only at consumer cutover, preserve 200/201's independent delivery, and do not reopen rejected SAB transport work. |
 
 ## 14. Completion criteria for this planning PR
 
 This PR is complete when the research dossier and this plan are reviewable in the owner's fork, the evidence/assumptions and unrun experiments are distinguishable, and no runtime source, dependencies, fixtures, goldens, or workflows have been changed.
 
-Review should settle the initial product profile, pilot language set, optional-component ownership, and the phase gates. Implementation and measured parity remain future work under separately reviewed changes.
+Review should settle the initial product profile, pilot language set, optional-component ownership, phase gates, and the contract-level cross-plan dependencies. Implementation and measured parity remain future work under separately reviewed changes. The Fregat roadmap and owning plans keep their execution and authorization authority; this documentation does not rewrite their queue or statuses.
 
 AI assistance: researched and drafted at the fork owner's explicit request. No upstream PR, human-review claim, or runtime implementation is implied.
