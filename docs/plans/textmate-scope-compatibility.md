@@ -374,7 +374,7 @@ Each phase should become a separately reviewed implementation unit. The checkbox
 
 ## 12. CI and maintenance contract
 
-Proposed fast jobs cover harness self-tests, mandatory language fixtures, a compact real/synthetic theme set, deterministic edits, native safety tests, and browser/Wasm smoke tests. Expanded jobs cover all locked themes, broader corpora, more seeds, and controlled performance runs. Do not propose sub-hour polling or introduce scheduling changes in this documentation PR.
+Proposed fast jobs cover harness self-tests, mandatory language fixtures, a compact real/synthetic theme set, deterministic edits, native safety tests, and browser/Wasm smoke tests. Expanded jobs cover all locked themes, broader corpora, more seeds, and controlled performance runs. Workflow implementation belongs in a later PR.
 
 Normal CI reads goldens and fails on unexpected changes. A dedicated reviewed command regenerates them from the reference only, attaching old/new lock identities and a diff report. Never approve candidate output by making it the new oracle. A grammar upgrade is a versioned compatibility event with a changelog and regenerated reference report.
 
