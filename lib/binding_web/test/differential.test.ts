@@ -2,7 +2,10 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { readdirSync, readFileSync, existsSync } from 'fs';
 import path from 'path';
 import * as ours from '../src';
-import * as upstream from 'web-tree-sitter-upstream';
+import * as upstreamModule from 'web-tree-sitter-upstream';
+
+// The published package exposes the same API; its types do not resolve under this tsconfig.
+const upstream = upstreamModule as unknown as typeof ours;
 
 // Parses every fixture grammar's corpus with this build and with the published
 // Emscripten build of web-tree-sitter, and requires identical trees, identical
@@ -77,7 +80,7 @@ describe('differential against upstream web-tree-sitter', () => {
       const highlightsPath = path.join(grammarDir(repository), 'queries/highlights.scm');
       const source = existsSync(highlightsPath) ? readFileSync(highlightsPath, 'utf8') : null;
       const compile = <Q>(make: () => Q): Q | string => {
-        try { return make(); } catch (error) { return String((error as Error).message); }
+        try { return make(); } catch (error) { return (error as Error).message; }
       };
       const oursQuery = source && compile(() => new ours.Query(oursLanguage, source));
       const upstreamQuery = source && compile(() => new upstream.Query(upstreamLanguage, source));
