@@ -7,9 +7,9 @@ cd "$(dirname "$0")/.."
 : "${WASI_SDK:=$HOME/.cache/tree-sitter/wasi-sdk}"
 : "${OPT:=-O3}"
 
-# Scanners built with assertions also import __assert_fail, which Emscripten's runtime
-# provided implicitly.
-exports="$(cat ../src/wasm-stdlib/imports.txt lib/exports.txt | tr -d '", ' | grep -v '^$') __assert_fail"
+# lib/extra-exports.txt: libc functions published grammars import beyond
+# wasm-stdlib/imports.txt, which Emscripten's runtime provided implicitly.
+exports=$(cat ../src/wasm-stdlib/imports.txt lib/extra-exports.txt lib/exports.txt | tr -d '", ' | grep -v '^$')
 flags=''
 for name in $exports; do flags="$flags -Wl,--export=$name"; done
 
