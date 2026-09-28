@@ -1,21 +1,31 @@
-# tree-sitter
+# tree-sitter-x
 
-[![DOI](https://zenodo.org/badge/14164618.svg)](https://zenodo.org/badge/latestdoi/14164618)
-[![discord][discord]](https://discord.gg/w7nTvsVJhm)
-[![matrix][matrix]](https://matrix.to/#/#tree-sitter-chat:matrix.org)
+A fork of [tree-sitter](https://github.com/tree-sitter/tree-sitter). It is built mainly for
+[Fregat](https://github.com/ShaulLavo/fregat), but anyone can use it. Everything else works the
+same as upstream.
 
-Tree-sitter is a parser generator tool and an incremental parsing library. It can build a concrete syntax tree for a source file and efficiently update the syntax tree as the source file is edited. Tree-sitter aims to be:
+## What we changed
 
-- **General** enough to parse any programming language
-- **Fast** enough to parse on every keystroke in a text editor
-- **Robust** enough to provide useful results even in the presence of syntax errors
-- **Dependency-free** so that the runtime library (which is written in pure C) can be embedded in any application
+- **No Emscripten.** The web version (`web-tree-sitter`) is built with plain clang from the WASI
+  SDK. Same API, so it drops in for the original. Grammars built by the tree-sitter CLI load
+  unchanged. Loading is about twice as fast.
+- **Faster typing on big files.** New `TextBuffer`: keep a document's text inside the parser and
+  edit it in place. The parser reads it directly instead of asking JavaScript for text. On a 1 MB
+  markdown file, reparsing after a keystroke goes from 0.8 ms to 0.35 ms.
 
-## Links
-- [Documentation](https://tree-sitter.github.io)
-- [Rust binding](lib/binding_rust/README.md)
-- [Wasm binding](lib/binding_web/README.md)
-- [Command-line interface](crates/cli/README.md)
+## What we fixed
 
-[discord]: https://img.shields.io/discord/1063097320771698699?logo=discord&label=discord
-[matrix]: https://img.shields.io/matrix/tree-sitter-chat%3Amatrix.org?logo=matrix&label=matrix
+- Finding "the first child at this position" failed when the position was inside invisible
+  trailing content, like the blank lines between markdown paragraphs. Both `Node` and
+  `TreeCursor` versions now find the next child.
+
+## Build and test
+
+```sh
+cd lib/binding_web
+npm install
+npm run build   # needs the WASI SDK; set WASI_SDK, or it uses the tree-sitter CLI's copy
+npm test        # upstream's tests, plus a comparison against the original web-tree-sitter
+```
+
+`node script/bench.mjs <grammar.wasm> <file>` compares speed with the original.
