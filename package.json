@@ -1,0 +1,74 @@
+{
+  "name": "web-tree-sitter",
+  "version": "0.28.0",
+  "description": "Tree-sitter bindings for the web",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ShaulLavo/tree-sitter-x.git",
+    "directory": "lib/binding_web"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Max Brunsfeld",
+    "email": "maxbrunsfeld@gmail.com"
+  },
+  "maintainers": [
+    {
+      "name": "Amaan Qureshi",
+      "email": "amaanq12@gmail.com"
+    }
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./web-tree-sitter.d.ts",
+        "default": "./web-tree-sitter.js"
+      },
+      "require": {
+        "types": "./web-tree-sitter.d.cts",
+        "default": "./web-tree-sitter.cjs"
+      }
+    },
+    "./web-tree-sitter.wasm": "./web-tree-sitter.wasm",
+    "./debug": {
+      "import": {
+        "types": "./web-tree-sitter.d.ts",
+        "default": "./debug/web-tree-sitter.js"
+      },
+      "require": {
+        "types": "./web-tree-sitter.d.cts",
+        "default": "./debug/web-tree-sitter.cjs"
+      }
+    },
+    "./debug/web-tree-sitter.wasm": "./debug/web-tree-sitter.wasm"
+  },
+  "browser": {
+    "fs": false,
+    "fs/promises": false,
+    "module": false
+  },
+  "types": "web-tree-sitter.d.ts",
+  "keywords": [
+    "incremental",
+    "parsing",
+    "tree-sitter",
+    "wasm"
+  ],
+  "files": [
+    "web-tree-sitter.cjs",
+    "web-tree-sitter.cjs.map",
+    "web-tree-sitter.js",
+    "web-tree-sitter.js.map",
+    "web-tree-sitter.wasm",
+    "debug/web-tree-sitter.cjs",
+    "debug/web-tree-sitter.cjs.map",
+    "debug/web-tree-sitter.js",
+    "debug/web-tree-sitter.js.map",
+    "debug/web-tree-sitter.wasm",
+    "web-tree-sitter.d.ts",
+    "web-tree-sitter.d.ts.map",
+    "web-tree-sitter.d.cts",
+    "web-tree-sitter.d.cts.map"
+  ]
+}
