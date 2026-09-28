@@ -1681,6 +1681,11 @@ async function runtimeBytes(options) {
   if (options.wasmBinary) return options.wasmBinary;
   const base = new URL(".", importMetaUrl).href;
   const location = options.locateFile?.("web-tree-sitter.wasm", base) ?? new URL("web-tree-sitter.wasm", importMetaUrl).href;
+  const isPath = /^[a-z]:/i.test(location) || !/^[a-z][a-z\d+.-]*:/i.test(location);
+  if (typeof process !== "undefined" && process.versions.node && isPath) {
+    const { readFile } = await import("fs/promises");
+    return readFile(location);
+  }
   const url = new URL(location, base);
   if (url.protocol === "file:") {
     const { readFile } = await import("fs/promises");
