@@ -4,6 +4,7 @@ import { marshalRange, unmarshalRange } from './marshal';
 import { checkModule, initializeBinding } from './bindings';
 import type { ModuleOptions } from './wasi-module';
 import { Tree } from './tree';
+import { TextBuffer } from './text_buffer';
 import { newFinalizer } from './finalization_registry';
 
 /**
@@ -181,7 +182,8 @@ export class Parser {
   /**
    * Parse a slice of UTF8 text.
    *
-   * @param {string | ParseCallback} callback - The UTF8-encoded text to parse or a callback function.
+   * @param {string | ParseCallback | TextBuffer} callback - The text to parse, a callback function, or a
+   *   {@link TextBuffer}, which is read in place.
    *
    * @param {Tree | null} [oldTree] - A previous syntax tree parsed from the same document. If the text of the
    *   document has changed since `oldTree` was created, then you must edit `oldTree` to match
@@ -195,11 +197,13 @@ export class Parser {
    *  - The progress callback returned true.
    */
   parse(
-    callback: string | ParseCallback,
+    callback: string | ParseCallback | TextBuffer,
     oldTree?: Tree | null,
     options?: ParseOptions,
   ): Tree | null {
-    if (typeof callback === 'string') {
+    if (callback instanceof TextBuffer) {
+      C.currentParseCallback = callback.read;
+    } else if (typeof callback === 'string') {
       C.currentParseCallback = (index: number) => callback.slice(index);
     } else if (typeof callback === 'function') {
       C.currentParseCallback = callback;
@@ -233,13 +237,22 @@ export class Parser {
       }
     }
 
-    const treeAddress = C._ts_parser_parse_wasm(
-      this[0],
-      this[1],
-      oldTree ? oldTree[0] : 0,
-      rangeAddress,
-      rangeCount
-    );
+    const treeAddress = callback instanceof TextBuffer
+      ? C._ts_parser_parse_utf16_wasm(
+        this[0],
+        callback[0],
+        callback.length * 2,
+        oldTree ? oldTree[0] : 0,
+        rangeAddress,
+        rangeCount
+      )
+      : C._ts_parser_parse_wasm(
+        this[0],
+        this[1],
+        oldTree ? oldTree[0] : 0,
+        rangeAddress,
+        rangeCount
+      );
 
     if (!treeAddress) {
       C.currentParseCallback = null;

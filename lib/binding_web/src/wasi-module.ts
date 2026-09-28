@@ -284,6 +284,8 @@ export default async function createModule(options: ModuleOptions = {}): Promise
     stringToUTF16,
     loadWebAssemblyModule,
   });
+  // Views over the current memory, which growth replaces.
+  Object.defineProperty(module, 'HEAPU8', { get: bytes });
   for (const [name, value] of Object.entries(exports)) {
     if (typeof value === 'function') (module as Record<string, unknown>)[`_${name}`] = value;
   }

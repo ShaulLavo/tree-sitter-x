@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { readdirSync, readFileSync, existsSync } from 'fs';
 import path from 'path';
 import * as ours from '../src';
+// @ts-expect-error: the published declaration file is a global script, not a module.
 import * as upstreamModule from 'web-tree-sitter-upstream';
 
 // The published package exposes the same API; its types do not resolve under this tsconfig.
@@ -113,14 +114,14 @@ describe('differential against upstream web-tree-sitter', () => {
             const row = before.split('\n').length - 1;
             return { row, column: at - (before.lastIndexOf('\n') + 1) };
           };
-          const edit = {
+          const edit = new ours.Edit({
             startIndex: start,
             oldEndIndex: oldEnd,
             newEndIndex: start + inserted.length,
             startPosition: point(text, start),
             oldEndPosition: point(text, oldEnd),
             newEndPosition: point(next, start + inserted.length),
-          };
+          });
           oldA.edit(edit);
           oldB.edit(edit);
           const nextA = oursParser.parse(next, oldA)!;
