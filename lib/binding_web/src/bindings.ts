@@ -4,6 +4,7 @@ import createModule, { type ModuleOptions } from './wasi-module';
 import { type Parser } from './parser';
 
 export let Module: MainModule | null = null;
+let initialization: Promise<MainModule> | null = null;
 
 /**
  * @internal
@@ -11,7 +12,15 @@ export let Module: MainModule | null = null;
  * Initialize the Tree-sitter Wasm module. This should only be called by the {@link Parser} class via {@link Parser.init}.
  */
 export async function initializeBinding(moduleOptions?: ModuleOptions): Promise<MainModule> {
-  return Module ??= await createModule(moduleOptions);
+  if (Module) return Module;
+  initialization ??= createModule(moduleOptions).then((module) => {
+    Module = module;
+    return module;
+  }).catch((error: unknown) => {
+    initialization = null;
+    throw error;
+  });
+  return initialization;
 }
 
 /**
