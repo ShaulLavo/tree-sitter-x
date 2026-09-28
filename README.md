@@ -12,6 +12,11 @@ same as upstream.
 - **Faster typing on big files.** New `TextBuffer`: keep a document's text inside the parser and
   edit it in place. The parser reads it directly instead of asking JavaScript for text. On a 1 MB
   markdown file, reparsing after a keystroke goes from 0.8 ms to 0.35 ms.
+- **C extensions.** `loadExtension(wasm)` loads your own C code, built like a grammar, into
+  the same memory as the parser. It can call tree-sitter's C API on trees directly, with no
+  copying and no JavaScript in between. Fregat's markdown support uses this.
+- **Bigger stack.** Grammars and extensions get a 1 MB stack (the default was 64 KB, too small
+  for deeply nested markdown). Running out stops with an error.
 
 ## What we fixed
 
