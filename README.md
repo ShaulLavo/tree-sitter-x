@@ -24,12 +24,23 @@ same as upstream.
   trailing content, like the blank lines between markdown paragraphs. Both `Node` and
   `TreeCursor` versions now find the next child.
 
+## Install
+
+The built package lives on the `web-tree-sitter` branch. Pin a commit from it:
+
+```json
+"web-tree-sitter": "github:ShaulLavo/tree-sitter-x#c5049e2"
+```
+
+To update that branch, build (below), run `npm run build:dts` and `npm pack` in
+`lib/binding_web`, and commit the unpacked package without `scripts` and `devDependencies`.
+
 ## Build and test
 
 ```sh
 cd lib/binding_web
 npm install
-npm run build   # runs `cargo xtask build-wasm`, which downloads the WASI SDK and binaryen
+npm run build   # needs Rust: `cargo xtask build-wasm` downloads the WASI SDK and binaryen
 npm test        # upstream's tests, plus a comparison against the original web-tree-sitter
 ```
 
