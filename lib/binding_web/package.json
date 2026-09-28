@@ -85,7 +85,8 @@
     "tsx": "^4.23.13",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.70.0",
-    "vitest": "^3.0.5"
+    "vitest": "^3.0.5",
+    "web-tree-sitter-upstream": "npm:web-tree-sitter@^0.27.0"
   },
   "scripts": {
     "build:ts": "tsc -b . && node script/build.js",
