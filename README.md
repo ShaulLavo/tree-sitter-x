@@ -32,8 +32,8 @@ The built package lives on the `web-tree-sitter` branch. Pin a commit from it:
 "web-tree-sitter": "github:ShaulLavo/tree-sitter-x#c5049e2"
 ```
 
-To update that branch, build (below), run `npm run build:dts` and `npm pack` in
-`lib/binding_web`, and commit the unpacked package without `scripts` and `devDependencies`.
+CI rebuilds that branch after each green run on master (`.github/workflows/package.yml`).
+`lib/binding_web/script/package-branch.sh --push` does the same by hand.
 
 ## Build and test
 
