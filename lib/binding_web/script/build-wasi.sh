@@ -8,6 +8,8 @@ set -eu
 cd "$(dirname "$0")/.."
 : "${WASI_SDK:=$HOME/.cache/tree-sitter/wasi-sdk}"
 : "${OPT:=-O3}"
+# wasm-opt from binaryen, which the tree-sitter CLI also caches; skipped when absent.
+: "${WASM_OPT:=$HOME/.cache/tree-sitter/binaryen/bin/wasm-opt}"
 
 # lib/extra-exports.txt: libc functions beyond wasm-stdlib/imports.txt that published
 # grammars (Emscripten's runtime provided them implicitly) and extensions import.
@@ -26,5 +28,11 @@ for name in $exports; do flags="$flags -Wl,--export=$name"; done
   -Wl,-z,stack-size=1048576 -Wl,--stack-first \
   -Wl,--export=__stack_pointer -Wl,--strip-debug $flags \
   -o lib/web-tree-sitter.wasm
+if [ -x "$WASM_OPT" ]; then
+  "$WASM_OPT" $OPT --enable-bulk-memory --enable-mutable-globals --enable-sign-ext \
+    --enable-nontrapping-float-to-int lib/web-tree-sitter.wasm -o lib/web-tree-sitter.wasm
+else
+  echo "wasm-opt not found at $WASM_OPT; the runtime is about 8 KB larger gzipped" >&2
+fi
 printf 'web-tree-sitter.wasm: %s raw, %s gzip -9\n' \
   "$(wc -c < lib/web-tree-sitter.wasm)" "$(gzip -9nc lib/web-tree-sitter.wasm | wc -c)"
