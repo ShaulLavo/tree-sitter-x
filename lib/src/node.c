@@ -315,8 +315,12 @@ static inline TSNode ts_node__first_child_for_byte(
   TSNode node = self;
   bool did_descend = true;
 
-  NodeChildIterator last_iterator;
-  bool has_last_iterator = false;
+  // A hidden child can end after the goal while all of its relevant descendants
+  // end before it (trailing invisible content). Each descent remembers where its
+  // parent's iteration stopped, at every level, so the search resumes with the
+  // next sibling instead of giving up.
+  Array(NodeChildIterator) resume = array_new();
+  TSNode result = ts_node__null();
 
   while (did_descend) {
     did_descend = false;
@@ -327,11 +331,11 @@ static inline TSNode ts_node__first_child_for_byte(
     while (ts_node_child_iterator_next(&iterator, &child)) {
       if (ts_node_end_byte(child) > goal) {
         if (ts_node__is_relevant(child, include_anonymous)) {
-          return child;
+          result = child;
+          goto done;
         } else if (ts_node_child_count(child) > 0) {
-          if (iterator.child_index < ts_subtree_child_count(ts_node__subtree(child))) {
-            last_iterator = iterator;
-            has_last_iterator = true;
+          if (iterator.child_index < ts_subtree_child_count(iterator.parent)) {
+            array_push(&resume, iterator);
           }
           did_descend = true;
           node = child;
@@ -340,14 +344,15 @@ static inline TSNode ts_node__first_child_for_byte(
       }
     }
 
-    if (!did_descend && has_last_iterator) {
-      iterator = last_iterator;
-      has_last_iterator = false;
+    if (!did_descend && resume.size > 0) {
+      iterator = array_pop(&resume);
       goto loop;
     }
   }
 
-  return ts_node__null();
+done:
+  array_delete(&resume);
+  return result;
 }
 
 static inline TSNode ts_node__descendant_for_byte_range(

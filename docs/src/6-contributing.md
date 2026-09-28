@@ -68,8 +68,7 @@ To make changes to Tree-sitter, you should have:
 1. A C compiler, for compiling the core library and the generated parsers.
 2. A [Rust toolchain][rust], for compiling the Rust bindings, the highlighting library, and the CLI.
 3. Node.js and NPM, for generating parsers from `grammar.js` files.
-4. Either [Emscripten][emscripten], [Docker][docker], or [podman][podman] for
-compiling the library to Wasm.
+4. Nothing else for the Wasm library: `cargo xtask build-wasm` downloads the WASI SDK and binaryen on first use.
 
 ### Building
 
@@ -81,16 +80,13 @@ cd tree-sitter
 ```
 
 Optionally, build the Wasm library. If you skip this step, then the `tree-sitter playground` command will require an internet
-connection. If you have Emscripten installed, this will use your `emcc` compiler. Otherwise, it will use Docker or Podman:
+connection:
 
 ```sh
 cd lib/binding_web
 npm install # or your JS package manager of choice
 npm run build
 ```
-
-> [!NOTE]
-> If using a local Emscripten installation, the version must match the one [pinned by this repository][emscripten-version].
 
 Build the Rust libraries and the CLI:
 
@@ -348,10 +344,7 @@ and the tree-sitter module is fetched from [here][js url]. This, along with the 
 [codemirror]: https://codemirror.net
 [covenant]: https://www.contributor-covenant.org/version/1/4/code-of-conduct
 [crates]: https://crates.io
-[docker]: https://www.docker.com
 [docs src]: https://github.com/tree-sitter/tree-sitter/tree/master/docs/src
-[emscripten]: https://emscripten.org
-[emscripten-version]: https://github.com/tree-sitter/tree-sitter/blob/master/crates/loader/emscripten-version
 [generate crate]: https://crates.io/crates/tree-sitter-generate
 [gh.io repo]: https://github.com/tree-sitter/tree-sitter.github.io
 [go.dev]: https://pkg.go.dev
@@ -369,7 +362,6 @@ and the tree-sitter module is fetched from [here][js url]. This, along with the 
 [npmjs]: https://npmjs.com
 [playground]: https://github.com/tree-sitter/tree-sitter/blob/master/docs/src/assets/js/playground.js
 [playground css]: https://github.com/tree-sitter/tree-sitter/blob/master/docs/src/assets/css/playground.css
-[podman]: https://podman.io
 [py package]: https://pypi.org/project/tree-sitter
 [py ts]: https://github.com/tree-sitter/py-tree-sitter
 [pypi]: https://pypi.org

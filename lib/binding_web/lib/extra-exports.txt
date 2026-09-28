@@ -1,0 +1,7 @@
+"__assert_fail",
+"abort",
+"atoi",
+"bsearch",
+"qsort",
+"strdup",
+"strncasecmp",

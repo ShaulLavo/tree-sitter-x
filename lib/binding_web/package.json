@@ -61,13 +61,11 @@
     "web-tree-sitter.js",
     "web-tree-sitter.js.map",
     "web-tree-sitter.wasm",
-    "web-tree-sitter.wasm.map",
     "debug/web-tree-sitter.cjs",
     "debug/web-tree-sitter.cjs.map",
     "debug/web-tree-sitter.js",
     "debug/web-tree-sitter.js.map",
     "debug/web-tree-sitter.wasm",
-    "debug/web-tree-sitter.wasm.map",
     "web-tree-sitter.d.ts",
     "web-tree-sitter.d.ts.map",
     "web-tree-sitter.d.cts",
@@ -85,7 +83,8 @@
     "tsx": "^4.23.13",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.70.0",
-    "vitest": "^3.0.5"
+    "vitest": "^3.0.5",
+    "web-tree-sitter-upstream": "npm:web-tree-sitter@^0.27.0"
   },
   "scripts": {
     "build:ts": "tsc -b . && node script/build.js",

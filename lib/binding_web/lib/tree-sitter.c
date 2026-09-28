@@ -1,8 +1,15 @@
 #include "array.h"
 #include "point.h"
 
-#include <emscripten.h>
 #include <tree_sitter/api.h>
+
+// Callbacks into JS. Built with the WASI SDK, they are explicit imports from `env`.
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#define JS_IMPORT(name)
+#else
+#define JS_IMPORT(name) __attribute__((import_module("env"), import_name(name)))
+#endif
 
 /*****************************/
 /* Section - Data marshaling */
@@ -130,7 +137,7 @@ static void marshal_language_metadata(const TSLanguageMetadata *metadata) {
 /* Section - Parser */
 /********************/
 
-extern void tree_sitter_parse_callback(
+JS_IMPORT("tree_sitter_parse_callback") extern void tree_sitter_parse_callback(
   char *input_buffer,
   uint32_t index,
   uint32_t row,
@@ -138,17 +145,17 @@ extern void tree_sitter_parse_callback(
   uint32_t *length_read
 );
 
-extern void tree_sitter_log_callback(
+JS_IMPORT("tree_sitter_log_callback") extern void tree_sitter_log_callback(
   bool is_lex_message,
   const char *message
 );
 
-extern bool tree_sitter_progress_callback(
+JS_IMPORT("tree_sitter_progress_callback") extern bool tree_sitter_progress_callback(
   uint32_t current_offset,
   bool has_error
 );
 
-extern bool tree_sitter_query_progress_callback(
+JS_IMPORT("tree_sitter_query_progress_callback") extern bool tree_sitter_query_progress_callback(
   uint32_t current_offset
 );
 
@@ -205,6 +212,18 @@ void ts_parser_enable_logger_wasm(TSParser *self, bool should_log) {
   ts_parser_set_logger(self, logger);
 }
 
+static void set_included_ranges(TSParser *self, TSRange *ranges, uint32_t range_count) {
+  if (range_count) {
+    for (unsigned i = 0; i < range_count; i++) {
+      unmarshal_range(&ranges[i]);
+    }
+    ts_parser_set_included_ranges(self, ranges, range_count);
+    free(ranges);
+  } else {
+    ts_parser_set_included_ranges(self, NULL, 0);
+  }
+}
+
 TSTree *ts_parser_parse_wasm(
   TSParser *self,
   char *input_buffer,
@@ -218,15 +237,47 @@ TSTree *ts_parser_parse_wasm(
     TSInputEncodingUTF16LE,
     NULL,
   };
-  if (range_count) {
-    for (unsigned i = 0; i < range_count; i++) {
-      unmarshal_range(&ranges[i]);
-    }
-    ts_parser_set_included_ranges(self, ranges, range_count);
-    free(ranges);
-  } else {
-    ts_parser_set_included_ranges(self, NULL, 0);
+  set_included_ranges(self, ranges, range_count);
+
+  TSParseOptions options = {.payload = NULL, .progress_callback = progress_callback};
+
+  return ts_parser_parse_with_options(self, old_tree, input, options);
+}
+
+typedef struct {
+  const char *text;
+  uint32_t length;
+} TextInput;
+
+static const char *read_text_input(
+  void *payload,
+  uint32_t byte,
+  TSPoint position,
+  uint32_t *bytes_read
+) {
+  (void)position;
+  const TextInput *input = payload;
+  if (byte >= input->length) {
+    *bytes_read = 0;
+    return "";
   }
+  *bytes_read = input->length - byte;
+  return input->text + byte;
+}
+
+// Parses UTF-16 text already in the module's memory, with no call back into JS
+// for input. `length` is in bytes.
+TSTree *ts_parser_parse_utf16_wasm(
+  TSParser *self,
+  const char *text,
+  uint32_t length,
+  const TSTree *old_tree,
+  TSRange *ranges,
+  uint32_t range_count
+) {
+  TextInput text_input = {text, length};
+  TSInput input = {&text_input, read_text_input, TSInputEncodingUTF16LE, NULL};
+  set_included_ranges(self, ranges, range_count);
 
   TSParseOptions options = {.payload = NULL, .progress_callback = progress_callback};
 

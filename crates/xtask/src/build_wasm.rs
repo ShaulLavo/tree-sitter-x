@@ -1,7 +1,5 @@
 use std::{
     collections::HashSet,
-    ffi::{OsStr, OsString},
-    fmt::Write,
     fs,
     path::{Path, PathBuf},
     process::Command,
@@ -10,7 +8,6 @@ use std::{
 
 use anyhow::{Result, anyhow};
 use etcetera::BaseStrategy as _;
-use indoc::indoc;
 use notify::{
     EventKind, RecursiveMode,
     event::{AccessKind, AccessMode},
@@ -18,39 +15,7 @@ use notify::{
 use notify_debouncer_full::new_debouncer;
 use tree_sitter_loader::{IoError, LoaderError, WasmToolError};
 
-use crate::{
-    BuildWasm, EMSCRIPTEN_TAG, bail_on_err, embed_sources::embed_sources_in_map, watch_wasm,
-};
-
-#[derive(PartialEq, Eq)]
-enum EmccSource {
-    Native,
-    Docker,
-    Podman,
-}
-
-const EXPORTED_RUNTIME_METHODS: [&str; 20] = [
-    "AsciiToString",
-    "stringToUTF8",
-    "UTF8ToString",
-    "lengthBytesUTF8",
-    "stringToUTF16",
-    "loadWebAssemblyModule",
-    "getValue",
-    "setValue",
-    "HEAPF32",
-    "HEAPF64",
-    "HEAP_DATA_VIEW",
-    "HEAP8",
-    "HEAPU8",
-    "HEAP16",
-    "HEAPU16",
-    "HEAP32",
-    "HEAPU32",
-    "HEAP64",
-    "HEAPU64",
-    "LE_HEAP_STORE_I64",
-];
+use crate::{BuildWasm, bail_on_err, watch_wasm};
 
 const WASI_SDK_VERSION: &str = include_str!("../../loader/wasi-sdk-version").trim_ascii();
 const WASI_LIBC_REVISION: &str = "161b3195fc2558d2b1ba3eb9ffae3b2b47407623";
@@ -121,273 +86,114 @@ const ARCH_OS: Result<&str, LoaderError> = Err(LoaderError::WasiSDKPlatform);
 #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
 const ARCH_OS: Result<&str, LoaderError> = Err(LoaderError::WasiSDKPlatform);
 
+/// Builds `lib/binding_web/lib/web-tree-sitter.wasm` with the WASI SDK: the runtime, the binding
+/// glue and the libc grammars and extensions may import. `src/wasi-module.ts` instantiates it and
+/// links language modules into its memory and function table; there is no Emscripten runtime.
 pub fn run_wasm(args: &BuildWasm) -> Result<()> {
-    let mut emscripten_flags = if args.debug {
-        vec!["-O0", "--minify", "0"]
+    let clang = ensure_wasi_sdk_exists()?;
+    let wasm_opt = if args.debug {
+        None
     } else {
-        vec!["-O3", "--minify", "0"]
+        Some(ensure_binaryen_exists()?)
     };
-
-    if args.debug {
-        emscripten_flags.extend(["-s", "ASSERTIONS=1", "-s", "SAFE_HEAP=1", "-g"]);
-    }
-
-    if args.verbose {
-        emscripten_flags.extend(["-s", "VERBOSE=1", "-v"]);
-    }
-
-    let emcc_name = if cfg!(windows) { "emcc.bat" } else { "emcc" };
-
-    // Order of preference: emscripten > docker > podman > error
-    let source = if !args.docker && Command::new(emcc_name).output().is_ok() {
-        EmccSource::Native
-    } else if Command::new("docker")
-        .output()
-        .is_ok_and(|out| out.status.success())
-    {
-        EmccSource::Docker
-    } else if Command::new("podman")
-        .arg("--version")
-        .output()
-        .is_ok_and(|out| out.status.success())
-    {
-        EmccSource::Podman
-    } else {
-        return Err(anyhow!(
-            "You must have either emcc, docker, or podman on your PATH to run this command"
-        ));
-    };
-
-    let mut command = match source {
-        EmccSource::Native => Command::new(emcc_name),
-        EmccSource::Docker | EmccSource::Podman => {
-            let mut command = match source {
-                EmccSource::Docker => Command::new("docker"),
-                EmccSource::Podman => Command::new("podman"),
-                EmccSource::Native => unreachable!(),
-            };
-            command.args(["run", "--rm"]);
-
-            // Mount the root directory as a volume, which is the repo root
-            let mut volume_string = OsString::from(std::env::current_dir().unwrap());
-            volume_string.push(":/src:Z");
-            command.args([OsStr::new("--volume"), &volume_string]);
-
-            // In case `docker` is an alias to `podman`, ensure that podman
-            // mounts the current directory as writable by the container
-            // user which has the same uid as the host user. Setting the
-            // podman-specific variable is more reliable than attempting to
-            // detect whether `docker` is an alias for `podman`.
-            // see https://docs.podman.io/en/latest/markdown/podman-run.1.html#userns-mode
-            command.env("PODMAN_USERNS", "keep-id");
-
-            // Get the current user id so that files created in the docker container will have
-            // the same owner.
-            #[cfg(unix)]
-            {
-                #[link(name = "c")]
-                unsafe extern "C" {
-                    fn getuid() -> u32;
-                }
-                // don't need to set user for podman since PODMAN_USERNS=keep-id is already set
-                if source == EmccSource::Docker {
-                    let user_id = unsafe { getuid() };
-                    command.args(["--user", &user_id.to_string()]);
-                }
-            };
-
-            // Run `emcc` in a container using the `emscripten-slim` image
-            command.args([EMSCRIPTEN_TAG, "emcc"]);
-            command
-        }
-    };
-
-    fs::create_dir_all("target/scratch").unwrap();
-
-    let exported_functions = format!(
-        "{}{}",
-        fs::read_to_string("lib/src/wasm-stdlib/imports.txt")?,
-        fs::read_to_string("lib/binding_web/lib/exports.txt")?
-    )
-    .replace('"', "")
-    .lines()
-    .fold(String::new(), |mut output, line| {
-        let _ = write!(output, "_{line}");
-        output
-    })
-    .trim_end_matches(',')
-    .to_string();
-
-    let exported_functions = format!("EXPORTED_FUNCTIONS={exported_functions}");
-    let exported_runtime_methods = format!(
-        "EXPORTED_RUNTIME_METHODS={}",
-        EXPORTED_RUNTIME_METHODS.join(",")
-    );
-
-    // Clean up old files from prior runs
-    for file in [
-        "web-tree-sitter.mjs",
-        "web-tree-sitter.cjs",
-        "web-tree-sitter.wasm",
-        "web-tree-sitter.wasm.map",
-    ] {
-        fs::remove_file(PathBuf::from("lib/binding_web/lib").join(file)).ok();
-    }
-
-    if !args.cjs {
-        emscripten_flags.extend(["-s", "EXPORT_ES6=1"]);
-    }
-
-    macro_rules! binding_file {
-        ($ext:literal) => {
-            concat!("lib/binding_web/lib/web-tree-sitter", $ext)
-        };
-    }
-
-    #[rustfmt::skip]
-    emscripten_flags.extend([
-        "-gsource-map=inline",
-        "-fno-exceptions",
-        "-std=c11",
-        "-s", "WASM=1",
-        "-s", "MODULARIZE=1",
-        "-s", "INITIAL_MEMORY=33554432",
-        "-s", "ALLOW_MEMORY_GROWTH=1",
-        "-s", "SUPPORT_BIG_ENDIAN=1",
-        "-s", "WASM_BIGINT=1",
-        "-s", "MAIN_MODULE=2",
-        "-s", "FILESYSTEM=0",
-        "-s", "NODEJS_CATCH_EXIT=0",
-        "-s", "NODEJS_CATCH_REJECTION=0",
-        "-s", &exported_functions,
-        "-s", &exported_runtime_methods,
-        "-D", "fprintf(...)=",
-        "-D", "printf(...)=",
-        "-D", "NDEBUG=",
-        "-D", "_POSIX_C_SOURCE=200112L",
-        "-D", "_DEFAULT_SOURCE=",
-        "-D", "_BSD_SOURCE=",
-        "-D", "_DARWIN_C_SOURCE=",
-        "-I", "lib/src",
-        "-I", "lib/include",
-        "--js-library", "lib/binding_web/lib/imports.js",
-        "--pre-js",     "lib/binding_web/lib/prefix.js",
-        "-o",           if args.cjs { binding_file!(".cjs") } else { binding_file!(".mjs") },
-        "lib/src/lib.c",
-        "lib/binding_web/lib/tree-sitter.c",
-    ]);
-    if args.emit_tsd {
-        emscripten_flags.extend(["--emit-tsd", "web-tree-sitter.d.ts"]);
-    }
-
-    let command = command.args(&emscripten_flags);
-
+    let build = || build_wasm(&clang, wasm_opt.as_deref(), args);
     if args.watch {
-        watch_wasm!(|| build_wasm(command, args.emit_tsd));
+        watch_wasm!(build);
     } else {
-        build_wasm(command, args.emit_tsd)?;
+        build()?;
     }
-
     Ok(())
 }
 
-fn build_wasm(cmd: &mut Command, edit_tsd: bool) -> Result<()> {
+/// Names the runtime exports: libc for grammars (`wasm-stdlib/imports.txt`) and for published
+/// grammars and extensions beyond it (`extra-exports.txt`), the binding glue (`exports.txt`),
+/// and the public C API from `api.h`, so extensions can work on trees directly.
+fn runtime_exports() -> Result<Vec<String>> {
+    let mut names = Vec::new();
+    for list in [
+        "lib/src/wasm-stdlib/imports.txt",
+        "lib/binding_web/lib/extra-exports.txt",
+        "lib/binding_web/lib/exports.txt",
+    ] {
+        for line in fs::read_to_string(list)?.lines() {
+            let name = line.trim().trim_matches(|c| c == '"' || c == ',');
+            if !name.is_empty() {
+                names.push(name.to_string());
+            }
+        }
+    }
+    let api = fs::read_to_string("lib/include/tree_sitter/api.h")?;
+    let function = regex::Regex::new(r"\b(ts_[a-z0-9_]+)\(")?;
+    let mut api_names = function
+        .captures_iter(&api)
+        .map(|captures| captures[1].to_string())
+        .filter(|name| !name.contains("wasm"))
+        .collect::<Vec<_>>();
+    api_names.sort();
+    api_names.dedup();
+    names.extend(api_names);
+    Ok(names)
+}
+
+fn build_wasm(clang: &Path, wasm_opt: Option<&Path>, args: &BuildWasm) -> Result<()> {
+    let output = "lib/binding_web/lib/web-tree-sitter.wasm";
+    let optimization = if args.debug { "-O0" } else { "-O3" };
+    let mut command = Command::new(clang);
+    command.args([
+        "--target=wasm32-wasip1",
+        "-mexec-model=reactor",
+        optimization,
+        "-std=c11",
+        "-fno-exceptions",
+        "-D_POSIX_C_SOURCE=200809L",
+        "-Ilib/src",
+        "-Ilib/include",
+        "lib/binding_web/lib/tree-sitter.c",
+        "lib/src/lib.c",
+        "-Wl,--export-memory",
+        "-Wl,--export-table",
+        "-Wl,--growable-table",
+        // Grammars and extensions run on this stack. 64 KB, the default, overflowed on deeply
+        // nested markdown; placed first, an overflow traps instead of writing over data.
+        "-Wl,-z,stack-size=1048576",
+        "-Wl,--stack-first",
+        "-Wl,--export=__stack_pointer",
+        "-o",
+        output,
+    ]);
+    if args.debug {
+        command.arg("-g");
+    } else {
+        command.args(["-flto", "-DNDEBUG", "-Wl,--strip-debug"]);
+    }
+    if args.verbose {
+        command.arg("-v");
+    }
+    for name in runtime_exports()? {
+        command.arg(format!("-Wl,--export={name}"));
+    }
     bail_on_err(
-        &cmd.spawn()?.wait_with_output()?,
+        &command.spawn()?.wait_with_output()?,
         "Failed to compile the Tree-sitter Wasm library",
     )?;
 
-    if edit_tsd {
-        let file = "lib/binding_web/lib/web-tree-sitter.d.ts";
-        let content = fs::read_to_string(file)?
-            .replace("Automatically generated", "Automatically @generated")
-            .replace(
-                "AsciiToString(ptr: any): string",
-                "AsciiToString(ptr: number): string",
-            )
-            .replace(
-                "stringToUTF8(str: any, outPtr: any, maxBytesToWrite: any): any",
-                "stringToUTF8(str: string, outPtr: number, maxBytesToWrite: number): number",
-            )
-            .replace(
-                "UTF8ToString(ptr: number, maxBytesToRead?: number | undefined): string",
-                "UTF8ToString(ptr: number, maxBytesToRead?: number): string",
-            )
-            .replace(
-                "lengthBytesUTF8(str: any): number",
-                "lengthBytesUTF8(str: string): number",
-            )
-            .replace(
-                "stringToUTF16(str: any, outPtr: any, maxBytesToWrite: any): number",
-                "stringToUTF16(str: string, outPtr: number, maxBytesToWrite: number): number",
-            )
-            .replace(
-                concat!(
-                    "loadWebAssemblyModule(binary: any, flags: any, libName?: string | ",
-                    "undefined, localScope?: any | undefined, handle?: number | undefined): any"
-                ),
-                concat!(
-                    "type WasmExports = Record<string, () => number>;\n",
-                    "    type LoadWebAssemblyModuleFlags = { loadAsync: boolean } & Record<string, boolean>;\n",
-                    "    type LoadWebAssemblyModuleResult<F extends LoadWebAssemblyModuleFlags> =",
-                    " F extends { loadAsync: true } ? Promise<WasmExports> :",
-                    " F extends { loadAsync: false } ? WasmExports : Promise<WasmExports> | WasmExports;\n",
-                    "    /**\n",
-                    "     * @param {string=} libName\n",
-                    "     * @param {Object=} localScope\n",
-                    "     * @param {number=} handle\n",
-                    "     */\n",
-                    "    function loadWebAssemblyModule<F extends LoadWebAssemblyModuleFlags>(",
-                    "binary: Uint8Array | WebAssembly.Module, flags: F, libName?: string,",
-                    " localScope?: Record<string, unknown>, handle?: number): LoadWebAssemblyModuleResult<F>"
-                ),
-            )
-            .replace(
-                "getValue(ptr: number, type?: string): any",
-                "getValue(ptr: number, type?: string): number",
-            )
-            .replace("HEAPF32: any", "HEAPF32: Float32Array")
-            .replace("HEAPF64: any", "HEAPF64: Float64Array")
-            .replace("HEAP_DATA_VIEW: any", "HEAP_DATA_VIEW: DataView")
-            .replace("HEAP8: any", "HEAP8: Int8Array")
-            .replace("HEAPU8: any", "HEAPU8: Uint8Array")
-            .replace("HEAP16: any", "HEAP16: Int16Array")
-            .replace("HEAPU16: any", "HEAPU16: Uint16Array")
-            .replace("HEAP32: any", "HEAP32: Int32Array")
-            .replace("HEAPU32: any", "HEAPU32: Uint32Array")
-            .replace("HEAP64: any", "HEAP64: BigInt64Array")
-            .replace("HEAPU64: any", "HEAPU64: BigUint64Array")
-            .replace("BigInt;", "bigint;")
-            .replace("BigInt)", "bigint)")
-            .replace(
-                "WasmModule & typeof RuntimeExports;",
-                indoc! {"
-                WasmModule & typeof RuntimeExports & {
-                  currentParseCallback: ((index: number, position: {row: number, column: number}) => string | undefined) | null;
-                  currentLogCallback: ((message: string, isLex: boolean) => void) | null;
-                  currentProgressCallback: ((state: {currentOffset: number, hasError: boolean}) => void) | null;
-                  currentQueryProgressCallback: ((state: {currentOffset: number}) => void) | null;
-                };
-                "},
-            )
-            .replace(
-                "MainModuleFactory (options?: unknown): Promise<MainModule>",
-                "MainModuleFactory(options?: Partial<EmscriptenModule>): Promise<MainModule>",
-            );
-        fs::write(file, content)?;
+    if let Some(wasm_opt) = wasm_opt {
+        let mut command = Command::new(wasm_opt);
+        command.args([
+            "-O3",
+            "--enable-bulk-memory",
+            "--enable-mutable-globals",
+            "--enable-sign-ext",
+            "--enable-nontrapping-float-to-int",
+            output,
+            "-o",
+            output,
+        ]);
+        bail_on_err(
+            &command.spawn()?.wait_with_output()?,
+            "Failed to optimize the Tree-sitter Wasm library",
+        )?;
     }
-
-    // Post-process the source map to embed source content for optimized builds
-    let map_path = Path::new("lib")
-        .join("binding_web")
-        .join("lib")
-        .join("web-tree-sitter.wasm.map");
-    if map_path.exists()
-        && let Err(e) = embed_sources_in_map(&map_path)
-    {
-        eprintln!("Warning: Failed to embed sources in source map: {e}");
-    }
-
     Ok(())
 }
 

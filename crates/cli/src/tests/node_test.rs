@@ -1248,3 +1248,54 @@ fn parse_json_example() -> Tree {
     parser.set_language(&get_language("json")).unwrap();
     parser.parse(JSON_EXAMPLE, None).unwrap()
 }
+
+#[test]
+fn test_node_first_child_for_byte_in_hidden_trailing_content() {
+    // Each `word` sits inside two hidden rules that both end with a hidden token, so
+    // a goal inside that trailing content lands in hidden nodes whose visible
+    // descendants all end before it. Both seeks must move on to the next word.
+    let (parser_name, parser_code) = generate_parser(
+        r#"
+        {
+            "name": "test_grammar_with_hidden_trailing_content",
+            "extras": [],
+            "rules": {
+                "document": {"type": "REPEAT", "content": {"type": "SYMBOL", "name": "_outer"}},
+                "_outer": {
+                    "type": "SEQ",
+                    "members": [{"type": "SYMBOL", "name": "_inner"}, {"type": "SYMBOL", "name": "_outer_end"}]
+                },
+                "_inner": {
+                    "type": "SEQ",
+                    "members": [{"type": "SYMBOL", "name": "word"}, {"type": "SYMBOL", "name": "_inner_end"}]
+                },
+                "word": {"type": "PATTERN", "value": "[a-z]+"},
+                "_inner_end": {"type": "PATTERN", "value": ";"},
+                "_outer_end": {"type": "PATTERN", "value": "\\."}
+            }
+        }
+        "#,
+    )
+    .unwrap();
+
+    let mut parser = Parser::new();
+    parser
+        .set_language(&get_test_language(&parser_name, &parser_code, None))
+        .unwrap();
+    let tree = parser.parse("a;.b;.", None).unwrap();
+    let root = tree.root_node();
+    assert_eq!(root.to_sexp(), "(document (word) (word))");
+
+    for byte in [1, 2] {
+        assert_eq!(root.first_child_for_byte(byte).unwrap().start_byte(), 3);
+        assert_eq!(root.first_named_child_for_byte(byte).unwrap().start_byte(), 3);
+        let mut cursor = root.walk();
+        assert_eq!(cursor.goto_first_child_for_byte(byte), Some(1));
+        assert_eq!(cursor.node().start_byte(), 3);
+    }
+
+    assert_eq!(root.first_child_for_byte(6), None);
+    let mut cursor = root.walk();
+    assert_eq!(cursor.goto_first_child_for_byte(6), None);
+    assert_eq!(cursor.node(), root);
+}
