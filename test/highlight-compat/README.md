@@ -24,4 +24,4 @@ npm run golden:update -- --profile product # the only writer; reference profiles
 
 ## Goldens
 
-`goldens/<profileId>/<languageId>/<fixtureId>.json`, written only by `golden:update` from producers registered in `src/golden-producers.ts`. The update validates every case against its source, refuses non-reference profiles and failed reference work, writes nothing on any failure, and removes stale files.
+`goldens/<profileId>/<languageId>/<fixtureId>.json`, written only by `golden:update` from producers registered in `src/golden-producers.ts`. The update validates every case against its source and refuses non-reference profiles, failed reference work and fixture paths that collide as file and directory. It stages the new profile tree and swaps it in whole, so a failure writes nothing and stale files disappear. The read-only check (`tests/goldens.test.ts`) requires each registered producer to yield exactly the committed goldens of its own profile.

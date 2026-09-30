@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmdirSync, unlinkSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { CompleteResult, DocumentResult, ReferenceProfileId, SpanTriples, Style, StyleTrack } from './schema.ts'
 import { REFERENCE_PROFILES } from './schema.ts'
@@ -201,15 +201,6 @@ function listJsonFiles(dir: string): string[] {
   return files
 }
 
-/** Removes empty directories under and including `dir`; returns whether `dir` was removed. */
-function pruneEmpty(dir: string): boolean {
-  let empty = true
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    if (!entry.isDirectory() || !pruneEmpty(join(dir, entry.name))) empty = false
-  }
-  if (empty) rmdirSync(dir)
-  return empty
-}
 
 interface Planned {
   readonly path: string
@@ -229,6 +220,19 @@ function planCase(root: string, profileId: ReferenceProfileId, golden: GoldenCas
   return { path, text: serializeResult(result) }
 }
 
+/** A fixture file whose path is also a directory of another fixture cannot be written. */
+function pathConflicts(root: string, profileId: string, paths: readonly string[]): string[] {
+  const profileDir = join(root, profileId)
+  const files = new Set(paths)
+  const conflicts: string[] = []
+  for (const path of paths) {
+    for (let dir = dirname(path); dir.startsWith(`${profileDir}${sep}`); dir = dirname(dir)) {
+      if (files.has(dir)) conflicts.push(`path conflict: ${relative(root, dir)} is both a golden file and the directory of ${relative(root, path)}`)
+    }
+  }
+  return conflicts
+}
+
 async function planAll(root: string, profileId: ReferenceProfileId, producer: GoldenProducer): Promise<Planned[]> {
   const planned = new Map<string, Planned>()
   const failures: string[] = []
@@ -242,38 +246,58 @@ async function planAll(root: string, profileId: ReferenceProfileId, producer: Go
       failures.push(`${label}: ${messageOf(error).replaceAll('\n', '\n    ')}`)
     }
   }
+  failures.push(...pathConflicts(root, profileId, [...planned.keys()]))
   if (failures.length > 0) {
     throw new Error(`golden update for ${profileId} failed; nothing written:\n${failures.map((failure) => `  ${failure}`).join('\n')}`)
   }
   return [...planned.values()]
 }
 
-function writePlanned(plan: Planned): boolean {
-  if (existsSync(plan.path) && readFileSync(plan.path, 'utf8') === plan.text) return false
-  mkdirSync(dirname(plan.path), { recursive: true })
-  writeFileSync(plan.path, plan.text)
-  return true
+function summarize(planned: readonly Planned[], previous: readonly string[]): GoldenUpdate {
+  const update: GoldenUpdate = { written: [], unchanged: [], removed: [] }
+  for (const plan of planned) {
+    const same = previous.includes(plan.path) && readFileSync(plan.path, 'utf8') === plan.text
+    if (same) update.unchanged.push(plan.path)
+    else update.written.push(plan.path)
+  }
+  const keep = new Set(planned.map((plan) => plan.path))
+  update.removed.push(...previous.filter((path) => !keep.has(path)))
+  for (const paths of [update.written, update.unchanged, update.removed]) paths.sort()
+  return update
+}
+
+function publish(root: string, profileId: ReferenceProfileId, planned: readonly Planned[]): void {
+  const profileDir = join(root, profileId)
+  const staging = join(root, `.${profileId}.staging`)
+  const retired = join(root, `.${profileId}.retired`)
+  rmSync(staging, { recursive: true, force: true })
+  rmSync(retired, { recursive: true, force: true })
+  for (const plan of planned) {
+    const path = join(staging, relative(profileDir, plan.path))
+    mkdirSync(dirname(path), { recursive: true })
+    writeFileSync(path, plan.text)
+  }
+  if (existsSync(profileDir)) renameSync(profileDir, retired)
+  try {
+    if (planned.length > 0) renameSync(staging, profileDir)
+  } catch (error) {
+    if (existsSync(retired)) renameSync(retired, profileDir)
+    throw error
+  }
+  rmSync(retired, { recursive: true, force: true })
 }
 
 /** The only golden writer. Validates every case before touching disk, then converges the profile directory to exactly those cases. */
+/**
+ * The only golden writer. Validates every case before touching disk, then replaces the profile
+ * directory with a staged tree holding exactly those cases, so a failure leaves the old tree whole.
+ */
 export async function updateGoldens(root: string, profileId: string, producer: GoldenProducer): Promise<GoldenUpdate> {
   if (!isReferenceProfile(profileId)) throw new Error(referenceRefusal(profileId))
   const planned = await planAll(root, profileId, producer)
-  const update: GoldenUpdate = { written: [], unchanged: [], removed: [] }
-  for (const plan of planned) {
-    if (writePlanned(plan)) update.written.push(plan.path)
-    else update.unchanged.push(plan.path)
-  }
   const profileDir = join(root, profileId)
-  if (!existsSync(profileDir)) return update
-  const keep = new Set(planned.map((plan) => plan.path))
-  for (const path of listJsonFiles(profileDir)) {
-    if (keep.has(path)) continue
-    unlinkSync(path)
-    update.removed.push(path)
-  }
-  pruneEmpty(profileDir)
-  for (const paths of [update.written, update.unchanged, update.removed]) paths.sort()
+  const update = summarize(planned, existsSync(profileDir) ? listJsonFiles(profileDir) : [])
+  if (update.written.length > 0 || update.removed.length > 0) publish(root, profileId, planned)
   return update
 }
 

@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -182,6 +182,30 @@ describe('describeDifference', () => {
 })
 
 describe('updateGoldens', () => {
+  it('replaces a stale file with a directory of the same name', async () => {
+    await updateGoldens(root, 'product', recording([goldenCase(plain(), 'changed'), goldenCase(plain(), 'foo')]).producer)
+    const update = await updateGoldens(
+      root,
+      'product',
+      recording([goldenCase(keyword(), 'changed'), goldenCase(plain(), 'foo.json/bar')]).producer,
+    )
+    const path = (fixtureId: string) => goldenPath(root, 'product', 'typescript', fixtureId)
+    expect(update).toEqual({ written: [path('changed'), path('foo.json/bar')], unchanged: [], removed: [path('foo')] })
+    expect(readFileSync(path('changed'), 'utf8')).toBe(serializeResult(keyword()))
+    expect(readFileSync(path('foo.json/bar'), 'utf8')).toBe(serializeResult(plain()))
+    expect(readdirSync(root)).toEqual(['product'])
+  })
+
+  it('refuses cases whose paths are both a file and a directory, writing nothing', async () => {
+    await updateGoldens(root, 'product', recording([goldenCase(plain(), 'changed')]).producer)
+    const before = readFileSync(goldenPath(root, 'product', 'typescript', 'changed'), 'utf8')
+    const conflicting = [goldenCase(keyword(), 'changed'), goldenCase(plain(), 'foo'), goldenCase(plain(), 'foo.json/bar')]
+    await expect(updateGoldens(root, 'product', recording(conflicting).producer)).rejects.toThrow(/path conflict/)
+    expect(readFileSync(goldenPath(root, 'product', 'typescript', 'changed'), 'utf8')).toBe(before)
+    expect(existsSync(goldenPath(root, 'product', 'typescript', 'foo'))).toBe(false)
+    expect(readdirSync(root)).toEqual(['product'])
+  })
+
   it.each(['native', 'baseline:x', 'Product'])('refuses %s without calling the producer', async (profileId) => {
     const { producer, calls } = recording([goldenCase(keyword())])
     await expect(updateGoldens(root, profileId, producer)).rejects.toThrow(
