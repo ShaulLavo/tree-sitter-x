@@ -1,5 +1,4 @@
-import type { GoldenProducer } from './golden.ts'
-import type { ReferenceProfileId } from './schema.ts'
+import type { GoldenProducers } from './golden.ts'
 
 /** Oracle adapters register their golden producers here. */
-export const goldenProducers: Readonly<Partial<Record<ReferenceProfileId, GoldenProducer>>> = {}
+export const goldenProducers: GoldenProducers = {}
