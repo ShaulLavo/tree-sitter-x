@@ -96,7 +96,7 @@
     "uniqueDependencyFiles": 68,
     "selectedDependencyFiles": 67,
     "skippedDependencyFiles": 1,
-    "hashedFilesIncludingMetadataAndGrammarComparisons": 2424,
+    "hashedFilesIncludingMetadataAndGrammarComparisons": 2427,
     "unresolvedHashesInEnumeratedFiles": 0,
     "selectedCandidateSourceFiles": 16,
     "selectedCandidateSuiteJSONFiles": 3,
@@ -12520,7 +12520,7 @@
         "productSha256": "a1d5be6f214d0235b66522c752e7c626b2b849f0ee681c0ebf21f930559ec9aa",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/bat.mjs"
     },
     {
       "id": "vscode-source.c",
@@ -12586,7 +12586,7 @@
         "productSha256": "95c919b6e2e2847bdda4dbd517aca223fb679b68cff4e87a8ff70ab3a2986b88",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/c.mjs"
     },
     {
       "id": "vscode-source.clojure",
@@ -12652,7 +12652,7 @@
         "productSha256": "434e2378ab9d9c896a6491a366b7f356ee1184e4b00f7764ea7f37dfad37d705",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/clojure.mjs"
     },
     {
       "id": "vscode-source.coffee",
@@ -12718,7 +12718,7 @@
         "productSha256": "a0daf7e4340214a094fc607a3ff06fb507943522121b5b238659b04e1ef8ae0a",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/coffee.mjs"
     },
     {
       "id": "vscode-source.cpp",
@@ -12784,7 +12784,7 @@
         "productSha256": "6b2aca8619c0d92931f6c5ae6d30f26285d6526ef08a8678a1761b17f8c3e816",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/cpp.mjs"
     },
     {
       "id": "vscode-source.cs",
@@ -12860,7 +12860,7 @@
         "productSha256": "600c48b9f726694475e545d697c71919aa4f3c74eeb74ea080269d4f2921962d",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/csharp.mjs"
     },
     {
       "id": "vscode-source.css",
@@ -12929,7 +12929,7 @@
         "productSha256": "e1e3736b0e10c63174768b99cb1f9a91952df5362a495def9f800d01682cfcc5",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/vue.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/css.mjs"
     },
     {
       "id": "vscode-source.css.less",
@@ -12995,7 +12995,7 @@
         "productSha256": "94d7df8858d3349edfb045dd74c8aab681c74c44d560a4baf357e44bf3f5b2b7",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/vue-vine.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/less.mjs"
     },
     {
       "id": "vscode-source.css.scss",
@@ -13061,7 +13061,7 @@
         "productSha256": "e6f5339ce1a1af9585653dda99c9da9ef8239d9edee0c5059d4296e6e9cd751b",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/vue-vine.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/scss.mjs"
     },
     {
       "id": "vscode-source.cuda-cpp",
@@ -13183,7 +13183,7 @@
         "productSha256": "1c6e196d71cffd677b32b027023a07c63dce730e7546084ce6094c03e8c5535b",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/dart.mjs"
     },
     {
       "id": "vscode-source.diff",
@@ -13249,7 +13249,7 @@
         "productSha256": "32f9dc9adff61dcf63bb4c4abe7babed8253bebba1c91421a3699f3f814a327a",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/diff.mjs"
     },
     {
       "id": "vscode-source.dockerfile",
@@ -13315,7 +13315,7 @@
         "productSha256": "380e3d948c1a01f430cd0b16153cf1d8e4ea2e17435cfb3135188c806b2f1802",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/docker.mjs"
     },
     {
       "id": "vscode-source.dotenv",
@@ -13447,7 +13447,7 @@
         "productSha256": "3599a23f6c442ffff31a11ac5918bcdd9615f17aa653b8b6cb62c2718130a6ad",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/fsharp.mjs"
     },
     {
       "id": "vscode-source.go",
@@ -13513,7 +13513,7 @@
         "productSha256": "f98f8200392637e24c25b329e7efc18014b0c48c094aca088c1352d704b88b2b",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/go.mjs"
     },
     {
       "id": "vscode-source.groovy",
@@ -13579,7 +13579,7 @@
         "productSha256": "bc21d4f6a820574735b98327e7e1dadd2613d980af471c40281457b211d9cc6d",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/groovy.mjs"
     },
     {
       "id": "vscode-source.hlsl",
@@ -13645,7 +13645,7 @@
         "productSha256": "610a4f9a392cfef6361f9628129b0284353150fe843701891613ea748b0abad5",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/shaderlab.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/hlsl.mjs"
     },
     {
       "id": "vscode-source.ini",
@@ -13711,7 +13711,7 @@
         "productSha256": "7541bcd705f54d411591c19f0c3efcf846dd5aa39a072745956141d9ef8e48be",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/ini.mjs"
     },
     {
       "id": "vscode-source.java",
@@ -13777,7 +13777,7 @@
         "productSha256": "9202fda78f737e14cf46a6724c7f4977ee41ffabe1d06bcbfd912632755422a2",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/xsl.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/java.mjs"
     },
     {
       "id": "vscode-source.js",
@@ -13856,7 +13856,7 @@
         "productSha256": "a2108c805865c3a1d4941b30c97bdb68b23bebd6fd22c7656d2925527cc463fb",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/vue.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/javascript.mjs"
     },
     {
       "id": "vscode-source.js.jsx",
@@ -13935,7 +13935,7 @@
         "productSha256": "7cd5f9abf8502a6888b71f9d4f1d3d934cf7bfbf057675f5b807c2aa3d43be59",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/jsx.mjs"
     },
     {
       "id": "vscode-source.json",
@@ -14001,7 +14001,7 @@
         "productSha256": "9381fc3b1fd0bf3aad0dde03ca4a610fe4026b42173d33d4ae7b420ff24b5989",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/vue.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/json.mjs"
     },
     {
       "id": "vscode-source.json.comments.snippets",
@@ -14130,7 +14130,7 @@
         "productSha256": "1ae4537c7fb2e1cd5e6b4c4ca8909bf7f7fd1995d2625b967e4238a7ff3c09ee",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/julia.mjs"
     },
     {
       "id": "vscode-source.lua",
@@ -14199,7 +14199,7 @@
         "productSha256": "a4127659b3ce39543974b87aa28d088499ff5a6dbaa8d6c5e4c42b970280a19a",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/lua.mjs"
     },
     {
       "id": "vscode-source.makefile",
@@ -14268,7 +14268,7 @@
         "productSha256": "c28067804e895ff0a3d6ec3c87d07f97e8494b0cae7d141c28b70b6ff165e723",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/make.mjs"
     },
     {
       "id": "vscode-source.objc",
@@ -14334,7 +14334,7 @@
         "productSha256": "fb6281963469edcd6dd3c59c9b90b50fd5bc05856bf1ddea597552bb7ea87baa",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/objective-c.mjs"
     },
     {
       "id": "vscode-source.objcpp",
@@ -14469,7 +14469,7 @@
         "productSha256": "a764e32a7990b8e2c750f805982349e90d10ce1f257cc79c8c9a551155aef250",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/perl.mjs"
     },
     {
       "id": "vscode-source.perl.6",
@@ -14535,7 +14535,7 @@
         "productSha256": "e82ba730a510275223a9eaabd52c6359a73b2d586e83bc08273d5070366c8c4d",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/raku.mjs"
     },
     {
       "id": "vscode-source.powershell",
@@ -14601,7 +14601,7 @@
         "productSha256": "79c2b61b05cce8672f675b1df3ebcfbdc7769418fab04985215a24864b5aa04e",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/powershell.mjs"
     },
     {
       "id": "vscode-source.python",
@@ -14667,7 +14667,7 @@
         "productSha256": "381098c267ced3f1cdf3a2f47b9d3692da77601575c30251c25ab2fde4a7b999",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/python.mjs"
     },
     {
       "id": "vscode-source.r",
@@ -14733,7 +14733,7 @@
         "productSha256": "26de50a22a36b556464b0710390f62866ecbb2efffcadaa077bac9f6ae386a77",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/r.mjs"
     },
     {
       "id": "vscode-source.rst",
@@ -14865,7 +14865,7 @@
         "productSha256": "db8826f29abeefc7828861d99ab85107adfe37cd25c2f62f9708d952887aaef0",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/ruby.mjs"
     },
     {
       "id": "vscode-source.rust",
@@ -14931,7 +14931,7 @@
         "productSha256": "095fd63153eec252ab1a9fb137c02298b2b7fa2a407143a3d90e208c98baebce",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/rust.mjs"
     },
     {
       "id": "vscode-source.shaderlab",
@@ -15069,7 +15069,7 @@
         "productSha256": "789d3394be453f4dc6cc9aa1890b8825af2ff24c2fa6c0cff8bb012e577fe95e",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/shellscript.mjs"
     },
     {
       "id": "vscode-source.sql",
@@ -15135,7 +15135,7 @@
         "productSha256": "04525023fdd9d3ff5b773d24acd23e42f4d53252582a4ff845bed089c9a0a3cd",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/sql.mjs"
     },
     {
       "id": "vscode-source.swift",
@@ -15201,7 +15201,7 @@
         "productSha256": "c8726e86b061b9b19a34bfbca7afb21cab5a298f4030d459490775a89956ac13",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/swift.mjs"
     },
     {
       "id": "vscode-source.ts",
@@ -15282,7 +15282,7 @@
         "productSha256": "c131a59a924cda308e7110ca829803fa2bfd04688f6bc1c809285c4a583e25cc",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/vue.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typescript.mjs"
     },
     {
       "id": "vscode-source.tsx",
@@ -15368,7 +15368,7 @@
         "productSha256": "e04ffdb50f237b70ab8c27653681a72004617ece8a6d5ff6aba58eaae6082eae",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/tsx.mjs"
     },
     {
       "id": "vscode-source.yaml",
@@ -15506,7 +15506,7 @@
         "productSha256": "5575170fcf4f1ee804b66d2d1a7263e1028a86961f6aafd7ad4b6e9e9d5c089d",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/bibtex.mjs"
     },
     {
       "id": "vscode-text.git-commit",
@@ -15572,7 +15572,7 @@
         "productSha256": "682cca2e8d3df1fbbe797e38b4e96f58bcdaddb2c95589cb1a3171c9b29477d5",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/git-commit.mjs"
     },
     {
       "id": "vscode-text.git-rebase",
@@ -15638,7 +15638,7 @@
         "productSha256": "ed072331713ea44125c281bc94bfc535a5e47e9e3482bcd7592400445b1d3db5",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/git-rebase.mjs"
     },
     {
       "id": "vscode-text.html.cshtml",
@@ -15775,7 +15775,7 @@
         "productSha256": "1e1036ef9463bed197ece95591d6a65df8b0aab5d61ca4b50dff182564db03d4",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/vue.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/html-derivative.mjs"
     },
     {
       "id": "vscode-text.html.handlebars",
@@ -15841,7 +15841,7 @@
         "productSha256": "fb8381df085602fc412cda8053c134fed55738aabc0af67e6ee4a38531144560",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/handlebars.mjs"
     },
     {
       "id": "vscode-text.html.markdown",
@@ -15974,7 +15974,7 @@
         "productSha256": "fde1b213bed66c82be370343c505dd8abb85779c2c67959e67de312174d525c9",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/markdown.mjs"
     },
     {
       "id": "vscode-text.html.php",
@@ -16105,7 +16105,7 @@
         "productSha256": "bd14e40867ea9adabd36ce12fed8974116b8c543dad4d2554011a5104f2e4007",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/log.mjs"
     },
     {
       "id": "vscode-text.pug",
@@ -16171,7 +16171,7 @@
         "productSha256": "3f895fc3b7dd71ce19aa535ec5d13c2e58182fdc22a882c67c47a118efd29ccc",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/pug.mjs"
     },
     {
       "id": "vscode-text.tex",
@@ -16241,7 +16241,7 @@
         "productSha256": "d3fa68931ad204c69008ae0214e9d4014627bef7107fbb91f610087cc086dc7b",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/tex.mjs"
     },
     {
       "id": "vscode-text.tex.latex",
@@ -16326,7 +16326,7 @@
         "productSha256": "8d25798eab7be2cef69634581369e93133f1a83839d308fc8fc9ba8591ea979e",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/typst.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/latex.mjs"
     },
     {
       "id": "vscode-text.xml",
@@ -16392,7 +16392,7 @@
         "productSha256": "f3f0790779b50a53d18e9a988b573f2022fa62593900523f30201de37e99267a",
         "equal": false
       },
-      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/xsl.mjs"
+      "productModuleFileId": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/xml.mjs"
     }
   ],
   "openQuestions": [
@@ -42740,6 +42740,42 @@
       }
     },
     {
+      "id": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/git-commit.mjs",
+      "repository": "platform",
+      "revision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+      "path": "node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/git-commit.mjs",
+      "sha256": "e4bbec6e2d3b7572d11ffb47444981241b445e242f786f0859dc9b2bf188ff7e",
+      "bytes": 1381,
+      "roles": [
+        "product-grammar-comparison"
+      ],
+      "identityContext": {
+        "kind": "installed-package-file",
+        "package": "@shikijs/langs",
+        "version": "4.4.3",
+        "sourceRevision": null,
+        "checkoutRevisionMeaning": "Context only. Installed bytes are pinned by the file hash and package lock integrity, not a tracked Git blob."
+      }
+    },
+    {
+      "id": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/git-rebase.mjs",
+      "repository": "platform",
+      "revision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+      "path": "node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/git-rebase.mjs",
+      "sha256": "da7acf2d4ddcfdfaf26470f91a4c1a23ec9f3a0d0adc096ae9d0c9b00eca3e3b",
+      "bytes": 1102,
+      "roles": [
+        "product-grammar-comparison"
+      ],
+      "identityContext": {
+        "kind": "installed-package-file",
+        "package": "@shikijs/langs",
+        "version": "4.4.3",
+        "sourceRevision": null,
+        "checkoutRevisionMeaning": "Context only. Installed bytes are pinned by the file hash and package lock integrity, not a tracked Git blob."
+      }
+    },
+    {
       "id": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/gleam.mjs",
       "repository": "platform",
       "revision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
@@ -43034,6 +43070,24 @@
       "path": "node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/hlsl.mjs",
       "sha256": "5a63cc21232aba5a43a54bccce231f9e1853a1de5466f268cccbcf976128627e",
       "bytes": 7696,
+      "roles": [
+        "product-grammar-comparison"
+      ],
+      "identityContext": {
+        "kind": "installed-package-file",
+        "package": "@shikijs/langs",
+        "version": "4.4.3",
+        "sourceRevision": null,
+        "checkoutRevisionMeaning": "Context only. Installed bytes are pinned by the file hash and package lock integrity, not a tracked Git blob."
+      }
+    },
+    {
+      "id": "platform:node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/html-derivative.mjs",
+      "repository": "platform",
+      "revision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+      "path": "node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist/html-derivative.mjs",
+      "sha256": "29d15ff997c51b3b631973fbb687b57d87a6972f991cfe3f9d3853fe909c85c4",
+      "bytes": 920,
       "roles": [
         "product-grammar-comparison"
       ],

@@ -27,6 +27,9 @@ const SOURCE = {
   editorTokens: 'editor/packages/editor/src/shiki/editor-tokens.ts',
   packedTokens: 'editor/packages/editor/src/syntax/packedTokens.ts',
   shikiTheme: 'editor/packages/editor/src/shiki/theme.ts',
+  themeExtract: 'editor/packages/editor/src/shiki/theme-extract.ts',
+  effectiveTheme: 'editor/packages/editor/src/theme.ts',
+  themeStyleUtils: 'editor/packages/editor/src/style-utils.ts',
   vscodeThemes: 'editor/packages/editor/src/shiki/vscode-themes.ts',
   themeLoaders: 'packages/client-core/src/themes/registration.ts',
   hostCatalog: 'apps/web/src/lib/code-theme/utils/catalog.ts',
@@ -44,6 +47,8 @@ const HASHED_INPUTS = [
   'editor/packages/tree-sitter-languages/src/query-captures.ts',
   'editor/packages/tree-sitter/src/treeSitter/markdown.ts',
   'editor/packages/tree-sitter/src/treeSitter/treeSitter.worker.ts',
+  'editor/packages/tree-sitter-languages/package.json',
+  'editor/packages/tree-sitter/package.json',
 ]
 
 // Workspaces whose Shiki declarations the product's highlighting imports resolve through.
@@ -270,10 +275,47 @@ function matches(file, pattern, { count } = {}) {
 
 const single = (file, pattern) => matches(file, pattern, { count: 1 })[0]
 
+function consumeEntries(text, pattern, label) {
+  const entries = []
+  let end = 0
+  for (const match of text.matchAll(new RegExp(pattern.source, 'gm'))) {
+    if (text.slice(end, match.index).trim()) throw fail(`${label}: unrecognised entry`)
+    entries.push(match.slice(1))
+    end = match.index + match[0].length
+  }
+  if (text.slice(end).trim()) throw fail(`${label}: unrecognised entry`)
+  return entries
+}
+
 function blockEntries(file, blockPattern, entryPattern) {
   const block = single(file, blockPattern)
-  const entries = [...block.groups[0].matchAll(new RegExp(entryPattern.source, 'gm'))].map((match) => match.slice(1))
+  const entries = consumeEntries(block.groups[0], entryPattern, block.evidence)
   return { entries, evidence: block.evidence }
+}
+
+// Only literal data is accepted. Expressions, comments, escapes and template strings need review.
+function sourceLiteral(text, label) {
+  const token = /\s+|'[^'\\\r\n]*'|"[^"\\\r\n]*"|[A-Za-z_]\w*|-?\d+(?:\.\d+)?|[\[\]{},:]/y
+  let json = ''
+  let at = 0
+  while (at < text.length) {
+    token.lastIndex = at
+    const match = token.exec(text)
+    if (!match) throw fail(`${label}: unrecognised literal at ${at}`)
+    const value = match[0]
+    at = token.lastIndex
+    if (value.startsWith("'") || value.startsWith('"')) {
+      json += JSON.stringify(value.slice(1, -1))
+      continue
+    }
+    if (/^[A-Za-z_]/.test(value) && !['true', 'false', 'null'].includes(value)) {
+      if (!/^\s*:/.test(text.slice(at))) throw fail(`${label}: unrecognised literal value ${value}`)
+      json += JSON.stringify(value)
+      continue
+    }
+    json += value
+  }
+  return parseJsonc(json)
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -499,6 +541,9 @@ function readGrammar(langs, name) {
   if (!file) return { ...base, sha256: null, status: 'unresolved', imports: null, grammar: null, evidence: null }
   const { grammar, imports } = decodeGrammarModule(file.text, file.label)
   if (grammar.name !== name) throw fail(`${file.label} registers ${grammar.name}`)
+  if (typeof grammar.scopeName !== 'string' || grammar.scopeName.length === 0) {
+    throw fail(`${file.label} needs a nonempty string scopeName`)
+  }
   const payloadAt = file.text.indexOf(GRAMMAR_PREFIX)
   const exportAt = file.text.indexOf('export default [')
   const evidence = {
@@ -584,8 +629,34 @@ function registrationRecord(module, publicIds) {
   }
 }
 
+// This package ships a self-contained entry today. Future one-line local ESM dependencies are
+// fingerprinted recursively; other dependency syntax fails before a partial closure is emitted.
+function readExecutableClosure(pkg, entryPaths) {
+  const pending = [...entryPaths]
+  const visited = new Set()
+  while (pending.length > 0) {
+    const path = pending.shift()
+    if (visited.has(path)) continue
+    visited.add(path)
+    const file = packageFile(pkg, path)
+    const imports = /^(?:import(?:\s+[^;\n]+?\s+from)?|export\s+[^;\n]+?\s+from)\s*['"]([^'"\n]+)['"];?\s*$/gm
+    const rest = file.text.replace(imports, (_, specifier) => {
+      if (!specifier.startsWith('.')) throw fail(`${file.label}: unrecognised external dependency ${specifier}`)
+      const target = resolve(pkg.dir, dirname(path), specifier)
+      if (!target.startsWith(pkg.dir + sep)) throw fail(`${file.label}: dependency escapes the package`)
+      pending.push(target.slice(pkg.dir.length + 1))
+      return ''
+    })
+    if (/\b(?:import|require)\b|(?<!\.)\bfrom\b/.test(rest)) throw fail(`${file.label}: unrecognised dependency syntax`)
+  }
+  return sortedStrings(visited)
+}
+
 function readEngine(packages) {
   const { oniguruma, shiki } = packages
+  const implementationPath = exportTarget(oniguruma, '.')
+  const paths = readExecutableClosure(oniguruma, [implementationPath, exportTarget(oniguruma, './wasm-inlined')])
+  const implementation = oniguruma.files.get(implementationPath)
   const inlinedPath = exportTarget(oniguruma, './wasm-inlined')
   const inlined = packageFile(oniguruma, inlinedPath)
   const base64 = single(inlined, /^var binary = Uint8Array\.from\(atob\("([A-Za-z0-9+/=]+)"\), c => c\.charCodeAt\(0\)\);$/m)
@@ -595,6 +666,8 @@ function readEngine(packages) {
   return {
     inlined,
     record: {
+      implementation: { package: oniguruma.name, version: oniguruma.version, path: implementationPath, sha256: implementation.sha256 },
+      localDependencyClosure: paths.filter((path) => path !== implementationPath && path !== inlinedPath),
       module: { package: oniguruma.name, version: oniguruma.version, path: inlinedPath, sha256: inlined.sha256 },
       wasm: { bytes: wasm.length, sha256: sha256(wasm), evidence: base64.evidence },
       rawWasm: raw && {
@@ -612,7 +685,7 @@ function readEngine(packages) {
 // Product configuration read from the Platform sources.
 
 function stringList(text) {
-  return [...text.matchAll(/'([^']+)'/g)].map((match) => match[1])
+  return consumeEntries(text, /'([^'\\\r\n]+)'(?:\s*,|(?=\s*$))/, 'source string list').map(([value]) => value)
 }
 
 function productLanguages(checkout, catalog, modules) {
@@ -763,18 +836,38 @@ function productThemes(checkout, themeCatalog) {
   const plugin = checkout.read(SOURCE.shikiPlugin)
   const theme = checkout.read(SOURCE.highlightingTheme)
   const block = single(vscode, /export const VSCODE_THEMES = \[\n([\s\S]*?)\n\] satisfies/)
-  const entries = [...block.groups[0].matchAll(/\{\s*id: '([^']+)',\s*label: ('[^']*'|"[^"]*"),\s*shikiName: '([^']+)',\s*type: '(dark|light)',?\s*\}/g)]
-  if (entries.length !== block.groups[0].split("id: '").length - 1) throw fail(`${vscode.label}: VSCODE_THEMES has an unrecognised entry`)
-  const loaderEntries = matches(loaders, /^ {2}'?([\w-]+)'?: \(\) => import\('([^']+)'\),$/m)
-  const loaderById = new Map(loaderEntries.map(({ groups, evidence }) => [groups[0], { specifier: groups[1], evidence }]))
+  const entries = sourceLiteral(`[${block.groups[0]}]`, block.evidence)
+  for (const entry of entries) {
+    if (Object.keys(entry).sort().join() !== 'id,label,shikiName,type' || !['dark', 'light'].includes(entry.type)) {
+      throw fail(`${vscode.label}: VSCODE_THEMES has an unrecognised entry`)
+    }
+    if (![entry.id, entry.label, entry.shikiName].every((value) => typeof value === 'string' && value.length > 0)) {
+      throw fail(`${vscode.label}: VSCODE_THEMES needs string identifiers and labels`)
+    }
+  }
+  const loaderEntries = blockEntries(
+    loaders,
+    /const VSCODE_THEME_LOADERS = \{\n([\s\S]*?)\n\} satisfies/,
+    /^ {2}(?:'([\w-]+)'|(\w+)): \(\) => import\('([^']+)'\),$/,
+  )
+  const loaderById = new Map(loaderEntries.entries.map(([quoted, bare, specifier]) => [quoted ?? bare, { specifier }]))
   const packageIds = new Set(themeCatalog.map((asset) => asset.id))
-  const natives = matches(host, /id: '([^']+)',\n {4}label: '([^']+)',\n {4}type: '(dark|light)',/)
+  const nativeBlock = single(host, /const BUILTIN_EDITOR_THEMES = \[\n([\s\S]*?)\n\] as const satisfies/)
+  const natives = sourceLiteral(`[${nativeBlock.groups[0]}]`, nativeBlock.evidence)
+  for (const entry of natives) {
+    if (Object.keys(entry).sort().join() !== 'editorTheme,id,label,type' || !['dark', 'light'].includes(entry.type)) {
+      throw fail(`${host.label}: BUILTIN_EDITOR_THEMES has an unrecognised entry`)
+    }
+    if (![entry.id, entry.label].every((value) => typeof value === 'string' && value.length > 0)) {
+      throw fail(`${host.label}: BUILTIN_EDITOR_THEMES needs string identifiers and labels`)
+    }
+  }
   const defaultTheme = single(service, /const DEFAULT_THEME_NAME = '([^']+)'/)
   const pluginDefault = single(plugin, /const DEFAULT_THEME = '([^']+)'/)
   return {
-    vscode: entries.map(([, id, label, shikiName, type]) => ({
+    vscode: entries.map(({ id, label, shikiName, type }) => ({
       id,
-      label: label.slice(1, -1),
+      label,
       shikiName,
       type,
       loader: loaderById.get(id)?.specifier ?? null,
@@ -782,9 +875,12 @@ function productThemes(checkout, themeCatalog) {
     })),
     vscodeEvidence: block.evidence,
     loaderEvidence: span(loaders, loaders.text.indexOf('const VSCODE_THEME_LOADERS'), loaders.text.indexOf('} satisfies')),
-    hostOnly: entries.map((entry) => entry[3]).filter((id) => !packageIds.has(id)),
+    hostOnly: entries.map((entry) => entry.shikiName).filter((id) => !packageIds.has(id)),
     packageOnly: sortedStrings([...packageIds].filter((id) => !loaderById.has(id))),
-    native: natives.map(({ groups, evidence }) => ({ id: groups[0], label: groups[1], type: groups[2], evidence })),
+    native: natives.map(({ id, label, type }) => ({
+      id, label, type,
+      evidence: cite(host, `id: '${id}',\n    label: '${label}',\n    type: '${type}',`),
+    })),
     defaults: {
       snippet: { theme: defaultTheme.groups[0], evidence: [defaultTheme.evidence, cite(service, 'bundledThemes[DEFAULT_THEME_NAME]()')] },
       plugin: { theme: pluginDefault.groups[0], evidence: pluginDefault.evidence },
@@ -839,13 +935,22 @@ function tokenization(checkout, packages) {
   const limitCheck = single(scoped, /if \(line\.length (>=?) maxLineLength\)/)
   const emptyCheck = cite(scoped, 'if (!line) return { tokens: [], state: previousState }')
   const setting = single(settings, /'editor\.maxTokenizationLineLength': defineSetting\(\{\n([\s\S]*?)\n {2}\}\),/)
-  const settingField = (pattern) => setting.groups[0].match(pattern)?.slice(1) ?? fail(`${settings.label}: setting field ${pattern} not found`)
+  const settingField = (pattern) => {
+    const found = [...setting.groups[0].matchAll(new RegExp(pattern.source, 'g'))]
+    if (found.length !== 1) throw fail(`${settings.label}: setting field ${pattern} needs exactly one match`)
+    return found[0].slice(1)
+  }
   const [minimum, maximum] = settingField(/v\.minValue\(([\d_]+)\), v\.maxValue\(([\d_]+)\)/).map(numeric)
   const fallback = single(client, /export const DEFAULT_SHIKI_MAX_TOKENIZATION_LINE_LENGTH = ([\d_]+)/)
   const apiDefaults = single(primitive, /const \{ (tokenizeMaxLineLength = [^}]+) \} = options;/)
   const hastDefaults = single(core, /const \{ (mergeWhitespaces = [^}]+) \} = options;/)
   const apiLimit = single(primitive, /line\.length (>=?) tokenizeMaxLineLength/)
   const limit = numeric(settingField(/default: ([\d_]+),/)[0])
+  const scope = settingField(/scope: '(\w+)',/)[0]
+  if (![minimum, maximum, limit].every(Number.isSafeInteger) || minimum < 1 || maximum < minimum || limit < minimum || limit > maximum) {
+    throw fail(`${settings.label}: setting field bounds or default are invalid`)
+  }
+  if (!['application', 'machine', 'window'].includes(scope)) throw fail(`${settings.label}: setting field scope is invalid`)
   const exceeds = (comparator, length) => (comparator === '>' ? length > limit : length >= limit)
   const outcome = (comparator, length) => (exceeds(comparator, length) ? 'plain' : 'tokenized')
 
@@ -861,7 +966,7 @@ function tokenization(checkout, packages) {
       emptyLineCheckedFirst: scoped.text.indexOf('if (!line) return') < scoped.text.indexOf('if (line.length'),
       setting: 'editor.maxTokenizationLineLength',
       settingDefault: limit,
-      settingScope: settingField(/scope: '(\w+)',/)[0],
+      settingScope: scope,
       settingMinimum: minimum,
       settingMaximum: maximum,
       settingEvidence: setting.evidence,
@@ -934,7 +1039,8 @@ function tokenization(checkout, packages) {
 }
 
 function destructuredDefaults(text) {
-  return Object.fromEntries(text.split(', ').map((pair) => pair.split(' = ')).map(([key, value]) => [key, JSON.parse(value)]))
+  const entries = consumeEntries(text, /(\w+) = (true|false|-?\d+(?:\.\d+)?)(?:,\s*|(?=\s*$))/, 'Shiki option defaults')
+  return Object.fromEntries(entries.map(([key, value]) => [key, JSON.parse(value)]))
 }
 
 function scopedOutput(checkout) {
@@ -943,13 +1049,16 @@ function scopedOutput(checkout) {
   const packed = checkout.read(SOURCE.packedTokens)
   const worker = checkout.read(SOURCE.worker)
   const bits = matches(editorTokens, /^const FONT_STYLE_(\w+) = (\d+)$/m)
+  if (bits.length !== matches(editorTokens, /^const FONT_STYLE_\w+ =/m).length) {
+    throw fail(`${editorTokens.label}: unrecognised font style constant`)
+  }
   const packedType = single(packed, /export type PackedEditorTokens = \{\n([\s\S]*?)\n\}/)
   const engineImport = single(worker, /^import wasm from '([^']+)'$/m)
   const options = single(worker, /createHighlighterCore\(\{\n([\s\S]*?)\n {2}\}\)/)
   return {
     highlighter: {
       rule: 'The worker builds its highlighter with only these options and tokenizes through the product wrapper, not the Shiki token API.',
-      options: [...options.groups[0].matchAll(/^\s+(\w+):/gm)].map((match) => match[1]),
+      options: consumeEntries(options.groups[0], /^ {4}(\w+): (?:createOnigurumaEngine\(wasm\)|\w+ as unknown as \w+\[\]),$/, options.evidence).map(([name]) => name),
       engineImport: engineImport.groups[0],
       evidence: [options.evidence, engineImport.evidence, cite(worker, 'engine: createOnigurumaEngine(wasm),')],
     },
@@ -987,7 +1096,7 @@ function scopedOutput(checkout) {
     editorTokens: {
       rule: 'Tokens become editor tokens at document offsets; empty tokens and tokens with no style are dropped, and equal styles share one palette entry.',
       fontStyleBits: Object.fromEntries(bits.map(({ groups }) => [groups[0].toLowerCase(), Number(groups[1])])),
-      packedFields: [...packedType.groups[0].matchAll(/readonly (\w+):/g)].map((match) => match[1]),
+      packedFields: consumeEntries(packedType.groups[0], /^ {2}readonly (\w+): (?:Uint32Array|readonly EditorTokenStyle\[\]|boolean)$/, packedType.evidence).map(([name]) => name),
       evidence: [
         ...bits.map((bit) => bit.evidence),
         cite(editorTokens, 'return Object.keys(style).length > 0 ? style : null'),
@@ -1024,12 +1133,59 @@ function registryBehaviour(packages) {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Structural assets are a separately authored inventory, validated before either output is written.
+
+function validateStructuralInventory(checkout) {
+  const inventory = parseJson(readFileSync(join(MANIFEST_DIR, 'tree-sitter-languages.json'), 'utf8'), 'structural inventory')
+  for (const input of inventory.inputs) {
+    if (checkout.read(input.file).sha256 !== input.sha256) throw fail(`structural input ${input.file} changed`)
+  }
+  const pending = [inventory]
+  while (pending.length > 0) {
+    const value = pending.shift()
+    if (value === null || typeof value !== 'object') continue
+    if (Object.hasOwn(value, 'platformPath')) validateStructuralAsset(checkout, value)
+    pending.push(...Object.values(value))
+  }
+  for (const language of inventory.languages) {
+    for (const query of Object.values(language.queries)) validateStructuralQuery(checkout, query, inventory.registry.captureMappings)
+  }
+}
+
+function validateStructuralAsset(checkout, asset) {
+  if (typeof asset.platformPath !== 'string' || !/^[a-f0-9]{64}$/.test(asset.sha256 ?? '')) {
+    throw fail('structural asset needs a platformPath and SHA-256')
+  }
+  const path = resolve(checkout.root, asset.platformPath)
+  if (!path.startsWith(checkout.root + sep)) throw fail('structural asset path escapes Platform')
+  if (!existsSync(path)) throw fail(`structural asset ${asset.platformPath} is missing`)
+  if (sha256(readFileSync(path)) !== asset.sha256) throw fail(`structural asset ${asset.platformPath} changed`)
+  if (asset.lockedSha256 && asset.lockedSha256 !== asset.sha256) throw fail(`structural asset ${asset.platformPath} disagrees with its lock`)
+}
+
+function validateStructuralQuery(checkout, query, mappings) {
+  if (query.files.length === 0) {
+    if (query.combinedLockedSha256 !== null && query.combinedLockedSha256 !== sha256('')) {
+      throw fail('structural empty query has a nonempty combined hash')
+    }
+    return
+  }
+  const content = query.files.map((file) => readFileSync(join(checkout.root, file.platformPath), 'utf8')).join('\n')
+  const mapped = content.replace(/;[^\n]*|"(?:\\.|[^"\\])*"|@([a-zA-Z_][a-zA-Z0-9_.-]*)/g, (token, name) => {
+    if (!name || !Object.hasOwn(mappings, name)) return token
+    return `@${mappings[name]}`
+  })
+  if (sha256(mapped) !== query.combinedLockedSha256) throw fail('structural query composition changed')
+}
+
+// ---------------------------------------------------------------------------------------------
 // Assembly.
 
 export function derive(platformRoot) {
   const checkout = openCheckout(resolve(platformRoot))
   for (const path of Object.values(SOURCE)) checkout.read(path)
   for (const path of HASHED_INPUTS) checkout.read(path)
+  validateStructuralInventory(checkout)
   const closure = lockClosure(checkout)
   const { packages, installed } = installedShiki(checkout, closure)
 
@@ -1173,13 +1329,14 @@ function differences(expected, actual, path = '$', found = []) {
 }
 
 function parseArgs(argv) {
-  const options = { check: false, platformRoot: DEFAULT_PLATFORM_ROOT, manifestDir: MANIFEST_DIR }
+  const options = { check: false, strictCommit: false, platformRoot: DEFAULT_PLATFORM_ROOT, manifestDir: MANIFEST_DIR }
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
     if (arg === '--check') options.check = true
+    else if (arg === '--strict-commit') options.strictCommit = true
     else if (arg === '--platform-root') options.platformRoot = argv[++index]
     else if (arg === '--manifest-dir') options.manifestDir = argv[++index]
-    else throw fail(`unknown argument ${arg}; usage: extract-product-profile.mjs [--check] [--platform-root DIR] [--manifest-dir DIR]`)
+    else throw fail(`unknown argument ${arg}; usage: extract-product-profile.mjs [--check] [--strict-commit] [--platform-root DIR] [--manifest-dir DIR]`)
     if (options.platformRoot === undefined || options.manifestDir === undefined) throw fail(`${arg} needs a directory`)
   }
   return options
@@ -1217,17 +1374,31 @@ export function main(argv) {
     console.log(summary(derived))
     return 0
   }
-  let drifted = false
-  for (const [name, value] of outputs) {
+  const recorded = outputs.map(([name, value]) => {
     const path = join(options.manifestDir, name)
     const current = existsSync(path) ? readFileSync(path, 'utf8') : null
-    if (current === serialize(value)) {
+    return { name, value, current, parsed: current === null ? null : JSON.parse(current) }
+  })
+  const baselineCommit = recorded[0].parsed?.platform?.commit
+  const matchingCommits = typeof baselineCommit === 'string' && recorded[1].parsed?.platformCommit === baselineCommit
+  let drifted = false
+  for (const { name, value, current, parsed } of recorded) {
+    let expected = value
+    if (!options.strictCommit && matchingCommits) {
+      expected = name === PROFILE_FILE
+        ? { ...value, platform: { ...value.platform, commit: baselineCommit } }
+        : { ...value, platformCommit: baselineCommit }
+    }
+    if (current === serialize(expected)) {
       console.log(`${name}: ok`)
       continue
     }
     drifted = true
-    const paths = current === null ? ['file missing'] : differences(JSON.parse(current), JSON.parse(serialize(value)))
+    const paths = current === null ? ['file missing'] : differences(parsed, expected)
     console.log(`${name}: drift at ${paths.join(', ')}`)
+  }
+  if (!drifted && !options.strictCommit && matchingCommits && baselineCommit !== derived.profile.platform.commit) {
+    console.log(`platform moved ${baselineCommit} -> ${derived.profile.platform.commit}, cited content unchanged`)
   }
   console.log(summary(derived))
   return drifted ? 1 : 0

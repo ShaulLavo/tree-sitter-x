@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { createHash } from 'node:crypto'
+import { basename, dirname, join } from 'node:path'
+import { decodeGrammarModule } from './extract-product-profile.mjs'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
@@ -85,6 +87,33 @@ test('fixture sets pin repositories, licenses and all file references', () => {
   }
   assert.equal(fixtures.counts.sourceSets, fixtures.sources.length)
   assert.equal(fixtures.counts.hashedFilesIncludingMetadataAndGrammarComparisons, files.size)
+})
+
+function sortedJson(value) {
+  if (Array.isArray(value)) return value.map(sortedJson)
+  if (value === null || typeof value !== 'object') return value
+  return Object.fromEntries(Object.keys(value).sort().map((key) => [key, sortedJson(value[key])]))
+}
+
+test('grammar comparison modules define the recorded scope and reproduce core hashes', () => {
+  const files = new Map(fixtures.files.map((file) => [file.id, file]))
+  const expectations = new Map(fixtures.grammarExpectations.map((entry) => [entry.id, entry]))
+  const root = process.env.PLATFORM_ROOT ?? '/work/projects/platform'
+  for (const expectation of expectations.values()) {
+    if (!expectation.coreComparison?.productSha256) continue
+    const defining = expectation.productModuleFileId ? expectation : expectations.get(expectation.productGrammarExpectationId)
+    assert.ok(defining?.productModuleFileId, expectation.id)
+    const file = files.get(defining.productModuleFileId)
+    assert.ok(file, expectation.id)
+    const bytes = readFileSync(join(root, file.path))
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), file.sha256, expectation.id)
+    const { grammar } = decodeGrammarModule(bytes.toString('utf8'), file.path)
+    assert.equal(grammar.name, basename(file.path, '.mjs'), expectation.id)
+    assert.equal(grammar.scopeName, defining.scopeName, expectation.id)
+    const core = Object.fromEntries(expectation.coreComparison.keys.map((key) => [key, grammar[key]]))
+    const hash = createHash('sha256').update(JSON.stringify(sortedJson(core))).digest('hex')
+    assert.equal(hash, expectation.coreComparison.productSha256, expectation.id)
+  }
 })
 
 test('selected fixture files have explicit permission evidence and excluded dependencies exclude their cases', () => {

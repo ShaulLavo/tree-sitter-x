@@ -15,17 +15,19 @@ The files in `test/highlight-compat/manifest/` separate product behavior, packag
 | `tree-sitter-languages.json` | Structural parser revisions, ABI, Wasm and query identities, capture mappings, injection dependencies, and TextMate availability. |
 | `fixture-sources.json` | Pinned candidate corpora, source and expected-output provenance, per-file license evidence, and redistribution decisions. |
 
-The dependency-free extraction command reads Platform and installed assets. Its check mode compares the regenerated product profile and assets with the committed JSON. It uses no network and writes no files.
+The dependency-free extraction command reads Platform and installed assets. Its check mode compares cited source content, asset hashes, and registration closure with the committed JSON. It uses no network and writes no files. A moved Platform commit passes when those inputs are unchanged and prints the old and current commits. `--strict-commit` also treats a moved commit as drift.
 
 ```sh
 node test/highlight-compat/manifest/extract-product-profile.mjs --check
 ```
 
-A changed Platform commit, source file, package lock, catalog registration, or installed asset requires a reviewed manifest refresh. A missing hash remains `unresolved`; it never means that the asset passed compatibility checks.
+A changed cited source file, package lock, catalog registration, or installed asset requires a reviewed manifest refresh. An unrelated Platform commit does not require regenerating these pinned manifests. Checks validate every structural `platformPath` against its installed bytes, including queries, the Markdown resolver, and the Tree-sitter runtime. Combined query hashes follow the recorded capture mapping. Missing or changed structural assets fail the check. A missing grammar or theme hash remains `unresolved`; it never means that the asset passed compatibility checks.
 
 ## Product profile
 
 The product worker uses Shiki's registry with Oniguruma and the inlined Wasm import, at `editor/packages/editor/src/shiki/shiki.worker.ts:1-8`. The locked Shiki packages are version 4.4.3, with `@shikijs/vscode-textmate@10.0.2`; the manifest records their exact lock integrities and the 45-package dependency closure. `@shikijs/engine-javascript` is in that closure, but the worker selects Oniguruma. The decoded input is 466,610 bytes with SHA-256 `fd885c2d12e5951e59d761ebd4a006e06254b1491fd6f530c92b69fb4d8d77d9`, equal to the installed standalone `onig.wasm`.
+
+The engine fingerprint includes the default executable entry and its supported local ESM dependency closure, as well as the inlined and standalone Wasm. Unrecognized dependency syntax fails extraction. Theme source fingerprints include `shiki/theme-extract.ts`, `theme.ts`, and the runtime local dependency `style-utils.ts`. The expanded 38-file source coverage matches the original pinned commit.
 
 The Editor uses its own incremental scoped-token wrapper. Ordinary Shiki `codeToTokensBase` output is a separate reference profile. Shiki's token API defaults to line limit 0, time limit 500, and explanation disabled. Its HAST API merges whitespace and keeps same-style token merging disabled. Those API defaults do not configure the product wrapper; `product-profile.json` cites them separately.
 
@@ -433,7 +435,7 @@ This matrix records shipped assets and declared capability status. The manifest 
 
 ## Fixture provenance
 
-The manifest pins five source families as ten source sets. It enumerates 1,505 input and expected-result files, plus dependency, grammar-comparison, runner, and license evidence. It records 2,424 unique file hashes; none of these enumerated hashes is unresolved. Selection is deliberately small: 16 source input files, 3 suite JSON files, 11 stored captures/baselines, and 67 dependency files. The 97 unique selected files exclude 1,475 primary artifacts and one dependency. Existing upstream expected output is a historical diagnostic profile, not a product golden.
+The manifest pins five source families as ten source sets. It enumerates 1,505 input and expected-result files, plus dependency, grammar-comparison, runner, and license evidence. It records 2,427 unique file hashes; none of these enumerated hashes is unresolved. Selection is deliberately small: 16 source input files, 3 suite JSON files, 11 stored captures/baselines, and 67 dependency files. The 97 unique selected files exclude 1,475 primary artifacts and one dependency. Each product grammar comparison references the module that defines its own recorded scope; the inventory test decodes that payload and reproduces its core hash. Existing upstream expected output is a historical diagnostic profile, not a product golden.
 
 This unit vendors nothing. `fetch-by-hash` means a later preparation step may acquire the exact pinned bytes and preserve their notices. Normal tests and golden generation do not download them. `skip` means no redistribution or oracle use has been authorized by this inventory. File-level records override family-level license summaries.
 

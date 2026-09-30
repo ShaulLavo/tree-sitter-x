@@ -82,6 +82,39 @@ function materialize(root, path) {
   populate(target, join(platformRoot, path))
 }
 
+function scratchGit(root, args) {
+  const result = spawnSync('git', [
+    '-C', root,
+    '-c', 'user.name=Profile fixture',
+    '-c', 'user.email=profile-fixture@example.invalid',
+    '-c', 'commit.gpgSign=false',
+    '-c', 'core.hooksPath=/dev/null',
+    ...args,
+  ], { encoding: 'utf8' })
+  assert.equal(result.status, 0, result.stderr)
+  return result.stdout.trim()
+}
+
+function pinnedSnapshot(inputs) {
+  const overrides = Object.fromEntries(inputs.map(({ path }) => [path, readFileSync(join(platformRoot, path))]))
+  const root = mirror(overrides)
+  unlinkSync(join(root, '.git'))
+  scratchGit(root, ['init', '-q', '--initial-branch=snapshot'])
+  scratchGit(root, ['add', '-f', '--', ...inputs.map(({ path }) => path)])
+  scratchGit(root, ['commit', '-q', '-m', 'Record cited inputs'])
+  const commit = scratchGit(root, ['rev-parse', 'HEAD'])
+  const dir = mkdtempSync(join(scratch, 'manifest-'))
+  const generated = run(['--platform-root', root, '--manifest-dir', dir])
+  assert.equal(generated.status, 0, generated.stderr)
+  return { root, dir, commit }
+}
+
+function replaceLinkedAsset(root, path, content) {
+  materialize(root, dirname(path))
+  unlinkSync(join(root, path))
+  if (content !== null) writeFileSync(join(root, path), content)
+}
+
 describe('readers', () => {
   test('parseJsonc drops trailing commas but keeps string content', () => {
     const parsed = parseJsonc('{\n  "a": ["x,]", "y",],\n  "b": { "c": "// not a comment", },\n}\n')
@@ -261,6 +294,222 @@ describe('the Platform checkout', () => {
     assert.deepEqual(snapshotDir(dir), before)
   })
 
+  test('--check reports an unrelated moved commit and leaves the baseline untouched', () => {
+    const { root, dir, commit } = pinnedSnapshot(first.profile.platform.inputs)
+    const before = snapshotDir(dir)
+    scratchGit(root, ['commit', '-q', '--allow-empty', '-m', 'Move without changing cited content'])
+    const moved = scratchGit(root, ['rev-parse', 'HEAD'])
+    assert.notEqual(moved, commit)
+    const checked = run(['--check', '--platform-root', root, '--manifest-dir', dir])
+    assert.equal(checked.status, 0, checked.stderr + checked.stdout)
+    assert.ok(checked.stdout.includes(`platform moved ${commit} -> ${moved}, cited content unchanged`))
+    assert.deepEqual(snapshotDir(dir), before)
+  })
+
+  test('--strict-commit rejects unrelated commit movement without writes', () => {
+    const { root, dir } = pinnedSnapshot(first.profile.platform.inputs)
+    const before = snapshotDir(dir)
+    scratchGit(root, ['commit', '-q', '--allow-empty', '-m', 'Move without changing cited content'])
+    const checked = run(['--check', '--strict-commit', '--platform-root', root, '--manifest-dir', dir])
+    assert.equal(checked.status, 1)
+    assert.match(checked.stdout, /drift at \$\.platform\.commit/)
+    assert.doesNotMatch(checked.stdout, /cited content unchanged/)
+    assert.deepEqual(snapshotDir(dir), before)
+  })
+
+  test('--check rejects inconsistent baseline commit identities', () => {
+    const { root, dir } = pinnedSnapshot(first.profile.platform.inputs)
+    const path = join(dir, 'assets.json')
+    const assets = JSON.parse(readFileSync(path, 'utf8'))
+    assets.platformCommit = '0'.repeat(40)
+    writeFileSync(path, `${JSON.stringify(assets, null, 2)}\n`)
+    const before = snapshotDir(dir)
+    scratchGit(root, ['commit', '-q', '--allow-empty', '-m', 'Move with inconsistent baseline identities'])
+    const checked = run(['--check', '--platform-root', root, '--manifest-dir', dir])
+    assert.equal(checked.status, 1)
+    assert.match(checked.stdout, /assets\.json: drift at \$\.platformCommit/)
+    assert.doesNotMatch(checked.stdout, /cited content unchanged/)
+    assert.deepEqual(snapshotDir(dir), before)
+  })
+
+  test('--check rejects a moved commit that changes a cited source', () => {
+    const { root, dir } = pinnedSnapshot(first.profile.platform.inputs)
+    const before = snapshotDir(dir)
+    const path = 'editor/packages/editor/src/shiki/scopedTokens.ts'
+    writeFileSync(join(root, path), `${readFileSync(join(root, path), 'utf8')}\n`)
+    scratchGit(root, ['add', '--', path])
+    scratchGit(root, ['commit', '-q', '-m', 'Change a cited source'])
+    const checked = run(['--check', '--platform-root', root, '--manifest-dir', dir])
+    assert.equal(checked.status, 1, checked.stderr + checked.stdout)
+    assert.match(checked.stdout, /platform\.inputs\[\d+\]\.sha256/)
+    assert.doesNotMatch(checked.stdout, /cited content unchanged/)
+    assert.deepEqual(snapshotDir(dir), before)
+  })
+
+  test('--check rejects changed assets after unrelated commit movement', () => {
+    const { root, dir } = pinnedSnapshot(first.profile.platform.inputs)
+    const before = snapshotDir(dir)
+    const path = `${LANGS_DIST}/tsx.mjs`
+    const module = readFileSync(join(root, path), 'utf8')
+    replaceLinkedAsset(root, path, module.replace('source.tsx', 'source.changed-tsx'))
+    scratchGit(root, ['commit', '-q', '--allow-empty', '-m', 'Move with asset drift'])
+    const checked = run(['--check', '--platform-root', root, '--manifest-dir', dir])
+    assert.equal(checked.status, 1)
+    assert.match(checked.stdout, /assets\.json: drift at/)
+    assert.match(checked.stdout, /\.sha256/)
+    assert.doesNotMatch(checked.stdout, /cited content unchanged/)
+    assert.deepEqual(snapshotDir(dir), before)
+  })
+
+  test('--check rejects unresolved closures after unrelated commit movement', () => {
+    const { root, dir } = pinnedSnapshot(first.profile.platform.inputs)
+    const before = snapshotDir(dir)
+    replaceLinkedAsset(root, `${LANGS_DIST}/vue.mjs`, null)
+    scratchGit(root, ['commit', '-q', '--allow-empty', '-m', 'Move with unresolved closure'])
+    const checked = run(['--check', '--platform-root', root, '--manifest-dir', dir])
+    assert.equal(checked.status, 1)
+    assert.match(checked.stdout, /drift at/)
+    assert.doesNotMatch(checked.stdout, /cited content unchanged/)
+    assert.deepEqual(snapshotDir(dir), before)
+  })
+
+  test('--check rejects changed Oniguruma implementation bytes without writes', () => {
+    const { root, dir } = pinnedSnapshot(first.profile.platform.inputs)
+    const path = 'node_modules/.bun/@shikijs+engine-oniguruma@4.4.3/node_modules/@shikijs/engine-oniguruma/dist/index.mjs'
+    const before = snapshotDir(dir)
+    replaceLinkedAsset(root, path, `${readFileSync(join(root, path), 'utf8')}\n`)
+    const checked = run(['--check', '--platform-root', root, '--manifest-dir', dir])
+    assert.equal(checked.status, 1)
+    assert.deepEqual(snapshotDir(dir), before)
+  })
+
+  test('--check rejects a missing Oniguruma implementation without writes', () => {
+    const { root, dir } = pinnedSnapshot(first.profile.platform.inputs)
+    const before = snapshotDir(dir)
+    replaceLinkedAsset(root, 'node_modules/.bun/@shikijs+engine-oniguruma@4.4.3/node_modules/@shikijs/engine-oniguruma/dist/index.mjs', null)
+    const checked = run(['--check', '--platform-root', root, '--manifest-dir', dir])
+    assert.equal(checked.status, 1)
+    assert.match(checked.stderr, /index\.mjs/)
+    assert.deepEqual(snapshotDir(dir), before)
+  })
+
+  test('Oniguruma executable local dependencies are fingerprinted', () => {
+    const { root, dir } = pinnedSnapshot(first.profile.platform.inputs)
+    const path = 'node_modules/.bun/@shikijs+engine-oniguruma@4.4.3/node_modules/@shikijs/engine-oniguruma/dist/index.mjs'
+    replaceLinkedAsset(root, path, `import './dependency.mjs';\n${readFileSync(join(root, path), 'utf8')}`)
+    const dependency = join(root, dirname(path), 'dependency.mjs')
+    writeFileSync(dependency, 'export const marker = 1;\n')
+    const generated = run(['--platform-root', root, '--manifest-dir', dir])
+    assert.equal(generated.status, 0, generated.stderr)
+    const before = snapshotDir(dir)
+    writeFileSync(dependency, 'export const marker = 2;\n')
+    assert.equal(run(['--check', '--platform-root', root, '--manifest-dir', dir]).status, 1)
+    assert.deepEqual(snapshotDir(dir), before)
+    unlinkSync(dependency)
+    assert.equal(run(['--check', '--platform-root', root, '--manifest-dir', dir]).status, 1)
+    assert.deepEqual(snapshotDir(dir), before)
+  })
+
+  test('unhandled Oniguruma dependency syntax fails extraction', () => {
+    const path = 'node_modules/.bun/@shikijs+engine-oniguruma@4.4.3/node_modules/@shikijs/engine-oniguruma/dist/index.mjs'
+    const text = readFileSync(join(platformRoot, path), 'utf8')
+    assert.throws(() => derive(mirror({ [path]: `${text}\nconst dependency = import('./dependency.mjs');\n` })), /dependency/)
+  })
+
+  test('--check validates every structural platformPath against its bytes without writes', () => {
+    const structural = JSON.parse(readFileSync(join(here, 'tree-sitter-languages.json'), 'utf8'))
+    const cases = [
+      [structural.languages[0].queries.highlights.files[1].platformPath, '; changed query\n'],
+      [structural.languages[0].wasm.platformPath, null],
+      [structural.markdown.resolver.platformPath, 'changed resolver'],
+      [structural.runtime.wasm.platformPath, 'changed runtime'],
+    ]
+    for (const [path, content] of cases) {
+      const { root, dir } = pinnedSnapshot(first.profile.platform.inputs)
+      const before = snapshotDir(dir)
+      replaceLinkedAsset(root, path, content)
+      const checked = run(['--check', '--platform-root', root, '--manifest-dir', dir])
+      assert.equal(checked.status, 1, path)
+      assert.match(checked.stderr, /structural/)
+      assert.deepEqual(snapshotDir(dir), before)
+    }
+  })
+
+  test('committed theme implementation changes fail the content check', () => {
+    for (const path of [
+      'editor/packages/editor/src/shiki/theme-extract.ts',
+      'editor/packages/editor/src/theme.ts',
+      'editor/packages/editor/src/style-utils.ts',
+    ]) {
+      const { root, dir } = pinnedSnapshot(first.profile.platform.inputs)
+      const before = snapshotDir(dir)
+      replaceLinkedAsset(root, path, `${readFileSync(join(root, path), 'utf8')}\n`)
+      scratchGit(root, ['add', '-f', '--', path])
+      scratchGit(root, ['commit', '-q', '-m', 'Change theme implementation'])
+      assert.equal(run(['--check', '--platform-root', root, '--manifest-dir', dir]).status, 1, path)
+      assert.deepEqual(snapshotDir(dir), before)
+    }
+  })
+
+  test('source maps reject multiline entries and template values without partial output', () => {
+    const path = 'editor/packages/highlighting/src/languages.ts'
+    const original = readFileSync(join(platformRoot, path), 'utf8')
+    for (const replacement of ["javascriptreact:\n    'jsx',", 'javascriptreact: `jsx`,']) {
+      const { root, dir } = pinnedSnapshot(first.profile.platform.inputs)
+      writeFileSync(join(root, path), original.replace("javascriptreact: 'jsx',", replacement))
+      scratchGit(root, ['add', '--', path])
+      scratchGit(root, ['commit', '-q', '-m', 'Change map syntax'])
+      const before = snapshotDir(dir)
+      assert.throws(() => derive(root), /unrecognised/)
+      for (const args of [[], ['--check']]) {
+        assert.equal(run([...args, '--platform-root', root, '--manifest-dir', dir]).status, 1)
+        assert.deepEqual(snapshotDir(dir), before)
+      }
+    }
+  })
+
+  test('source lists reject quoted comments and template strings without invented entries', () => {
+    const path = 'editor/packages/highlighting/src/languages.ts'
+    const original = readFileSync(join(platformRoot, path), 'utf8')
+    for (const replacement of ["new Set(['javascript', /* 'ruby' is a comment */ 'typescript'])", 'new Set([`javascript`, \'typescript\'])']) {
+      const { root, dir } = pinnedSnapshot(first.profile.platform.inputs)
+      writeFileSync(join(root, path), original.replace("new Set(['javascript', 'typescript'])", replacement))
+      scratchGit(root, ['add', '--', path])
+      scratchGit(root, ['commit', '-q', '-m', 'Change list syntax'])
+      assert.throws(() => derive(root), /unrecognised/)
+    }
+  })
+
+  test('theme entry readers reject unconsumed configuration', () => {
+    const path = 'packages/client-core/src/themes/registration.ts'
+    const { root } = pinnedSnapshot(first.profile.platform.inputs)
+    const original = readFileSync(join(root, path), 'utf8')
+    writeFileSync(join(root, path), original.replace("andromeeda: () => import('@shikijs/themes/andromeeda'),", "andromeeda:\n    () => import('@shikijs/themes/andromeeda'),"))
+    scratchGit(root, ['add', '--', path])
+    scratchGit(root, ['commit', '-q', '-m', 'Change loader syntax'])
+    assert.throws(() => derive(root), /unrecognised/)
+  })
+
+  test('missing or unrecognized setting fields throw before generation or checking writes', () => {
+    const path = 'packages/contracts/src/settings/keys.ts'
+    const original = readFileSync(join(platformRoot, path), 'utf8')
+    const start = original.indexOf("'editor.maxTokenizationLineLength': defineSetting({")
+    const end = original.indexOf('\n  }),', start)
+    const setting = original.slice(start, end)
+    for (const replacement of [setting.replace("scope: 'application',", "scope: ('application'),"), setting.replace("    scope: 'application',\n", '')]) {
+      const { root, dir } = pinnedSnapshot(first.profile.platform.inputs)
+      writeFileSync(join(root, path), original.slice(0, start) + replacement + original.slice(end))
+      scratchGit(root, ['add', '--', path])
+      scratchGit(root, ['commit', '-q', '-m', 'Change setting syntax'])
+      const before = snapshotDir(dir)
+      assert.throws(() => derive(root), /setting field/)
+      for (const args of [[], ['--check']]) {
+        assert.equal(run([...args, '--platform-root', root, '--manifest-dir', dir]).status, 1)
+        assert.deepEqual(snapshotDir(dir), before)
+      }
+    }
+  })
+
   test('a changed grammar asset is drift', () => {
     const tsx = readFileSync(join(platformRoot, LANGS_DIST, 'tsx.mjs'), 'utf8')
     const root = mirror({ [`${LANGS_DIST}/tsx.mjs`]: tsx.replace('"scopeName\\":\\"source.tsx\\"', '"scopeName\\":\\"source.tsx2\\"') })
@@ -287,6 +536,16 @@ describe('the Platform checkout', () => {
   test('a malformed grammar module fails extraction', () => {
     const tsx = readFileSync(join(platformRoot, LANGS_DIST, 'tsx.mjs'), 'utf8')
     assert.throws(() => derive(mirror({ [`${LANGS_DIST}/tsx.mjs`]: `${tsx}export const x = 1\n` })), /tsx\.mjs/)
+  })
+
+  test('a grammar with a missing, empty or nonstring scopeName fails extraction', () => {
+    const path = `${LANGS_DIST}/tsx.mjs`
+    const { grammar, imports } = decodeGrammarModule(readFileSync(join(platformRoot, path), 'utf8'))
+    for (const scopeName of [undefined, '', 42]) {
+      const malformed = { ...grammar, scopeName }
+      const root = mirror({ [path]: grammarModule(imports, malformed) })
+      assert.throws(() => derive(root), /tsx\.mjs.*scopeName/)
+    }
   })
 
   test('a source file that differs from Platform HEAD fails extraction', () => {

@@ -4539,6 +4539,12 @@
       "sha256": "eea6671d6de13c05caa0544ce6cd60d635fd8ebda601f8a0769b4083e93a9ccc"
     },
     {
+      "package": "@shikijs/engine-oniguruma",
+      "version": "4.4.3",
+      "path": "dist/index.mjs",
+      "sha256": "ab7716ead6823baaed737e329cc27a1c6934a0251aed50ffc3fdb26340fc414b"
+    },
+    {
       "package": "@shikijs/langs",
       "version": "4.4.3",
       "path": "dist/index.mjs",

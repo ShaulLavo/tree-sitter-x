@@ -44,6 +44,10 @@
         "sha256": "409f3bddc6be34895d0394592ebdfb37e7c743ecdee37210b7f4d013dd85bc95"
       },
       {
+        "path": "editor/packages/editor/src/shiki/theme-extract.ts",
+        "sha256": "491cf2d1125f4c28ba8e1ad2df0317ce6c6ec3f95c288a4829f9856eb060a982"
+      },
+      {
         "path": "editor/packages/editor/src/shiki/theme.ts",
         "sha256": "468dc1e049f251693dc58d47afa46472bd19cab5352c0a444b2c1668b32210ed"
       },
@@ -64,8 +68,16 @@
         "sha256": "331de0ae46c39f127deaf47175f690f92848380f11b51ac5fb2b516e9c617c3f"
       },
       {
+        "path": "editor/packages/editor/src/style-utils.ts",
+        "sha256": "467ca3c5b61ac1df97ce473f55708ebd2eb5762042c74f8fcf2b086195ae1054"
+      },
+      {
         "path": "editor/packages/editor/src/syntax/packedTokens.ts",
         "sha256": "cb2bd7ec8dac4b2716ac8d8d60018193905774c5214572df13339de4400cbfd9"
+      },
+      {
+        "path": "editor/packages/editor/src/theme.ts",
+        "sha256": "699f57ac7493ef982078cad7c249a1e22e88ee7b0176caf0e4677f10f0866762"
       },
       {
         "path": "editor/packages/highlighting/package.json",
@@ -88,6 +100,10 @@
         "sha256": "ee273440111735563d67e7adc5d04a6c92f5adccfe0837802a4c43aa6e6bc992"
       },
       {
+        "path": "editor/packages/tree-sitter-languages/astro-build.lock.json",
+        "sha256": "dc59813085b8bd8c0a597a2d21ca20694eb381faf76988e85fe4ee9d1d68662c"
+      },
+      {
         "path": "editor/packages/tree-sitter-languages/languages.json",
         "sha256": "24fb1e809a0e7e79bbffb6c94db8845ec9eb9a0ed389f87ad0839f973dd8c15e"
       },
@@ -96,12 +112,28 @@
         "sha256": "86040112aa1981a0f7c0e7e51a399b1917ebbba850d2d7dba6b54f83feb17831"
       },
       {
+        "path": "editor/packages/tree-sitter-languages/mdx-build.lock.json",
+        "sha256": "7ca9b8ca5e21c267bfc786a6f65ef03f1f18f0edbd16f6404d42d652b9f905e6"
+      },
+      {
+        "path": "editor/packages/tree-sitter-languages/package.json",
+        "sha256": "10a5d4f160e8cfd39011f296a1dbf23ca172adaee99dd12c3ddce56391c12c20"
+      },
+      {
+        "path": "editor/packages/tree-sitter-languages/sql-build.lock.json",
+        "sha256": "686e58a8a8dda03ade9c88f496a13f144491e3e2ba3c65c37bf8375c0e257b4b"
+      },
+      {
         "path": "editor/packages/tree-sitter-languages/src/catalog.generated.ts",
         "sha256": "ecdab58358c249d68fe72888b6d8a6080f2516ec5925baf7c63878acf71f3910"
       },
       {
         "path": "editor/packages/tree-sitter-languages/src/query-captures.ts",
         "sha256": "b269c65a63056bbfab532d477737c0d5848f95dadcb33cf4805b28bf7838527f"
+      },
+      {
+        "path": "editor/packages/tree-sitter/package.json",
+        "sha256": "b91c8033454bcc07caba78a8d4be85af68b5ffac9573ee2d4f3fa89122313999"
       },
       {
         "path": "editor/packages/tree-sitter/src/treeSitter/markdown.ts",
@@ -731,6 +763,13 @@
   "engine": {
     "name": "oniguruma",
     "rule": "The worker passes the inlined Oniguruma WASM to createOnigurumaEngine.",
+    "implementation": {
+      "package": "@shikijs/engine-oniguruma",
+      "version": "4.4.3",
+      "path": "dist/index.mjs",
+      "sha256": "ab7716ead6823baaed737e329cc27a1c6934a0251aed50ffc3fdb26340fc414b"
+    },
+    "localDependencyClosure": [],
     "module": {
       "package": "@shikijs/engine-oniguruma",
       "version": "4.4.3",
