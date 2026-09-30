@@ -45,8 +45,11 @@ export function goldenPath(root: string, profileId: string, languageId: string, 
 
 const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error))
 
-export function checkGolden(root: string, golden: GoldenCase): GoldenCheck {
-  const { profileId } = golden.result
+/** Read-only. `profileId` is the registry profile, never the result's own claim. */
+export function checkGolden(root: string, profileId: ReferenceProfileId, golden: GoldenCase): GoldenCheck {
+  if (golden.result.profileId !== profileId) {
+    return { ok: false, message: `the ${profileId} producer returned a ${golden.result.profileId} result` }
+  }
   const path = goldenPath(root, profileId, golden.languageId, golden.fixtureId)
   if (!existsSync(path)) {
     return { ok: false, message: `missing golden ${path}; run \`npm run golden:update -- --profile ${profileId}\`` }
@@ -272,6 +275,32 @@ export async function updateGoldens(root: string, profileId: string, producer: G
   pruneEmpty(profileDir)
   for (const paths of [update.written, update.unchanged, update.removed]) paths.sort()
   return update
+}
+
+/**
+ * Read-only reconciliation of one profile: every produced case matches its golden, and every
+ * committed golden is produced exactly once. Cases are checked as they stream in.
+ */
+export async function auditGoldens(root: string, profileId: ReferenceProfileId, producer: GoldenProducer): Promise<string[]> {
+  const problems: string[] = []
+  const produced = new Set<string>()
+  for await (const golden of producer()) {
+    const label = `${golden.languageId}/${golden.fixtureId}`
+    const path = goldenPath(root, profileId, golden.languageId, golden.fixtureId)
+    if (produced.has(path)) {
+      problems.push(`${label}: duplicate case from the ${profileId} producer`)
+      continue
+    }
+    produced.add(path)
+    const check = checkGolden(root, profileId, golden)
+    if (!check.ok) problems.push(`${label}: ${check.message}`)
+  }
+  const profileDir = join(root, profileId)
+  const committed = existsSync(profileDir) ? listJsonFiles(profileDir).sort() : []
+  for (const path of committed) {
+    if (!produced.has(path)) problems.push(`${path}: committed golden is not produced by the ${profileId} producer`)
+  }
+  return problems
 }
 
 /** Directories under `root` that are not a reference profile with a registered producer. */

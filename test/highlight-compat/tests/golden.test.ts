@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ResultBuilder } from '../src/build.ts'
 import { main } from '../src/cli/golden-update.ts'
 import type { GoldenCase, GoldenProducer } from '../src/golden.ts'
-import { checkGolden, describeDifference, goldenPath, unregisteredGoldenDirs, updateGoldens } from '../src/golden.ts'
+import { auditGoldens, checkGolden, describeDifference, goldenPath, unregisteredGoldenDirs, updateGoldens } from '../src/golden.ts'
 import type { DocumentResult, ProfileId } from '../src/schema.ts'
 import { serializeResult } from '../src/serialize.ts'
 
@@ -65,52 +65,89 @@ describe('goldenPath', () => {
 
 describe('checkGolden', () => {
   it('reports a missing golden with the update command', () => {
-    const message = messageOf(checkGolden(root, goldenCase(keyword())))
+    const message = messageOf(checkGolden(root, 'product', goldenCase(keyword())))
     expect(message).toContain(join(root, 'product/typescript/basic/let.json'))
     expect(message).toContain('npm run golden:update -- --profile product')
   })
 
   it('accepts a golden that matches byte for byte', () => {
     writeGolden(goldenCase(keyword()), serializeResult(keyword()))
-    expect(checkGolden(root, goldenCase(keyword()))).toEqual({ ok: true })
+    expect(checkGolden(root, 'product', goldenCase(keyword()))).toEqual({ ok: true })
   })
 
   it('names the first differing interval with both decoded paths', () => {
     writeGolden(goldenCase(keyword()), serializeResult(keyword()))
-    const message = messageOf(checkGolden(root, goldenCase(plain())))
+    const message = messageOf(checkGolden(root, 'product', goldenCase(plain())))
     expect(message).toContain('scopes [0, 3): expected "source.ts storage.type.ts", actual "source.ts"')
   })
 
   it('reports a token split that keeps every path as a boundary difference', () => {
     writeGolden(goldenCase(plain()), serializeResult(plain()))
-    const message = messageOf(checkGolden(root, goldenCase(split())))
+    const message = messageOf(checkGolden(root, 'product', goldenCase(split())))
     expect(message).toContain('scopes: raw token boundary at 2 in actual only')
   })
 
   it('rejects a golden that parses but is not canonical', () => {
     writeGolden(goldenCase(keyword()), `${JSON.stringify(keyword(), null, 2)}\n`)
-    expect(messageOf(checkGolden(root, goldenCase(keyword())))).toContain('golden is not canonical')
+    expect(messageOf(checkGolden(root, 'product', goldenCase(keyword())))).toContain('golden is not canonical')
   })
 
   it('reports validation errors of an invalid golden', () => {
     writeGolden(goldenCase(keyword()), serializeResult(keyword()).replace('"schema": 1', '"schema": 2'))
-    expect(messageOf(checkGolden(root, goldenCase(keyword())))).toContain('schema: expected 1, got 2')
+    expect(messageOf(checkGolden(root, 'product', goldenCase(keyword())))).toContain('schema: expected 1, got 2')
   })
 
   it('rejects a produced result that does not match the case source', () => {
     writeGolden(goldenCase(keyword()), serializeResult(keyword()))
-    const message = messageOf(checkGolden(root, goldenCase(keyword(), 'basic/let', 'let y')))
+    const message = messageOf(checkGolden(root, 'product', goldenCase(keyword(), 'basic/let', 'let y')))
     expect(message).toContain('produced invalid result')
     expect(message).toContain('sourceSha256')
   })
 
   it('never writes a missing or differing golden', () => {
-    checkGolden(root, goldenCase(keyword()))
+    checkGolden(root, 'product', goldenCase(keyword()))
     expect(existsSync(join(root, 'product'))).toBe(false)
     const text = serializeResult(keyword())
     const path = writeGolden(goldenCase(keyword()), text)
-    checkGolden(root, goldenCase(plain()))
+    checkGolden(root, 'product', goldenCase(plain()))
     expect(readFileSync(path, 'utf8')).toBe(text)
+  })
+})
+
+describe('auditGoldens', () => {
+  const committed = () => [goldenCase(keyword()), goldenCase(plain(), 'plain')]
+  const seed = async () => void (await updateGoldens(root, 'product', recording(committed()).producer))
+
+  it('accepts a producer that yields exactly the committed cases', async () => {
+    await seed()
+    expect(await auditGoldens(root, 'product', recording(committed()).producer)).toEqual([])
+  })
+
+  it('reports a committed golden the producer no longer yields', async () => {
+    await seed()
+    const problems = await auditGoldens(root, 'product', recording([goldenCase(keyword())]).producer)
+    expect(problems).toEqual([
+      `${goldenPath(root, 'product', 'typescript', 'plain')}: committed golden is not produced by the product producer`,
+    ])
+  })
+
+  it('reports every committed golden when the producer yields nothing', async () => {
+    await seed()
+    expect(await auditGoldens(root, 'product', recording([]).producer)).toHaveLength(2)
+  })
+
+  it('reports a case the producer yields twice', async () => {
+    await seed()
+    const problems = await auditGoldens(root, 'product', recording([...committed(), goldenCase(keyword())]).producer)
+    expect(problems).toEqual([`typescript/basic/let: duplicate case from the product producer`])
+  })
+
+  it.each(['product', 'native'] as const)('refuses %s output from the raw producer, even when product goldens match', async (profileId) => {
+    await seed()
+    const wrong = goldenCase(builder(profileId).scope(0, 3, ['source.ts', 'storage.type.ts']).scope(3, 5, ['source.ts']).complete())
+    const problems = await auditGoldens(root, 'raw', recording([wrong]).producer)
+    expect(problems).toEqual([`typescript/basic/let: the raw producer returned a ${profileId} result`])
+    expect(checkGolden(root, 'raw', wrong)).toEqual({ ok: false, message: `the raw producer returned a ${profileId} result` })
   })
 })
 
