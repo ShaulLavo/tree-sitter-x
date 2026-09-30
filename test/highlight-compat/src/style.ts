@@ -1,4 +1,4 @@
-import type { FontStyle, Style } from './schema.ts'
+import type { FontStyle, Style, StyleTrack } from './schema.ts'
 
 const FONT_FLAGS = ['bold', 'italic', 'underline', 'strikethrough'] as const
 
@@ -42,4 +42,10 @@ function canonicalFontStyle(fontStyle: Style['fontStyle']): Style['fontStyle'] {
     if (fontStyle[flag] === true) flags[flag] = true
   }
   return flags
+}
+
+/** Own-property lookup: theme ids such as "constructor" must not resolve to inherited members. */
+export function themeTrack(styles: Readonly<Record<string, StyleTrack>> | undefined, themeId: string): StyleTrack | undefined {
+  if (styles === undefined || !Object.hasOwn(styles, themeId)) return undefined
+  return styles[themeId]
 }

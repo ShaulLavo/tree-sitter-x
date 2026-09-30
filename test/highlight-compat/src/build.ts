@@ -195,8 +195,11 @@ export class ResultBuilder {
 
   #styles(): { styles?: Record<string, StyleTrack> } {
     if (this.#themes.size === 0) return {}
-    const styles: Record<string, StyleTrack> = {}
-    for (const [themeId, theme] of this.#themes) styles[themeId] = { styles: theme.styles.values, spans: theme.writer.spans }
-    return { styles }
+    const entries = [...this.#themes].map(([themeId, theme]): [string, StyleTrack] => [
+      themeId,
+      { styles: theme.styles.values, spans: theme.writer.spans },
+    ])
+    // fromEntries defines own properties, so a theme named "__proto__" stays a theme.
+    return { styles: Object.fromEntries(entries) }
   }
 }

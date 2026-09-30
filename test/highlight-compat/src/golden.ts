@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import type { CompleteResult, DocumentResult, ReferenceProfileId, SpanTriples, Style, StyleTrack } from './schema.ts'
 import { REFERENCE_PROFILES } from './schema.ts'
 import { parseResultText, serializeResult } from './serialize.ts'
-import { canonicalStyle, styleKey } from './style.ts'
+import { canonicalStyle, styleKey, themeTrack } from './style.ts'
 import { sweep } from './sweep.ts'
 import { parseResult } from './validate.ts'
 
@@ -140,13 +140,11 @@ function describeTheme(themeId: string, a: StyleTrack, b: StyleTrack): string[] 
 }
 
 function describeStyles(expected: CompleteResult, actual: CompleteResult): string[] {
-  const a = expected.styles ?? {}
-  const b = actual.styles ?? {}
   const lines: string[] = []
-  const themeIds = [...new Set([...Object.keys(a), ...Object.keys(b)])].sort()
+  const themeIds = [...new Set([...Object.keys(expected.styles ?? {}), ...Object.keys(actual.styles ?? {})])].sort()
   for (const themeId of themeIds) {
-    const aTrack = a[themeId]
-    const bTrack = b[themeId]
+    const aTrack = themeTrack(expected.styles, themeId)
+    const bTrack = themeTrack(actual.styles, themeId)
     if (aTrack === undefined || bTrack === undefined) {
       lines.push(`styles: theme ${JSON.stringify(themeId)} in ${aTrack === undefined ? 'actual' : 'expected'} only`)
       continue

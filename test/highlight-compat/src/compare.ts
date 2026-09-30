@@ -1,7 +1,7 @@
 import { categorize, type MismatchCategory } from './categorize.ts'
 import type { CompleteResult, DocumentResult, ProfileId, ResultStatus, SpanTriples, Style } from './schema.ts'
 import { isWhitespaceUnit, sourceSha256 } from './source.ts'
-import { backgroundKey, fontKey, foregroundKey, styleKey } from './style.ts'
+import { backgroundKey, fontKey, foregroundKey, styleKey, themeTrack } from './style.ts'
 import { sweep } from './sweep.ts'
 
 export interface CompareOptions {
@@ -365,8 +365,8 @@ function fieldCounts(tally: FieldTally, withSource: boolean): Record<StyleField,
 }
 
 function compareTheme(reference: CompleteResult, candidate: CompleteResult, themeId: string, context: Context): Outcome<StyleReport> {
-  const referenceTrack = reference.styles?.[themeId]
-  const candidateTrack = candidate.styles?.[themeId]
+  const referenceTrack = themeTrack(reference.styles, themeId)
+  const candidateTrack = themeTrack(candidate.styles, themeId)
   if (referenceTrack === undefined || candidateTrack === undefined) {
     const reason = missing(`theme ${themeId}`, referenceTrack === undefined, candidateTrack === undefined)
     return { compared: false, reason }
