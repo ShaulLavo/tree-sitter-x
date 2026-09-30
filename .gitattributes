@@ -4,3 +4,7 @@
 /lib/src/unicode/LICENSE linguist-vendored
 
 Cargo.lock -diff
+
+# Byte-exact test inputs: CRLF, lone CR and BOM fixtures must survive checkout.
+/test/highlight-compat/vendor/** -text linguist-vendored
+/test/highlight-compat/fixtures/** -text
