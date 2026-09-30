@@ -129,6 +129,35 @@ describe('compare CLI', () => {
     expect(out.text()).toBe('')
   })
 
+  function otherSourceCandidate(): string {
+    const path = join(dir, 'other.json')
+    const other = new ResultBuilder({ profileId: 'native', languageId: 'typescript' }, 'let b = 1\n').scope(0, 10, ['source.ts'])
+    writeFileSync(path, serializeResult(other.complete()))
+    return path
+  }
+
+  it('reports results for different sources as not comparable when the source matches one side', () => {
+    const { reference, source } = files()
+    const candidate = otherSourceCandidate()
+    const report = join(dir, 'report.json')
+    const out = sink()
+    const err = sink()
+    expect(main([reference, candidate, '--source', source, '--json', report], out, err)).toBe(0)
+    expect(out.text()).toContain('not comparable: sources differ')
+    expect(JSON.parse(readFileSync(report, 'utf8'))).toMatchObject({ comparable: false })
+    expect(err.text()).toBe('')
+  })
+
+  it('returns 1 when the source matches neither result', () => {
+    const { reference } = files()
+    const candidate = otherSourceCandidate()
+    const source = join(dir, 'neither.ts')
+    writeFileSync(source, 'let c = 1\n')
+    const err = sink()
+    expect(main([reference, candidate, '--source', source], sink(), err)).toBe(1)
+    expect(err.text()).toContain('matches neither result')
+  })
+
   it('returns 2 on a usage error', () => {
     const err = sink()
     expect(main(['only-one.json'], sink(), err)).toBe(2)

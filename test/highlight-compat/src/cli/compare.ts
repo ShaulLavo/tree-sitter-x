@@ -61,8 +61,9 @@ function parseInvocation(argv: readonly string[]): Invocation {
 
 function run(invocation: Invocation, out: Sink): void {
   const source = invocation.sourcePath === undefined ? undefined : readFileSync(invocation.sourcePath, 'utf8')
-  const reference = readResultFile(invocation.referencePath, source)
-  const candidate = readResultFile(invocation.candidatePath, source)
+  // Each file is validated alone; compareResults decides what the source means for the pair.
+  const reference = readResultFile(invocation.referencePath)
+  const candidate = readResultFile(invocation.candidatePath)
   const options: CompareOptions = {
     ...(source === undefined ? {} : { source }),
     ...(invocation.themeId === undefined ? {} : { themeId: invocation.themeId }),
