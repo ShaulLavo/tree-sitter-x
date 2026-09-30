@@ -1,0 +1,4584 @@
+{
+  "schema": "highlight-compat/assets@1",
+  "platformCommit": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+  "grammars": [
+    {
+      "name": "abap",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/abap.mjs",
+      "sha256": "ec6f7e9101c1912af768338a2fe55e622a5dbd4bcbcee9efd4a567a43e164355",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "actionscript-3",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/actionscript-3.mjs",
+      "sha256": "2a404aa1a78a0b32fa9f75b15f99e09053dedbc828fc45ddc058234123986713",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "ada",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/ada.mjs",
+      "sha256": "69e387d0b64cb01dbd2956f50e6b909e458f3de36aca59f84dc62e30891d1941",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "ahk",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/ahk.mjs",
+      "sha256": "133fc174e7655515b6f4bdb2c0821255094a7720218f37716a001c6ce0ade9b6",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "ahk2",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/ahk2.mjs",
+      "sha256": "3ed035b489c49a1505fab6d74351027140c11f490e29740fcfe78bf188533ab6",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "angular-expression",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/angular-expression.mjs",
+      "sha256": "6b5a92ef9a3a6c4a670a5b942100489d1e2ec8dd298c91a56a14072722a206f3",
+      "status": "resolved",
+      "public": false,
+      "imports": []
+    },
+    {
+      "name": "angular-html",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/angular-html.mjs",
+      "sha256": "e7cea75af81f03e1a4b9754a660040ad2877022d5fe58768051b00114e62316c",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "html",
+        "angular-expression",
+        "angular-let-declaration",
+        "angular-template",
+        "angular-template-blocks"
+      ]
+    },
+    {
+      "name": "angular-inline-style",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/angular-inline-style.mjs",
+      "sha256": "60ccf84081941a2858c2fea6b7adc969eaf1b378084b25fa8fc736a12000403a",
+      "status": "resolved",
+      "public": false,
+      "imports": [
+        "scss"
+      ]
+    },
+    {
+      "name": "angular-inline-template",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/angular-inline-template.mjs",
+      "sha256": "7ce3b061739eb36b18a999e5aa917c5fd256fc4b1092841c25344eb52ccb17ba",
+      "status": "resolved",
+      "public": false,
+      "imports": [
+        "angular-html",
+        "angular-template"
+      ]
+    },
+    {
+      "name": "angular-let-declaration",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/angular-let-declaration.mjs",
+      "sha256": "f5c7b01eade11290b139c188283926c02ce08c5edf08e337de647e00caf02621",
+      "status": "resolved",
+      "public": false,
+      "imports": [
+        "angular-expression"
+      ]
+    },
+    {
+      "name": "angular-template",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/angular-template.mjs",
+      "sha256": "24d920e588c10461ecc1f4b1ad5b6f5676508d0e3532ee803fd0f222353580b0",
+      "status": "resolved",
+      "public": false,
+      "imports": [
+        "angular-expression"
+      ]
+    },
+    {
+      "name": "angular-template-blocks",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/angular-template-blocks.mjs",
+      "sha256": "e54efb2870f5fe072c54292ec4bcd51815dacad6802ad40a5cf0f05846ca222a",
+      "status": "resolved",
+      "public": false,
+      "imports": [
+        "angular-expression",
+        "angular-template"
+      ]
+    },
+    {
+      "name": "angular-ts",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/angular-ts.mjs",
+      "sha256": "acbc30e09332ebef2aac36a908d76161d71b843a8e1bbd388f90e097bc8e8ddd",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "angular-expression",
+        "angular-inline-style",
+        "angular-inline-template",
+        "angular-let-declaration",
+        "angular-template",
+        "angular-template-blocks"
+      ]
+    },
+    {
+      "name": "apache",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/apache.mjs",
+      "sha256": "f300f90b6523f39917e4ba9e85cf01323f297dafb8473e22eab367265fedd987",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "apex",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/apex.mjs",
+      "sha256": "e0e76eb51fd453c0e5aeeb7d8950765ed540a53afa0d7bc12c468c2b12715e9f",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "apl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/apl.mjs",
+      "sha256": "3a2b5e9821644155f9b3052bb1e3e238c2d9e8141632a148e45a7a3965f390b1",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "html",
+        "xml",
+        "css",
+        "javascript",
+        "json"
+      ]
+    },
+    {
+      "name": "applescript",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/applescript.mjs",
+      "sha256": "c4575300c12a67f80b24735ec893001bf999cfe930262aac5157371dde3fd8a1",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "ara",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/ara.mjs",
+      "sha256": "2f6be458abf8576f7e522e6d315c15f104a7dfde2b1f9db6106ba386ecc47c0b",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "asciidoc",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/asciidoc.mjs",
+      "sha256": "51ff19643e40e469a3f907d2d8bb873fb54fbd071eb8fa5b11202c0bd71b3e8a",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "asm",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/asm.mjs",
+      "sha256": "3b83c89476d9ee68b4dfea17830557c73153890964d45da211ba525b8d6f1e16",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "astro",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/astro.mjs",
+      "sha256": "f63a0c00f802b90fd29930c4563592a0b04e77b315be46afc84948a0f8208d49",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "json",
+        "javascript",
+        "typescript",
+        "css",
+        "postcss",
+        "tsx"
+      ]
+    },
+    {
+      "name": "awk",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/awk.mjs",
+      "sha256": "3e90820adb6a2a7508de45fa7598b1b8e40e7b7c8c5cc725f8393082ff2c50ee",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "ballerina",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/ballerina.mjs",
+      "sha256": "d837c6f1215e40edd2a90456dfc458ccdaaac25ac81f99e0b52ee43cee363f98",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "bat",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/bat.mjs",
+      "sha256": "7c02ea565fbaec1de71cf415116ba05d469dab2d9a9199e88b135f74e3952ce0",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "beancount",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/beancount.mjs",
+      "sha256": "e095a7640a7fd9b4e361ee7bd9a0a727fc0ec0e1d87ea04ddb5f5b1c37dc832b",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "berry",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/berry.mjs",
+      "sha256": "52d50778779de4df63fc5da4e2a3ea85c0954063253a66fb475c1909a112250c",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "bibtex",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/bibtex.mjs",
+      "sha256": "f40a5e61c34670c65cc3d138e18825ba79312665c909bbf9adf7301b366655e8",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "bicep",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/bicep.mjs",
+      "sha256": "1d23b4784606eb59f4575a7e86efb54604c4725b55be3f052ad1fd56d91200fe",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "bird2",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/bird2.mjs",
+      "sha256": "b1a62b81f0db8daf15fc8c3ad57db3495c04be480c48ad95858cca9411367bd9",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "blade",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/blade.mjs",
+      "sha256": "f99016ee2fbb26c7d140783b40ca0ecdc2b808fe693ab839da243c3af456fa02",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "html-derivative",
+        "html",
+        "xml",
+        "sql",
+        "javascript",
+        "json",
+        "css"
+      ]
+    },
+    {
+      "name": "bsl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/bsl.mjs",
+      "sha256": "f45f5368cc3a26a5445e91b0a0ff3dd878888be7f75c67cfd0d3e605047e8921",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "sdbl"
+      ]
+    },
+    {
+      "name": "c",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/c.mjs",
+      "sha256": "f2da7ca9f12fc2c5194351508fff542cd1bb2d7ec13d5d1e3f788883475bebd8",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "c3",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/c3.mjs",
+      "sha256": "ddc804c0dc9c8bc3ac339090e755c086bc8f93973edc8418633fe564cbf16ee4",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "cadence",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/cadence.mjs",
+      "sha256": "8e869cb8d78702dc7ad2a14d4d812164f3c3ddc4f5535742c7d55f5d2c71751c",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "cairo",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/cairo.mjs",
+      "sha256": "c51eb8c8984c7105c0e9ce64091bfc0e2f496487a4b7947a6e498874c436faae",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "python"
+      ]
+    },
+    {
+      "name": "chapel",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/chapel.mjs",
+      "sha256": "df9da19da81838dda53524474e175a6cd0a80d56cf2fa9636832d7c1c41d15dd",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "c"
+      ]
+    },
+    {
+      "name": "clarity",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/clarity.mjs",
+      "sha256": "55d398c82b3782d8999e17412f614cd6b88ec03f218b7a5043cbe1e77eb60baa",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "clojure",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/clojure.mjs",
+      "sha256": "487767c9c61b621236286add7222117bd4ba936d57c118a6a1b8355dbb1e6391",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "cmake",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/cmake.mjs",
+      "sha256": "e8fda25a0deb8eeebf89fdc920705db5c53e2577b519d09304678fef12c5c3f3",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "cobol",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/cobol.mjs",
+      "sha256": "eebf6325340a8c6c18795dc726e72344fd56a3ce8a9c09a0a23920be7ecb7a8e",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "html",
+        "java"
+      ]
+    },
+    {
+      "name": "codeowners",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/codeowners.mjs",
+      "sha256": "4997000da206c400cbc362d979ad06ba2b01fb1869fc9a0051a41a7d2e54f777",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "codeql",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/codeql.mjs",
+      "sha256": "591e9dff37012ce7a49936d189066501c56d76413d83f1ee5aca745a378a2d28",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "coffee",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/coffee.mjs",
+      "sha256": "2aee127c6c094403cc6e46caf62c1cfccf73979d349535083c40fe99f321f860",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "javascript"
+      ]
+    },
+    {
+      "name": "common-lisp",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/common-lisp.mjs",
+      "sha256": "70922105215105d6297307052f78f5423421a41c0f3360d361784086af59d849",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "coq",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/coq.mjs",
+      "sha256": "86990b70686d4320c9f03120e817396603d754190bdc986964af1a78ff1ae5e3",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "cpp",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/cpp.mjs",
+      "sha256": "07fa535c5703d8b5aa6987a0d827d255d6c244cf4292e3cd38574a043538fd38",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "cpp-macro",
+        "regexp",
+        "glsl"
+      ]
+    },
+    {
+      "name": "cpp-macro",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/cpp-macro.mjs",
+      "sha256": "fb5cd892bf1560a41ffd5f82d7f3b3ae3e622b76999be02fe6f12569f075323f",
+      "status": "resolved",
+      "public": false,
+      "imports": [
+        "regexp",
+        "glsl"
+      ]
+    },
+    {
+      "name": "crystal",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/crystal.mjs",
+      "sha256": "a2e2f823bdb2972a776dbd4d88bf8fd0c5241ae451b8488e7c458f152e79f591",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "html",
+        "sql",
+        "css",
+        "c",
+        "javascript",
+        "shellscript"
+      ]
+    },
+    {
+      "name": "csharp",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/csharp.mjs",
+      "sha256": "ce909b10307209e0691b71e4d42f5a29342022882e0d7115284a7ff281b5cfa4",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "css",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/css.mjs",
+      "sha256": "dff3bfe730e04426b9119258016140453671218aff5f7d224b2322f9d360c554",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "csv",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/csv.mjs",
+      "sha256": "8c1f087c0b2294288b3cd2b7f95766c80de2b83be9ad123ad16efb1eedd4409b",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "cue",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/cue.mjs",
+      "sha256": "733e62cfc1d99ad14233b37825dbcc511fc9b3a1304b8a68583649d67e2c679f",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "cypher",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/cypher.mjs",
+      "sha256": "87145a360c3feecc928010334423377d71a4bebc70f84073f404380bc328dad2",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "d",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/d.mjs",
+      "sha256": "bec03568357c51b394e0f5e93e316dc8a3f8dee4f11a549ae684df398774a7e2",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "dart",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/dart.mjs",
+      "sha256": "2ef08acb943c56065d4a2fc437272b902bbdfd462bd2ec022d57f998d638c5d3",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "dax",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/dax.mjs",
+      "sha256": "415324bc5ebb1b0f1dd5c3409297b13348d9b72143403acb7cbec4fac8675543",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "desktop",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/desktop.mjs",
+      "sha256": "5e46e3daf8534fb526696e998a94083740145800f0e8214177e628ffb4cda3ae",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "diff",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/diff.mjs",
+      "sha256": "1cf00752e31537f93946dfc06a236a145a0be73025e9e700b3ffb036de6603b8",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "docker",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/docker.mjs",
+      "sha256": "1edafd321cf621fb03a6972caa432baa1662f48d280c9252fd6958e03238eed0",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "dotenv",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/dotenv.mjs",
+      "sha256": "cc3bdc2160b674f8854506a7f979d99476a72ec5d437e3a5ddecb5d8e6fd765d",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "dream-maker",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/dream-maker.mjs",
+      "sha256": "924e969a22fd6dab970ef67d82178df015360bd5bfff6f5048b7fead5ff33caf",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "edge",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/edge.mjs",
+      "sha256": "9bbe59a31312fee62adcb6fc599fb62428869b5ec99d51a3af25c0e667b877e2",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "typescript",
+        "html",
+        "html-derivative"
+      ]
+    },
+    {
+      "name": "elixir",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/elixir.mjs",
+      "sha256": "c63a9aca94a89cf44a93babb53171b1ee54a3f77fe239e215550767108e0d63a",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "html"
+      ]
+    },
+    {
+      "name": "elm",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/elm.mjs",
+      "sha256": "506b09277e0e39416e48f141b2e10112e14e9f4d77a1e227a5a9c3290e94a287",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "glsl"
+      ]
+    },
+    {
+      "name": "emacs-lisp",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/emacs-lisp.mjs",
+      "sha256": "08bd4b92972b883409bbc4c50911bc9ab67e12c979d6e8101e72e532f303ac1f",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "erb",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/erb.mjs",
+      "sha256": "aa528f7b75740da613342b84ba800a7c584ebf17f29eae69556e4c3dbd683054",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "html",
+        "ruby"
+      ]
+    },
+    {
+      "name": "erlang",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/erlang.mjs",
+      "sha256": "289793c9cb45089552b937833fe5d24379b6e5d6bbc450dcd826e32bf09fbbc4",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "markdown"
+      ]
+    },
+    {
+      "name": "es-tag-css",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/es-tag-css.mjs",
+      "sha256": "5485be5979622234964c4f52052038d64b843448a23331da579d077be649bf9f",
+      "status": "resolved",
+      "public": false,
+      "imports": [
+        "typescript",
+        "css",
+        "javascript"
+      ]
+    },
+    {
+      "name": "es-tag-glsl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/es-tag-glsl.mjs",
+      "sha256": "d6f15b407ffbd204e68d5678439aa1ce38152744957ab6f68339b088e55e49b6",
+      "status": "resolved",
+      "public": false,
+      "imports": [
+        "typescript",
+        "glsl",
+        "javascript"
+      ]
+    },
+    {
+      "name": "es-tag-html",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/es-tag-html.mjs",
+      "sha256": "d5750fe2eb0873553851eababe647c63e4b400d84229075054060398fb191632",
+      "status": "resolved",
+      "public": false,
+      "imports": [
+        "typescript",
+        "html",
+        "javascript"
+      ]
+    },
+    {
+      "name": "es-tag-sql",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/es-tag-sql.mjs",
+      "sha256": "b125f07fa6de74d2c13f8e1f92a248db81195ee886f360240f6a47220048076f",
+      "status": "resolved",
+      "public": false,
+      "imports": [
+        "typescript",
+        "sql"
+      ]
+    },
+    {
+      "name": "es-tag-xml",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/es-tag-xml.mjs",
+      "sha256": "406edd10dcaf402719e6cc117e73167461dd791ede0846210f9b7847b479b2fe",
+      "status": "resolved",
+      "public": false,
+      "imports": [
+        "xml"
+      ]
+    },
+    {
+      "name": "fennel",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/fennel.mjs",
+      "sha256": "7e80378c03503ad815699fe8b43b2f429510aa1ba46c9bf81d26b808d893f637",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "fish",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/fish.mjs",
+      "sha256": "0fd338cde4ef437650a5aa13df6010e3a55119303745882174741da6b612ffbe",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "fluent",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/fluent.mjs",
+      "sha256": "916d78a0dd0f1c793266082d55c71f7369402500a5187d552263920d4b5807fe",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "fortran-fixed-form",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/fortran-fixed-form.mjs",
+      "sha256": "9fa79a0b2276f4aba3b2afa18869d008fde7bfe9200adf46d50cf15426aed982",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "fortran-free-form"
+      ]
+    },
+    {
+      "name": "fortran-free-form",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/fortran-free-form.mjs",
+      "sha256": "a50a6028857cbbac9d821d8c6cdf8d708c3f44244e08ecf57249dc7a9f39b1c3",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "fsharp",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/fsharp.mjs",
+      "sha256": "baec552b7be0454c96530ddb4f1d1017a8ca53657ef1acd0a5a2185280a9f7d4",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "markdown"
+      ]
+    },
+    {
+      "name": "gdresource",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/gdresource.mjs",
+      "sha256": "60006e974434cdf19ce352d9ebd689d3db8b740a21b62eafbdfaf617f9cb169c",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "gdshader",
+        "gdscript"
+      ]
+    },
+    {
+      "name": "gdscript",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/gdscript.mjs",
+      "sha256": "341a0cc4725cf13dcd5507fbd786efca1bd9990fc58e34a1333ad8e3f052926b",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "gdshader",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/gdshader.mjs",
+      "sha256": "c1b5ec61cd694b82e135d45e30ecea7ad37301639861081108de978905328fd1",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "genie",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/genie.mjs",
+      "sha256": "155d978eef17811b1f8e37f09c9ad8b352b66c3c5df587508b85179de77456f5",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "gherkin",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/gherkin.mjs",
+      "sha256": "04ed391852b7ee422afad5c34248f95bd9c5667255aa0f41724cc22aa376290a",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "git-commit",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/git-commit.mjs",
+      "sha256": "e4bbec6e2d3b7572d11ffb47444981241b445e242f786f0859dc9b2bf188ff7e",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "diff"
+      ]
+    },
+    {
+      "name": "git-rebase",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/git-rebase.mjs",
+      "sha256": "da7acf2d4ddcfdfaf26470f91a4c1a23ec9f3a0d0adc096ae9d0c9b00eca3e3b",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "shellscript"
+      ]
+    },
+    {
+      "name": "gleam",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/gleam.mjs",
+      "sha256": "c314edfb78d598a7d4e95624c65752d31974bb9d15a67215dad71a045670f48b",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "glimmer-js",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/glimmer-js.mjs",
+      "sha256": "1c5695e7fafc9dd6b2f4959af67654885ed595bf71d767388081fe16fdd3bdf1",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "javascript",
+        "typescript",
+        "css",
+        "html"
+      ]
+    },
+    {
+      "name": "glimmer-ts",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/glimmer-ts.mjs",
+      "sha256": "ff3ba185082cb72ebeb36769b229754c55b2f7ffc0150180fef58a6c39c7e559",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "typescript",
+        "css",
+        "javascript",
+        "html"
+      ]
+    },
+    {
+      "name": "glsl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/glsl.mjs",
+      "sha256": "bd2ac3c72841bf210e6d9b604dfb6bedc8b6d028a653ea2e49c3a07e3204754e",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "c"
+      ]
+    },
+    {
+      "name": "gn",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/gn.mjs",
+      "sha256": "d04dc06bcfced8b386ce4ed9b6bc9fcae8f3183c0deaca301dee9af1fab5fa89",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "gnuplot",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/gnuplot.mjs",
+      "sha256": "eb9bc53244f39f3b2b2131bb733da665e09601c12ea928e178121b6868ef1379",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "go",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/go.mjs",
+      "sha256": "592e98118a5c94602e63b8b67d3317aa583a6e115c2e82f59e659fa6d49e7a3a",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "graphql",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/graphql.mjs",
+      "sha256": "ba16156a21a63ae3161b57703e76d89d6b58db9b0f919f03f584f02e5d67540e",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "javascript",
+        "typescript",
+        "jsx",
+        "tsx"
+      ]
+    },
+    {
+      "name": "groovy",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/groovy.mjs",
+      "sha256": "d589d33002df88decf0389ecc11c578458ab8bf14503e41eb2c15ae8703a92a0",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "hack",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/hack.mjs",
+      "sha256": "baf0630c2f4e2df99f3b6a8a47200b4b0ae2c29d8fdda3ce46835995faadfd80",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "html",
+        "sql"
+      ]
+    },
+    {
+      "name": "haml",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/haml.mjs",
+      "sha256": "49c3c75aa8dbb16b9111bd5c5f4db1a7f5139ada197866f0d96595a068d46497",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "javascript",
+        "css"
+      ]
+    },
+    {
+      "name": "handlebars",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/handlebars.mjs",
+      "sha256": "dff7a28ec34d2c8d60e05952ec8beb888af8c9b5f49489b31dcca2ce3194ab55",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "html",
+        "css",
+        "javascript",
+        "yaml"
+      ]
+    },
+    {
+      "name": "haskell",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/haskell.mjs",
+      "sha256": "8392940fa9f7e697dacb0b4b75e00d0e500e62f2a8f17177f84bba25ceaa375d",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "haxe",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/haxe.mjs",
+      "sha256": "93fdc2078b4e7c4206fdf85fb4f10f7399b4fadc6661e0b75fd97c53aba222cb",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "hcl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/hcl.mjs",
+      "sha256": "609d18d565e031429e5b2a1e62d207db8ee67ff44a63bbd3ed0d3b944c236c5f",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "hjson",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/hjson.mjs",
+      "sha256": "270634b73b41af8d916693157886a58ea93d523221fd1fb855a8afec46fd1baf",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "hlsl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/hlsl.mjs",
+      "sha256": "5a63cc21232aba5a43a54bccce231f9e1853a1de5466f268cccbcf976128627e",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "html",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/html.mjs",
+      "sha256": "db459a440f772dcab53b33b849bb7829433d2d43cf2c040d17bf22b4277d297c",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "javascript",
+        "css"
+      ]
+    },
+    {
+      "name": "html-derivative",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/html-derivative.mjs",
+      "sha256": "29d15ff997c51b3b631973fbb687b57d87a6972f991cfe3f9d3853fe909c85c4",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "html"
+      ]
+    },
+    {
+      "name": "http",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/http.mjs",
+      "sha256": "e8479069367ca64ae940976fa60988f86cda13210260e16718036594fb961f10",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "shellscript",
+        "json",
+        "xml",
+        "graphql"
+      ]
+    },
+    {
+      "name": "hurl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/hurl.mjs",
+      "sha256": "316c16272e76d36cd79aec49f7887db46d28197ec7db0cb714a7f90ee5c44811",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "graphql",
+        "xml",
+        "csv"
+      ]
+    },
+    {
+      "name": "hxml",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/hxml.mjs",
+      "sha256": "147c37dced6b7db7ee2d50acbd5aa407e823e736981f07158f3c355059563410",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "haxe"
+      ]
+    },
+    {
+      "name": "hy",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/hy.mjs",
+      "sha256": "d4d1412a44b98eb5eba74823112eb30bff68903c3826cd5470101228d997aa01",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "imba",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/imba.mjs",
+      "sha256": "f14508be34452340b907aa2be5bcf50fae3ce44076ad9622ffde46bc380e59a2",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "ini",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/ini.mjs",
+      "sha256": "91f4640cf0f0789cf0169c94afd1d7aa1d67650dcc729f25e5ee65930b6d6c4a",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "java",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/java.mjs",
+      "sha256": "37d4cd10708b251cd0a2efc60b090c801598d016cef921f19a6b31c2031c846f",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "javascript",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/javascript.mjs",
+      "sha256": "9e2baa2cf197acfcc4d45f87af10275ced002f6cb1ebcd6ce570340cbbfab902",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "jinja",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/jinja.mjs",
+      "sha256": "bbf721cfdc9b9fdc061da4510e7ba0f24adf68655911939dd8d5fb002f2c3665",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "jinja-html"
+      ]
+    },
+    {
+      "name": "jinja-html",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/jinja-html.mjs",
+      "sha256": "15bc200f0ff439a0c61e3ed33483169442d9d8c9ca959f14c2413ba20190c35d",
+      "status": "resolved",
+      "public": false,
+      "imports": [
+        "html"
+      ]
+    },
+    {
+      "name": "jison",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/jison.mjs",
+      "sha256": "758794bd453dc0cc4ab3a193e5488e40348894239533afb3f9d79dc7d2fb3203",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "javascript"
+      ]
+    },
+    {
+      "name": "json",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/json.mjs",
+      "sha256": "b057750f7333dae18feeb337cedbdb87f463f6a5d8358d375911ef28c0742325",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "json5",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/json5.mjs",
+      "sha256": "7b68fd8637426b633536a7b427333dab18060df2598cce3f73eedf7318534ecb",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "jsonc",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/jsonc.mjs",
+      "sha256": "b2e7fc902748887534cd1f63a7a8b37ffc2a16c8a8d0e03c73d6937f393116ed",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "jsonl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/jsonl.mjs",
+      "sha256": "51ab3783aa78e02c256089f88353a221ec4a2cc33f3d69050e854ad9a08ae960",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "jsonnet",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/jsonnet.mjs",
+      "sha256": "815607be53408ff6ec09da374fc9d87ad8dd88041298c90d6b15e160f7078194",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "jssm",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/jssm.mjs",
+      "sha256": "672d6e35c96e103b67cada4bbdbb7a44137bf76d5ca852ed3732199e4aad40e7",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "jsx",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/jsx.mjs",
+      "sha256": "e93e62820880daf7a547dc35a8053a013a3b324d617a17cc8d2f94717a5d8fd6",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "julia",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/julia.mjs",
+      "sha256": "543d86f49fd1e20a5d7727c0184d62a900696a95bf016e802763a66e8aae02af",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "cpp",
+        "python",
+        "javascript",
+        "r",
+        "sql"
+      ]
+    },
+    {
+      "name": "just",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/just.mjs",
+      "sha256": "517147ab4dc0bad0659d0b9feddd40ccb9ee3d93e7f582bbe754841a6a6984d2",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "shellscript",
+        "javascript",
+        "typescript",
+        "perl",
+        "python",
+        "ruby"
+      ]
+    },
+    {
+      "name": "kdl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/kdl.mjs",
+      "sha256": "01881f13b7e7b4acf9770c9d57546100608c5280039349cade686c64e6cd0ebb",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "kotlin",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/kotlin.mjs",
+      "sha256": "137f10eb20d082b9f96e60748c10cdfb3b06f51f557fa670aec3128055481028",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "kusto",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/kusto.mjs",
+      "sha256": "0e50963e95c3c658189bb099ed98bbf85bafd4aadedbab01bf3a843ef704defb",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "latex",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/latex.mjs",
+      "sha256": "1c96e1cff14b2850a5e982660f8901f1d35feb37d693152c0b1f60ea7abd29b1",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "tex"
+      ]
+    },
+    {
+      "name": "lean",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/lean.mjs",
+      "sha256": "8b2bb78216ceb7473d6fabdfd18842df522fd64e5fae45498ff8d42b716ad2c0",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "less",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/less.mjs",
+      "sha256": "5a7bbc1bc11df85b9727649de33f079f034259e3fd092f98e0eecb2f6ab2a46f",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "liquid",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/liquid.mjs",
+      "sha256": "45cb4c3c6dd0ff22ea24b67702ff7dc9947e3ca73a6355a228a60116243648a6",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "html",
+        "css",
+        "json",
+        "javascript"
+      ]
+    },
+    {
+      "name": "llvm",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/llvm.mjs",
+      "sha256": "99296ecef1bfd327422e2f50fffcadac6c08c918cabb79faa1a39be25991b11d",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "log",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/log.mjs",
+      "sha256": "4e53721368c5f6417d06b56aaa4c7fc096862ddcb32c50c5c1eab3347d113d6b",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "logo",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/logo.mjs",
+      "sha256": "486d5c9d8118da8fcec41181efba800c8433fda0fb3634da1a732f02c8254350",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "lua",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/lua.mjs",
+      "sha256": "3cf2e47f578a49bc5c8aa51f6f4391f511b8c5eeb46837a6ed0efa75534d8f91",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "c"
+      ]
+    },
+    {
+      "name": "luau",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/luau.mjs",
+      "sha256": "3d01a07acf8fa8e6e82317b283f0cf43fea96ec3ef6da01116289b33bbcdf155",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "make",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/make.mjs",
+      "sha256": "e7d934f28fa394c3a49926e8b9e563f9f33e995e1d588d3e2f5ac5a07e07e8f4",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "markdown",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/markdown.mjs",
+      "sha256": "5c45727de7a8279ad67817724fa3dce91186ae787456f1e9b5e5ceffeb17f0f0",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "markdown-nix",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/markdown-nix.mjs",
+      "sha256": "bd5e8ddb237e2887fc54808d3b129706224aa27d940907c9373060992e71bf45",
+      "status": "resolved",
+      "public": false,
+      "imports": []
+    },
+    {
+      "name": "markdown-vue",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/markdown-vue.mjs",
+      "sha256": "bb2875c9bf795f35beeb794703b77061c0cd820f3e8b52e1ec0212a206e80efe",
+      "status": "resolved",
+      "public": false,
+      "imports": []
+    },
+    {
+      "name": "marko",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/marko.mjs",
+      "sha256": "6728d9f4a07d8dd0678c8356b3204e71d1279773750727e952b527f146a500b0",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "css",
+        "less",
+        "scss",
+        "typescript"
+      ]
+    },
+    {
+      "name": "matlab",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/matlab.mjs",
+      "sha256": "f68626f4c1a4e6b9bdf5aea1b0ed5e3d5c3561a7f7739e8e1cadf817ccddc21b",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "mdc",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/mdc.mjs",
+      "sha256": "845b86b3cdfce30a9a0cfeba45989dc03b4fb5ceca3381a99db9ceb6d8538e60",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "markdown",
+        "yaml",
+        "html-derivative"
+      ]
+    },
+    {
+      "name": "mdx",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/mdx.mjs",
+      "sha256": "15e1fd24b5ec2c65efb44f0a6e59124126b5d03f094c82f8913b2867d0dcc5c1",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "mermaid",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/mermaid.mjs",
+      "sha256": "fb9e8149462b6780ac9a704d5a7a26249aafe48342da017982e328020aae6a92",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "mipsasm",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/mipsasm.mjs",
+      "sha256": "768d2c4ac8c532fcbd87a12ecae75131fac43190b6f329ef014b4dc44316d76b",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "mojo",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/mojo.mjs",
+      "sha256": "72510db5c501282102eb35607962f0010c635d885591b99153ff89494f8e1877",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "moonbit",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/moonbit.mjs",
+      "sha256": "4657855c5ebf5cb5fad2c9cbd94766fa35e670e396c826eb2df506bc1226bdc4",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "move",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/move.mjs",
+      "sha256": "fe904b1d40c1970ce0fd26fe610cae266c2cb8fcdba94a0e5357fbdfb0e9594f",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "narrat",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/narrat.mjs",
+      "sha256": "1bdaecdc06377af03fbc4377a555bc62ee26c7c4894ca4d21ccde37c8c1ae4a6",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "nextflow",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/nextflow.mjs",
+      "sha256": "71d0519ebcf4cd8b30fbb21cf7cef3baff79906291a84485913551f4e8bb0dbc",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "nextflow-groovy"
+      ]
+    },
+    {
+      "name": "nextflow-groovy",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/nextflow-groovy.mjs",
+      "sha256": "86d3fbd8517846bf6c624400afc0b37598bfd16a642fcabc4d314a883e7b7931",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "nginx",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/nginx.mjs",
+      "sha256": "fcbd669a128b0d9aa90ec22c73c3134c4692b35e04c85726857239c7c7826d78",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "lua"
+      ]
+    },
+    {
+      "name": "nim",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/nim.mjs",
+      "sha256": "1841fc3fdbb7a3f28cce7b423488c0f19c317352de3067ee9f5d77bb0e4f397b",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "c",
+        "html",
+        "xml",
+        "javascript",
+        "css",
+        "glsl",
+        "markdown"
+      ]
+    },
+    {
+      "name": "nix",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/nix.mjs",
+      "sha256": "a4e019da4b938197ddfe967ad176a9ea931305cdff5781311cd93f3236ab7811",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "markdown-nix"
+      ]
+    },
+    {
+      "name": "nsis",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/nsis.mjs",
+      "sha256": "93453b9d92611a7e9601852d5b765485be249b5b902775adc163dcc777071037",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "nushell",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/nushell.mjs",
+      "sha256": "545645c8aeb02ea66831fa292368ebf68f04229ee6021484cf8941fbaf8e2458",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "objective-c",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/objective-c.mjs",
+      "sha256": "59c16c44af99b0e941fbb91bd3bb7f229dd121caa21d72baad99833c16d00d95",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "objective-cpp",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/objective-cpp.mjs",
+      "sha256": "18fbe3a58f060b11b21b8b6b70291babc27fff16ddefc78864004d27e5e0347b",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "ocaml",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/ocaml.mjs",
+      "sha256": "1eb876784d86fd1ccfaae4cb9aa3ff41852dddddad3668284c96b0e36033e662",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "odin",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/odin.mjs",
+      "sha256": "6b71c5a93ba063be2bf9aa9d94a5c9506f70077347b905908b93468376d74cf0",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "openscad",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/openscad.mjs",
+      "sha256": "83672432a31bb13bd87114f5da8e7e3eba1df1ecbe199ebed004a6522d644118",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "org",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/org.mjs",
+      "sha256": "c5639cc02589a40bf6ec8929755a9b463f91bcf378bc677b62812b5a611935de",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "javascript",
+        "typescript",
+        "tsx",
+        "java",
+        "python",
+        "regexp",
+        "css",
+        "lua",
+        "ini",
+        "make",
+        "perl",
+        "r",
+        "ruby",
+        "php",
+        "sql",
+        "vb",
+        "clojure",
+        "coffee",
+        "c",
+        "cpp",
+        "objective-c",
+        "diff",
+        "docker",
+        "go",
+        "groovy",
+        "less",
+        "scss",
+        "raku",
+        "rust",
+        "scala",
+        "shellscript",
+        "csharp",
+        "dart",
+        "nim",
+        "elixir",
+        "erlang",
+        "ocaml",
+        "zig",
+        "yaml",
+        "json",
+        "xml",
+        "xsl",
+        "markdown",
+        "html",
+        "git-commit",
+        "git-rebase",
+        "latex"
+      ]
+    },
+    {
+      "name": "pascal",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/pascal.mjs",
+      "sha256": "53de7d3fe02b1c5aeb369202571a633b28d0954974766b80d32681dea4a4e245",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "perl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/perl.mjs",
+      "sha256": "4abae8d56aed5cce5f6d02861ab1d4b828042883e09c861e409bb2ded0932ad4",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "html",
+        "xml",
+        "css",
+        "javascript",
+        "sql"
+      ]
+    },
+    {
+      "name": "php",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/php.mjs",
+      "sha256": "943d1c3a1a5c8c8db224e36f73cdf7e9b7e6ed13558d3d1e22e7e8caa4b6b378",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "html",
+        "xml",
+        "sql",
+        "javascript",
+        "json",
+        "css"
+      ]
+    },
+    {
+      "name": "pkl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/pkl.mjs",
+      "sha256": "b6370ef8b879c6001791a1ad56b00bd351687a455eeb524911e189a2f2bfd323",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "plsql",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/plsql.mjs",
+      "sha256": "9244fe04c917cb91f17737ca521bd82f4584eabbe4e3488c83f96ea971013e61",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "po",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/po.mjs",
+      "sha256": "539735d925be0fa67f78e6ff914a7f4d74d1f92a9a198d79a2b1cbd39a2b5707",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "polar",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/polar.mjs",
+      "sha256": "b45c1275454d7b704ebbed24f0e44340f0cba6c46d43a25e6ca3733b2146c204",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "postcss",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/postcss.mjs",
+      "sha256": "f399eb61d7dd327920da00278e18f71dbd031e14535c4e7014059478d8c4e1b1",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "powerquery",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/powerquery.mjs",
+      "sha256": "9498950f9240d8209b2cae3812cce1525873d5a2535dcc59938276ed6e04f342",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "powershell",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/powershell.mjs",
+      "sha256": "d79e84bdb5f933b12b5cbbf6ce7f142a6fea90332b7f9690b9fec8c0f08e0af5",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "prisma",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/prisma.mjs",
+      "sha256": "f2b7e230e155d1051365b0cd8ad62b5c9f258f3a956933c5ce9b52e2e34cc5b8",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "prolog",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/prolog.mjs",
+      "sha256": "3e41ae2404f1c1172b18ec8f7c4bcc3698bdd9f671bdbb8f540f74d3b9d91119",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "proto",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/proto.mjs",
+      "sha256": "8481381f433950f70cd41b954afbc204a8fb0124b0f12c0e6336f642ec0e2bc7",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "pug",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/pug.mjs",
+      "sha256": "f1066b43cc652a3b78b2640e3c4e105621d0561be541f62b8b1439a9e7bad9c5",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "javascript",
+        "css",
+        "html"
+      ]
+    },
+    {
+      "name": "puppet",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/puppet.mjs",
+      "sha256": "8f3a3a9648b40e95a73c96118720c2fe013115b158d0e99423484c5cf1c7c3a1",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "purescript",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/purescript.mjs",
+      "sha256": "d7861914044ffc01a69093d772fa43d7a817e3523719f48d4d5baf639eef514a",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "python",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/python.mjs",
+      "sha256": "98300d0d7f05ece9fd85e702a6ce0fe8f910082afd4d4fd13a48d927ac2afd2f",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "qml",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/qml.mjs",
+      "sha256": "807f3d204c5a0c5fcb0cb2a72bcfe7406e711775c6ea4ef2f080b4d48d7c7aec",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "javascript"
+      ]
+    },
+    {
+      "name": "qmldir",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/qmldir.mjs",
+      "sha256": "59c283d8a5f30f3cd3a41d3dec3284e9602bfb5b8de8a3830056607bb259c481",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "qss",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/qss.mjs",
+      "sha256": "097183ad422b0aaca3c2314da0eebac30107fb56e007886f4ebe29749016a459",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "r",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/r.mjs",
+      "sha256": "5c47b9c5b02f948a11df7a3b358c9121c6308d7b80e75851a3084c25c07a9140",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "racket",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/racket.mjs",
+      "sha256": "20a8e42f3f904b3d7e26e85ec96f293a7aaeb52b1d09a8a4f0e97a771f1e24e2",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "raku",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/raku.mjs",
+      "sha256": "999671608e76a3fab9299758cc4ea83eefa1c457ec6bd90fab6bdbfce8428819",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "razor",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/razor.mjs",
+      "sha256": "6ba796f6e7ea5e6265f70e6baa32a48cc064d8b6bd2bdcb047ace237b992fe09",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "html",
+        "csharp"
+      ]
+    },
+    {
+      "name": "rbs",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/rbs.mjs",
+      "sha256": "260a2d4d0810a7005dea5675eb46f02c13d58187320bfa90df37dafcccb11961",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "reg",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/reg.mjs",
+      "sha256": "5a798cbdb01bebbe356f51ce0a8a45424ae3ec35bc41b3ee9563779b7a22be48",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "regexp",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/regexp.mjs",
+      "sha256": "1f2c1a99d011c7864bb428372e0f9f4810d5f13ef5c773d6482956b5e4ed5dd0",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "rel",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/rel.mjs",
+      "sha256": "6d597ec9c0e7c29795beeb281c01b8ecef6b2b0a344d630c3802b13a18bde4aa",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "riscv",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/riscv.mjs",
+      "sha256": "c5fc93263c80c6272d9714a7e8789369bbd8766358927c7fdb2b435c892e57c1",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "ron",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/ron.mjs",
+      "sha256": "43b0ab69da90a6632a2e3cacba2ca5fe6605b6ea0ef9ab22388896a15cd77505",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "rosmsg",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/rosmsg.mjs",
+      "sha256": "622e6a029ba37e0e6a5256e62a8de8b5a3c3ec1bd474bf1c51c26867b55069f3",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "rst",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/rst.mjs",
+      "sha256": "860e05e0910ca8fe11bf28cb2d948bcec9bdfeba2c52057381f136c2ab8d5ecd",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "html-derivative",
+        "cpp",
+        "python",
+        "javascript",
+        "shellscript",
+        "yaml",
+        "cmake",
+        "ruby"
+      ]
+    },
+    {
+      "name": "ruby",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/ruby.mjs",
+      "sha256": "202c6a0dd529015d6a669af6e0a4fc82e7e9616288a51090430a91eab48536f7",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "html",
+        "haml",
+        "xml",
+        "sql",
+        "graphql",
+        "css",
+        "cpp",
+        "c",
+        "javascript",
+        "shellscript",
+        "lua",
+        "yaml"
+      ]
+    },
+    {
+      "name": "rust",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/rust.mjs",
+      "sha256": "e4e301976b9199cfa6e1dcd3cb398a59fcf0c58cdc10f6f41445221a21869642",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "sas",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/sas.mjs",
+      "sha256": "1ca400203c44eedcf135c5c407fd498f38b7c3e237ef5377e56825dc629380f6",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "sql"
+      ]
+    },
+    {
+      "name": "sass",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/sass.mjs",
+      "sha256": "13247def0cf1c2de49e0c39771a800521e5a78f54c649c85c622cedccc961d2c",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "scala",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/scala.mjs",
+      "sha256": "2dc0e53b4a77ecff244b8d9fb4a941263774729c80c0b8ffaed1c4d8b78223e0",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "scheme",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/scheme.mjs",
+      "sha256": "538bedeb6f8c42f0f63bd0298469922f791e2bd81f4e0f3a29299d544c97c5a2",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "scss",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/scss.mjs",
+      "sha256": "daccedb3030f6f12632e1f247d1af8233cbcec183284bf589fc41dd5267e29d1",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "css"
+      ]
+    },
+    {
+      "name": "sdbl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/sdbl.mjs",
+      "sha256": "b70e85721d9ff9a174d9f4f4fce72465636cbe1dc1151e054b797f4e190d981f",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "shaderlab",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/shaderlab.mjs",
+      "sha256": "59b049e112e5c286b101b3bceaefaa0004db4d5e040eb438534af8df14ce683e",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "hlsl"
+      ]
+    },
+    {
+      "name": "shellscript",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/shellscript.mjs",
+      "sha256": "95a2353b07d65e7cc699662ff139111f4a47ce8d761c60975dd1bf20971a1864",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "shellsession",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/shellsession.mjs",
+      "sha256": "27ea408ae71a29d855b0e27d34d1c48dbae0a8511ce6584d1a30c6290d822def",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "shellscript"
+      ]
+    },
+    {
+      "name": "smalltalk",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/smalltalk.mjs",
+      "sha256": "eb77f3a9d3f231a8a50eadc141d62b4c26ee2e1b04391cff0e51661f6e829c1d",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "smithy",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/smithy.mjs",
+      "sha256": "f0906aace5df3494bb82f3237d3cc91960efe33c628cf49acb5eca451ff8ceb1",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "solidity",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/solidity.mjs",
+      "sha256": "c477d7c4f8bd96cdec1dc91ca74a644db2981eec9ca67653bb28523d42607510",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "soy",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/soy.mjs",
+      "sha256": "a50cef7f23572a64d5111a73a9262f0283c772ae6a776d878f31e93eb02681fa",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "html"
+      ]
+    },
+    {
+      "name": "sparql",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/sparql.mjs",
+      "sha256": "a9656a5635703c3d054c099d159c1a20ddf2c8e58971a867650988a475bdb717",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "turtle"
+      ]
+    },
+    {
+      "name": "splunk",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/splunk.mjs",
+      "sha256": "49c7c1b1d9eee57cceed20005d3344e2ef199a3e667213282718753543829931",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "sql",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/sql.mjs",
+      "sha256": "cb1bfbdbf1cab3418219c72d16825d7df31cdb078e53b00fe0409ef3175bfdd5",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "ssh-config",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/ssh-config.mjs",
+      "sha256": "496325207df36205fb3a9dfd792f11369190e9913e25238fb080e452f72f4ad2",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "stata",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/stata.mjs",
+      "sha256": "768eb43fafdd6bbb01862396e7b1a239538190e2063d3cf6ef085df96dd3e5e5",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "sql"
+      ]
+    },
+    {
+      "name": "stylus",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/stylus.mjs",
+      "sha256": "2df84541c53d5396be754e2aa5ecfbdac69a65cab8e2de23a8fb31da69b6a844",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "surrealql",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/surrealql.mjs",
+      "sha256": "8ef5640f903dc2f3c595bf2a679800b27985db4d1c07311207312a98d1f13a9e",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "javascript"
+      ]
+    },
+    {
+      "name": "svelte",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/svelte.mjs",
+      "sha256": "d21c913e3019607bbbdee382e5c1f06986ad081911b967ac0875b7d3698a37fb",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "javascript",
+        "typescript",
+        "css",
+        "postcss"
+      ]
+    },
+    {
+      "name": "swift",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/swift.mjs",
+      "sha256": "c3153e71a0e82420328bbed8b50b77bcc559416ac3026faefff246887a8c16a0",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "system-verilog",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/system-verilog.mjs",
+      "sha256": "61bda06f1d0cfc296cec7191a7b25f29fdf284706e2a677d51145ae46184bbd7",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "systemd",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/systemd.mjs",
+      "sha256": "d3b51d5a7315b08b7eb3984e2222bcf7e4a85ba94c2ab8645f33eace92cd63d0",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "talonscript",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/talonscript.mjs",
+      "sha256": "746760d9c4999d4a948e714111b75fcaff8937c4aed1131e8f0ac2c149423357",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "tasl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/tasl.mjs",
+      "sha256": "bef1d86fa0f67b3e5164eacffb44005bd0e608a2940b59d644a7c52132e00e76",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "tcl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/tcl.mjs",
+      "sha256": "e9ed808d89e74267e634d275e9c77a64c48de108da1b1e0234e7b65bff51a06f",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "templ",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/templ.mjs",
+      "sha256": "3e70e5aba9b401169674f0f6cfc98c857d70897790a54daa80b189260a56472c",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "go",
+        "javascript",
+        "css"
+      ]
+    },
+    {
+      "name": "terraform",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/terraform.mjs",
+      "sha256": "1bb55219205270fa982d7384c0e0bab24306f67f935713995d2730befcefd0ce",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "tex",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/tex.mjs",
+      "sha256": "2801a609176ab277fffe5de76d40e19553e620c083a99eaf63de294daf4492d5",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "r"
+      ]
+    },
+    {
+      "name": "toml",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/toml.mjs",
+      "sha256": "4238ee612fce2bb5bef5581f89409d99398b29f1c0d93315a11c50e870e59dd5",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "ts-tags",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/ts-tags.mjs",
+      "sha256": "b3bf6707fe1145e1ffe0de160663e538d84260bdfffc47ad36b1b98947c27ad0",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "typescript",
+        "es-tag-css",
+        "es-tag-glsl",
+        "es-tag-html",
+        "es-tag-sql",
+        "es-tag-xml"
+      ]
+    },
+    {
+      "name": "tsv",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/tsv.mjs",
+      "sha256": "e94589b61a1e3b75f5bee552e61abdd6816a808e6b12ccbddde2d0070b9a8b15",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "tsx",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/tsx.mjs",
+      "sha256": "7eefa50eb5e48354d7f7838e6bf36b4bcc5b39d6806f10ced432824037328fe1",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "turtle",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/turtle.mjs",
+      "sha256": "6d3d6dc2a339acf3aec79d1d758319567c951245bd6c4e51814aba109c218c7e",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "twig",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/twig.mjs",
+      "sha256": "f9f4956877d82a2529fd75f1e0ea0da12310bf2c094b3bdbbf76085978fc96ba",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "css",
+        "javascript",
+        "scss",
+        "php",
+        "python",
+        "ruby"
+      ]
+    },
+    {
+      "name": "typescript",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/typescript.mjs",
+      "sha256": "6e8fe43b5e189a1e103c9e8bfec1a15b1072627d93c5061a0b063405b1c5fbd2",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "typespec",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/typespec.mjs",
+      "sha256": "b19037121b674df17324b9592e33a5bf993b30da123480b0e6d387dff2e331df",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "typst",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/typst.mjs",
+      "sha256": "35c3234f85d16dd36f303ca1551cd3977bee9f63b4f8d8f1993e69ec9d8ce0d0",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "bat",
+        "bibtex",
+        "c",
+        "clojure",
+        "coffee",
+        "cpp",
+        "css",
+        "csharp",
+        "dart",
+        "diff",
+        "docker",
+        "elixir",
+        "erlang",
+        "fsharp",
+        "git-commit",
+        "git-rebase",
+        "go",
+        "groovy",
+        "handlebars",
+        "html",
+        "ini",
+        "java",
+        "javascript",
+        "jsonc",
+        "json",
+        "julia",
+        "latex",
+        "less",
+        "log",
+        "lua",
+        "make",
+        "markdown",
+        "objective-c",
+        "perl",
+        "raku",
+        "php",
+        "powershell",
+        "pug",
+        "r",
+        "regexp",
+        "ruby",
+        "scss",
+        "sql",
+        "swift",
+        "xml",
+        "xsl",
+        "yaml",
+        "python",
+        "rust",
+        "scala",
+        "shellscript",
+        "typescript",
+        "tsx",
+        "twig",
+        "verilog",
+        "system-verilog",
+        "vb"
+      ]
+    },
+    {
+      "name": "v",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/v.mjs",
+      "sha256": "3ceba18849ac2c704d4ad26c47e5ad219dae92b74c3bb5fc0213f99d1a10e5d5",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "vala",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/vala.mjs",
+      "sha256": "736b840067729ad345ab4143449c2ceaca49fe43cf7c6b078d55be75ff97c80c",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "vb",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/vb.mjs",
+      "sha256": "aa8a28a92a91e5146a421896aac2eaf3221d488a7834d04e4fae3fff44eb8f4c",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "verilog",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/verilog.mjs",
+      "sha256": "578fb1e6deeed20452b4d187c009090dcd8295b02fb8ae481dd1039d09063753",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "vhdl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/vhdl.mjs",
+      "sha256": "204063cf3ee62b42ffe5d9937fcb86a7bc4716c12d40fe16a153ec9d0471a372",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "viml",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/viml.mjs",
+      "sha256": "bd4cd5ac01fcfeea31a933eb2b6623f346425d2ac04505b2d461b0963c544d6d",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "vue",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/vue.mjs",
+      "sha256": "8dd90e0bd5c3093cb79efaf13efdf3c255f3595f85ae5f2a842ab796b2d9756c",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "css",
+        "javascript",
+        "typescript",
+        "json",
+        "html",
+        "html-derivative",
+        "markdown-vue",
+        "vue-directives",
+        "vue-interpolations",
+        "vue-sfc-style-variable-injection"
+      ]
+    },
+    {
+      "name": "vue-directives",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/vue-directives.mjs",
+      "sha256": "3f89a8b818b0a1b884076ca241940d32d5e3b901d8bd87116592469c43586873",
+      "status": "resolved",
+      "public": false,
+      "imports": []
+    },
+    {
+      "name": "vue-html",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/vue-html.mjs",
+      "sha256": "fc30c3ea09449b3d27f549dd1a65f5b37235ef4f176e31a882fb3c0e614c7c9f",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "javascript"
+      ]
+    },
+    {
+      "name": "vue-interpolations",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/vue-interpolations.mjs",
+      "sha256": "42115ecbbba64ef6dcd7235f01f89c800865f68b342827faf470e031c6b0d5a5",
+      "status": "resolved",
+      "public": false,
+      "imports": []
+    },
+    {
+      "name": "vue-sfc-style-variable-injection",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/vue-sfc-style-variable-injection.mjs",
+      "sha256": "b557aad9cad70e1aec1305be51afe10a30b382d812e06680ff42b9e598cb903f",
+      "status": "resolved",
+      "public": false,
+      "imports": [
+        "javascript"
+      ]
+    },
+    {
+      "name": "vue-vine",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/vue-vine.mjs",
+      "sha256": "41e43665c9b7dbf1c3e1a27a201472a8a7664cac4c82ba0c5d4e3de0d0552a3e",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "css",
+        "scss",
+        "less",
+        "stylus",
+        "postcss",
+        "javascript"
+      ]
+    },
+    {
+      "name": "vyper",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/vyper.mjs",
+      "sha256": "ae64373e5859f86fd985c0f1891ca778a1dc67482990c314ec2e1e95906c6a4c",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "wasm",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/wasm.mjs",
+      "sha256": "e359685c50efbd8de226ff4b7c1d35788a92c976f7979bb7c2d94633c7ebd7ed",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "wenyan",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/wenyan.mjs",
+      "sha256": "c5d7be6f42667c30303c5c24a058634566b289b005a21d729414183891cea51f",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "wgsl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/wgsl.mjs",
+      "sha256": "c72d8f8b9d29c99336c16cbcad6209d6199379a47a1dfaa58a763043db65f889",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "wikitext",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/wikitext.mjs",
+      "sha256": "1491ed4551f9c11971ef995c2f9d2a76a74cf70976009239761d0f92018eff56",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "wit",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/wit.mjs",
+      "sha256": "ba2d52f017d711eb23c87d1b6ab4bcb7204f11b77f6949da60be3ff5c3805b72",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "wolfram",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/wolfram.mjs",
+      "sha256": "1d2f179622eb3caa0ade9c1d2c498155e38ce9563390f80dad8bbfe15771a904",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "xml",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/xml.mjs",
+      "sha256": "4c8d8f591501bc1d8f407f93869f96d82384dce5e721a4eb75b10f276a953990",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "java"
+      ]
+    },
+    {
+      "name": "xsl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/xsl.mjs",
+      "sha256": "6fee5b0d95deb89a78cb35be7f9a7ca71156978a3ab2ebcffde54148c68b79a5",
+      "status": "resolved",
+      "public": true,
+      "imports": [
+        "xml"
+      ]
+    },
+    {
+      "name": "yaml",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/yaml.mjs",
+      "sha256": "057427cbd35c6c6cd100b9f0d447549581eff926ff822f14be63791dc8d7631a",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "zenscript",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/zenscript.mjs",
+      "sha256": "26f852c62f5c455f25372f19f3a24228f1f3c581d559b6c45bafa640764e8ee4",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    },
+    {
+      "name": "zig",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/zig.mjs",
+      "sha256": "0db93ac9a2950ca03eda5ac3d4209dad2a8aa714cd8eaea344be8bd679902fac",
+      "status": "resolved",
+      "public": true,
+      "imports": []
+    }
+  ],
+  "aliases": [
+    {
+      "alias": "1c",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/1c.mjs",
+      "target": "bsl",
+      "sha256": "0c4252db43579c07bcf3ad07189611c0f254ba8200a5228058d1e70df6d0dd94",
+      "status": "resolved"
+    },
+    {
+      "alias": "1c-query",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/1c-query.mjs",
+      "target": "sdbl",
+      "sha256": "5de9138eecc63e6492d9481777f67188fb9601e4c2790cacbd4c1dfcd3c85cd7",
+      "status": "resolved"
+    },
+    {
+      "alias": "actionscript",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/actionscript.mjs",
+      "target": "actionscript-3",
+      "sha256": "31b001caa428103e80c065d61ef42de3eec2bc0b840e4e46a56803b801d6cac7",
+      "status": "resolved"
+    },
+    {
+      "alias": "adoc",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/adoc.mjs",
+      "target": "asciidoc",
+      "sha256": "c22da732181ba26813c578eaeb7dde904f82c9732b65b4021cb11bc94caadc02",
+      "status": "resolved"
+    },
+    {
+      "alias": "ahk1",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/ahk1.mjs",
+      "target": "ahk",
+      "sha256": "140f5b4cf6e0f44a71e27b1b7f53d57cb469a7e1ebc7705cf1687566f2d20983",
+      "status": "resolved"
+    },
+    {
+      "alias": "as3",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/as3.mjs",
+      "target": "actionscript-3",
+      "sha256": "2dc6da5e98934721ee32af96552a3952625c3771c1c5ffced43c8f119fcc0c6f",
+      "status": "resolved"
+    },
+    {
+      "alias": "bash",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/bash.mjs",
+      "target": "shellscript",
+      "sha256": "cfff21be69e37359c3af14fee965cb871718af9e0e96b8a844ca5bbbc82d2abf",
+      "status": "resolved"
+    },
+    {
+      "alias": "batch",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/batch.mjs",
+      "target": "bat",
+      "sha256": "3cd876401cfff6ff654984a5d65cbaac2c7da2d95697361302041788df0148fe",
+      "status": "resolved"
+    },
+    {
+      "alias": "be",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/be.mjs",
+      "target": "berry",
+      "sha256": "42e8db1c727ad68c839ce684f453bf274b74c9a0f079795bc1d9fdca18edaff8",
+      "status": "resolved"
+    },
+    {
+      "alias": "bird",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/bird.mjs",
+      "target": "bird2",
+      "sha256": "66c150531b3d5a67a8eab2aec6233eeb975cc9a2d0f66832d43ce4c9d905a320",
+      "status": "resolved"
+    },
+    {
+      "alias": "cdc",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/cdc.mjs",
+      "target": "cadence",
+      "sha256": "63b520eb794c7c44c768e581b87136343543f5f22b4de39f71ff839501bc3990",
+      "status": "resolved"
+    },
+    {
+      "alias": "chpl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/chpl.mjs",
+      "target": "chapel",
+      "sha256": "80f1587b102952ef0af50bb3e73d71d41d1f08725dcf8582f08ea39a024074ff",
+      "status": "resolved"
+    },
+    {
+      "alias": "cjs",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/cjs.mjs",
+      "target": "javascript",
+      "sha256": "fc4e725fa76a28a30a722c9d7ac9df59a17ed442f09786db4b30dad8219410d8",
+      "status": "resolved"
+    },
+    {
+      "alias": "clj",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/clj.mjs",
+      "target": "clojure",
+      "sha256": "f5bc5733b151d43971e635861da3d7e3d21f5ae564bf38f28b7dd646940924ec",
+      "status": "resolved"
+    },
+    {
+      "alias": "closure-templates",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/closure-templates.mjs",
+      "target": "soy",
+      "sha256": "89a2d4afbcf36fdd83a1ab2b1b31110e1341c5cc7dd1c2fe11dda017e3b242b9",
+      "status": "resolved"
+    },
+    {
+      "alias": "cmd",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/cmd.mjs",
+      "target": "bat",
+      "sha256": "703b4547afea21cf900d832457c6c75cdef66e523489438299aa6160b9d0a212",
+      "status": "resolved"
+    },
+    {
+      "alias": "coffeescript",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/coffeescript.mjs",
+      "target": "coffee",
+      "sha256": "dc5ce112b8d1b61470c57906898ef36f83f32f36c31a2820ad9b74a9412e0fa6",
+      "status": "resolved"
+    },
+    {
+      "alias": "console",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/console.mjs",
+      "target": "shellsession",
+      "sha256": "c2553bf96d36db46a8bb596704b2237f8e2351f892f6d15368292647109b23c0",
+      "status": "resolved"
+    },
+    {
+      "alias": "cql",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/cql.mjs",
+      "target": "cypher",
+      "sha256": "3ec5f8ff9a967d045b6cb3f988f9ff266970cf93ae207a81b3df1709891c486e",
+      "status": "resolved"
+    },
+    {
+      "alias": "cs",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/cs.mjs",
+      "target": "csharp",
+      "sha256": "20e203dfc91ecfb5118f873254a06b64d0537c366dd16cfed24790cb011cc035",
+      "status": "resolved"
+    },
+    {
+      "alias": "cts",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/cts.mjs",
+      "target": "typescript",
+      "sha256": "9ceb63350ee8b2aa69b87785f77726de52e5803bb0bfdad8ffe32cff065b02d3",
+      "status": "resolved"
+    },
+    {
+      "alias": "dockerfile",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/dockerfile.mjs",
+      "target": "docker",
+      "sha256": "85441732943f154524b5b2bce59aa5d97c4bee69c73dffd93a19be074a55e96f",
+      "status": "resolved"
+    },
+    {
+      "alias": "elisp",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/elisp.mjs",
+      "target": "emacs-lisp",
+      "sha256": "0fdbbdcf9decbcde1961495b3c497268fd699099a3a6e4cfbf7625d9da31c576",
+      "status": "resolved"
+    },
+    {
+      "alias": "erl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/erl.mjs",
+      "target": "erlang",
+      "sha256": "d2528bb122d9f09b2be354321dac432b52d4c33c0a99546cccfbfe9fcbe6d3dc",
+      "status": "resolved"
+    },
+    {
+      "alias": "f",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/f.mjs",
+      "target": "fortran-fixed-form",
+      "sha256": "9671d3311be32245cbf7b452c41e242b09acd5f3c5e4cd6a33d283685dfede4c",
+      "status": "resolved"
+    },
+    {
+      "alias": "f03",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/f03.mjs",
+      "target": "fortran-free-form",
+      "sha256": "baf6a665f87cca5be40bdde0bcdf5365fa4f4d9097467354f7d074901becac21",
+      "status": "resolved"
+    },
+    {
+      "alias": "f08",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/f08.mjs",
+      "target": "fortran-free-form",
+      "sha256": "0a508ba5e2b8e3afbf45c67ef55c3c6245219fc584e18e9a56181cfc28f1c4cc",
+      "status": "resolved"
+    },
+    {
+      "alias": "f18",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/f18.mjs",
+      "target": "fortran-free-form",
+      "sha256": "7e2556a9092344628afcb6015da9d5041d958781dac4963d2ceaba396973bf80",
+      "status": "resolved"
+    },
+    {
+      "alias": "f77",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/f77.mjs",
+      "target": "fortran-fixed-form",
+      "sha256": "56d88267d36841acf7949616d9dea016aba4cca65a82340811862c1d7047c881",
+      "status": "resolved"
+    },
+    {
+      "alias": "f90",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/f90.mjs",
+      "target": "fortran-free-form",
+      "sha256": "209cad732eb0ac8d1a51b17baf2be252e9623353259cb47c19e56dc82bdbe484",
+      "status": "resolved"
+    },
+    {
+      "alias": "f95",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/f95.mjs",
+      "target": "fortran-free-form",
+      "sha256": "5e2e1b36c4e8bc9381e2e60f726f5164607ce1c79c794c005a30aaac769e97bc",
+      "status": "resolved"
+    },
+    {
+      "alias": "for",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/for.mjs",
+      "target": "fortran-fixed-form",
+      "sha256": "283e8e42981d35c2b853441c29221d4fc03594b5c2e7af213834948f66e38d97",
+      "status": "resolved"
+    },
+    {
+      "alias": "fs",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/fs.mjs",
+      "target": "fsharp",
+      "sha256": "f645b09ef8951b4ed6f120ea22863945cbb198b1e37f6e34e5c35d2ac927ff87",
+      "status": "resolved"
+    },
+    {
+      "alias": "fsl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/fsl.mjs",
+      "target": "jssm",
+      "sha256": "5c413db41ec09795549cb51efbb0b44908b551e33eb4e968b01764464a0f9c34",
+      "status": "resolved"
+    },
+    {
+      "alias": "ftl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/ftl.mjs",
+      "target": "fluent",
+      "sha256": "55f3cb2f5dd57a7197d50c34751ce7443c13bc54bd9b11c78938e4e2b08dee49",
+      "status": "resolved"
+    },
+    {
+      "alias": "gd",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/gd.mjs",
+      "target": "gdscript",
+      "sha256": "2d2c42d5f305d01e1f9225218f93bb32252fae55fce7d9684559062ca8dc5812",
+      "status": "resolved"
+    },
+    {
+      "alias": "gjs",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/gjs.mjs",
+      "target": "glimmer-js",
+      "sha256": "eb9bfd1528b6e1d76e1b632d839ced663c8ecef0e206d328d5f9e6ec0d475dfc",
+      "status": "resolved"
+    },
+    {
+      "alias": "gql",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/gql.mjs",
+      "target": "graphql",
+      "sha256": "9ecf7554a92a2edfe518a77ba61c68a7062f983c201e93e25af3c4b3be532b65",
+      "status": "resolved"
+    },
+    {
+      "alias": "gts",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/gts.mjs",
+      "target": "glimmer-ts",
+      "sha256": "6c67b1b025d4292aeaefc80368c594b71ad8b028344ec16e8e2125f9e2716566",
+      "status": "resolved"
+    },
+    {
+      "alias": "hbs",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/hbs.mjs",
+      "target": "handlebars",
+      "sha256": "f12f3b32bb0b21bb19a49897e48555e41bd23ed6812cf3f331de33d2be35dd57",
+      "status": "resolved"
+    },
+    {
+      "alias": "hs",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/hs.mjs",
+      "target": "haskell",
+      "sha256": "0502f979f6f30d864f1ff29fa0c54f580b1ade0eb63c9b3ac5107b4ee00cb851",
+      "status": "resolved"
+    },
+    {
+      "alias": "jade",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/jade.mjs",
+      "target": "pug",
+      "sha256": "7139ffe2d3fe23a3379c91fef777d4c372e9fcc8e82925f16e5e0d70ef5574a3",
+      "status": "resolved"
+    },
+    {
+      "alias": "jl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/jl.mjs",
+      "target": "julia",
+      "sha256": "1b7a91139d5184a629314f93207e25ecc0fa871c3e7ac730b09c74d8ab64fb82",
+      "status": "resolved"
+    },
+    {
+      "alias": "js",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/js.mjs",
+      "target": "javascript",
+      "sha256": "73a42efed6709271672d0d9105b90b46f14844d74aeeadaad3037b921c0bcf91",
+      "status": "resolved"
+    },
+    {
+      "alias": "justfile",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/justfile.mjs",
+      "target": "just",
+      "sha256": "adabb6f17bfa68210d7c2092349847c80978434f8f715b7abbfe1fd5f7d1c8cc",
+      "status": "resolved"
+    },
+    {
+      "alias": "kql",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/kql.mjs",
+      "target": "kusto",
+      "sha256": "6b2c38b123869c7fe20690940c999adc5418b58b7fe3b7aebf134838b3a7beee",
+      "status": "resolved"
+    },
+    {
+      "alias": "kt",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/kt.mjs",
+      "target": "kotlin",
+      "sha256": "996fd8dc9d4f019573bedc79cd3cddfe37489dd28582054af63db98df71ae2e4",
+      "status": "resolved"
+    },
+    {
+      "alias": "kts",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/kts.mjs",
+      "target": "kotlin",
+      "sha256": "cfee7af440cb9409905bf010faba2cd7058ea2cc2192d5aae9a83bdfe060aa7b",
+      "status": "resolved"
+    },
+    {
+      "alias": "lean4",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/lean4.mjs",
+      "target": "lean",
+      "sha256": "362e9faaf213c410f0f8bb2f61ff379a5ac9943d18f7bd992a046816defe23e1",
+      "status": "resolved"
+    },
+    {
+      "alias": "lisp",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/lisp.mjs",
+      "target": "common-lisp",
+      "sha256": "8d620171673c9a4877f813d928bfd9ce26b7ecae4dff202cb3e4ac0699ea7691",
+      "status": "resolved"
+    },
+    {
+      "alias": "lit",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/lit.mjs",
+      "target": "ts-tags",
+      "sha256": "7f96009f5e3c9a284fbd23d686597e2b389c714e01bb4c7dbc65758031f5e553",
+      "status": "resolved"
+    },
+    {
+      "alias": "makefile",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/makefile.mjs",
+      "target": "make",
+      "sha256": "3125fd2f80565135aaddb18ef1ad3f5a71715c41a031723da9430f88dc374c67",
+      "status": "resolved"
+    },
+    {
+      "alias": "mbt",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/mbt.mjs",
+      "target": "moonbit",
+      "sha256": "e1397a1a09cc7d0aff70ec643dbbc198ffff5926691460eb0bfb8b48af2c1116",
+      "status": "resolved"
+    },
+    {
+      "alias": "mbti",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/mbti.mjs",
+      "target": "moonbit",
+      "sha256": "381a394828d26d93a9e305db18a0a8bb75112700e039e158c6c90ffed7bdc482",
+      "status": "resolved"
+    },
+    {
+      "alias": "md",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/md.mjs",
+      "target": "markdown",
+      "sha256": "5d2009355919b170510e26de4d3efd3fb5cce94421cc059ec9a2ce2c5aa5c471",
+      "status": "resolved"
+    },
+    {
+      "alias": "mediawiki",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/mediawiki.mjs",
+      "target": "wikitext",
+      "sha256": "8f596ddc78f5c8181c80c00e8954e053ca7b4077035e894caa15260a5beaa22d",
+      "status": "resolved"
+    },
+    {
+      "alias": "mips",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/mips.mjs",
+      "target": "mipsasm",
+      "sha256": "5ff3b9cb5367b442fc077c58f686be9322fc2df9a35f2a4ef4054d8f89ba4842",
+      "status": "resolved"
+    },
+    {
+      "alias": "mjs",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/mjs.mjs",
+      "target": "javascript",
+      "sha256": "06df1567d4a2db9b4b85c568fd74cef938674af2c07fb0887363abba3fc3a01d",
+      "status": "resolved"
+    },
+    {
+      "alias": "mmd",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/mmd.mjs",
+      "target": "mermaid",
+      "sha256": "9f035669567fbb7ca2cfc6412dd672d2bc9a5e0ecaaf1a8e6fdf3f5f398d98d7",
+      "status": "resolved"
+    },
+    {
+      "alias": "mts",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/mts.mjs",
+      "target": "typescript",
+      "sha256": "4e693658e39d54b9b8157a9c20f2b49312e8b56854eea79060b5493c91c7b22a",
+      "status": "resolved"
+    },
+    {
+      "alias": "nar",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/nar.mjs",
+      "target": "narrat",
+      "sha256": "e7b735ae677b5e9fad773a4aba7ad669b764a2a5a8f47e39f316b3cbf8d03f71",
+      "status": "resolved"
+    },
+    {
+      "alias": "nf",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/nf.mjs",
+      "target": "nextflow",
+      "sha256": "d09302d4ec5bcf834f8bef58aa1bdb3adb429bfc4d9b3deb10368d43d98e7e33",
+      "status": "resolved"
+    },
+    {
+      "alias": "nu",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/nu.mjs",
+      "target": "nushell",
+      "sha256": "0152491ed1b5a4ec39652eb91f5e0636b8741fdf195e872e13fbf22c171767e8",
+      "status": "resolved"
+    },
+    {
+      "alias": "objc",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/objc.mjs",
+      "target": "objective-c",
+      "sha256": "f4304cd87ca4a099205e0f17077f6f9c5e24ffc2b60ab4aa15753f9ae325993e",
+      "status": "resolved"
+    },
+    {
+      "alias": "perl6",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/perl6.mjs",
+      "target": "raku",
+      "sha256": "9d66b48bbb1e4038bf630e9acb720924aa5d6216499e18be9add1604df08efab",
+      "status": "resolved"
+    },
+    {
+      "alias": "pot",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/pot.mjs",
+      "target": "po",
+      "sha256": "e28c2faf1498825228829cf850b049e9da235288356b6e0f278ee0a7bdb77946",
+      "status": "resolved"
+    },
+    {
+      "alias": "potx",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/potx.mjs",
+      "target": "po",
+      "sha256": "8fba31e1e0b2df1f97841baace5c33d6294f784797714ebaa446a6622d2797df",
+      "status": "resolved"
+    },
+    {
+      "alias": "properties",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/properties.mjs",
+      "target": "ini",
+      "sha256": "4182246049f73c69e2c9833aa217745997cb86ad8a1895030f4696d0982668a9",
+      "status": "resolved"
+    },
+    {
+      "alias": "protobuf",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/protobuf.mjs",
+      "target": "proto",
+      "sha256": "fa2ed1f41f15c56d8a09b5c24fcb16c9723229c2a0672ef8f163ce9d38f00c63",
+      "status": "resolved"
+    },
+    {
+      "alias": "ps",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/ps.mjs",
+      "target": "powershell",
+      "sha256": "7e3211e088448abd4c8de918d0893778a9e819750c8b83b28197707f2597df39",
+      "status": "resolved"
+    },
+    {
+      "alias": "ps1",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/ps1.mjs",
+      "target": "powershell",
+      "sha256": "ff95bdfeabc32abee92e0e8c4d21208683acaa43e57f52e8bc95a86ceeb6bbbb",
+      "status": "resolved"
+    },
+    {
+      "alias": "pwsh",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/pwsh.mjs",
+      "target": "powershell",
+      "sha256": "e508d949c4a707b82fcbcf8b9b1cc6f6817497ce87e137e828acf007fb537b40",
+      "status": "resolved"
+    },
+    {
+      "alias": "py",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/py.mjs",
+      "target": "python",
+      "sha256": "6f3e7db32bb07f494ffd83576479588fd43e3d6ff755b7c895664fab2ac4f12d",
+      "status": "resolved"
+    },
+    {
+      "alias": "ql",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/ql.mjs",
+      "target": "codeql",
+      "sha256": "247154deeba308ff3d9af0a347c51840310998e307edb43707cefe0fa47b6842",
+      "status": "resolved"
+    },
+    {
+      "alias": "rb",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/rb.mjs",
+      "target": "ruby",
+      "sha256": "75a2a5750c3d40c0e4799c3069a3580f8983cd49d76a4bb18e97ea995b619d08",
+      "status": "resolved"
+    },
+    {
+      "alias": "regex",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/regex.mjs",
+      "target": "regexp",
+      "sha256": "1c71d407de87e2da5405eae6cf57a150ae41fac23ed90338935e22ae385e2568",
+      "status": "resolved"
+    },
+    {
+      "alias": "rs",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/rs.mjs",
+      "target": "rust",
+      "sha256": "97b04edf7561cd4ba144db214570647672222a6b54297199ddaa0b54c2c3b0bb",
+      "status": "resolved"
+    },
+    {
+      "alias": "ruby-signature",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/ruby-signature.mjs",
+      "target": "rbs",
+      "sha256": "1d5a057cacf3803ee3ac5794cc18c23471cc6bc6d1f6ecf2147ebcabc10a70a9",
+      "status": "resolved"
+    },
+    {
+      "alias": "scad",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/scad.mjs",
+      "target": "openscad",
+      "sha256": "ff7523e129422eff0cbcc11c79f4cbcb9daa2df08661eb985c8e4f1cf06a5771",
+      "status": "resolved"
+    },
+    {
+      "alias": "sh",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/sh.mjs",
+      "target": "shellscript",
+      "sha256": "cfc4fc753fb30c348fbc646538e4d5990823d4ec22ae80e1e1bf2bfa73b32f3f",
+      "status": "resolved"
+    },
+    {
+      "alias": "shader",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/shader.mjs",
+      "target": "shaderlab",
+      "sha256": "bb31173ea98c7dced6034a5d502a19c9d07aeafd0139c45b8ead596e095eec6b",
+      "status": "resolved"
+    },
+    {
+      "alias": "shell",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/shell.mjs",
+      "target": "shellscript",
+      "sha256": "556bc52cbe5c486b6976839b6f973614cc0028267fd4c2024a3a52d68db9d1e7",
+      "status": "resolved"
+    },
+    {
+      "alias": "spl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/spl.mjs",
+      "target": "splunk",
+      "sha256": "6e2d6a63c481f89921ba6d272cf88738e381b51b6e4dafd1922421f51abe6780",
+      "status": "resolved"
+    },
+    {
+      "alias": "styl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/styl.mjs",
+      "target": "stylus",
+      "sha256": "bbe92b0597e12d0f335cfd5914730469e934bd31d168ae2d422beb6eada84da8",
+      "status": "resolved"
+    },
+    {
+      "alias": "surql",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/surql.mjs",
+      "target": "surrealql",
+      "sha256": "ad12c05699e01637f82ef3337d62d46e3793907559411d88846c99f1e869f1c4",
+      "status": "resolved"
+    },
+    {
+      "alias": "talon",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/talon.mjs",
+      "target": "talonscript",
+      "sha256": "7241427c429c86d21fecbc0db4a7d70cb10c4e5d4bfcf6c65f1c8cd91e653816",
+      "status": "resolved"
+    },
+    {
+      "alias": "tf",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/tf.mjs",
+      "target": "terraform",
+      "sha256": "308b6e9d1954d9920767afdb15df887415d1ad15bf1e07ec549527f1ee6e8c16",
+      "status": "resolved"
+    },
+    {
+      "alias": "tfvars",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/tfvars.mjs",
+      "target": "terraform",
+      "sha256": "df8dc7f2f64db8aee6651206a4b326670f6617d74026425c4d2b54fbab196ef8",
+      "status": "resolved"
+    },
+    {
+      "alias": "tres",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/tres.mjs",
+      "target": "gdresource",
+      "sha256": "6243bd6b8d987969b0a07fb7ffe32e16a99d0701515978ce5913ae366735bd82",
+      "status": "resolved"
+    },
+    {
+      "alias": "ts",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/ts.mjs",
+      "target": "typescript",
+      "sha256": "df67e50050fe4296b961fcaca5a51125420a6388cf08dd4c9e4dd4333dfdd09c",
+      "status": "resolved"
+    },
+    {
+      "alias": "tscn",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/tscn.mjs",
+      "target": "gdresource",
+      "sha256": "91ab83b7aeb2e0642d347a03a85a8000b0a5eed441ce528edebfca7bea06300c",
+      "status": "resolved"
+    },
+    {
+      "alias": "tsp",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/tsp.mjs",
+      "target": "typespec",
+      "sha256": "1c367c2d87f99b67c74ee637061875860392d793f2cef14f6f8f7caf747b61ff",
+      "status": "resolved"
+    },
+    {
+      "alias": "typ",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/typ.mjs",
+      "target": "typst",
+      "sha256": "65b817ca06695126172924d450c719b6c4484e094ca27b516fd3d55f869694a1",
+      "status": "resolved"
+    },
+    {
+      "alias": "vim",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/vim.mjs",
+      "target": "viml",
+      "sha256": "04f6896a27d79ae403d211d51572c44c39efe83e934358375048f979c06c696e",
+      "status": "resolved"
+    },
+    {
+      "alias": "vimscript",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/vimscript.mjs",
+      "target": "viml",
+      "sha256": "88fa36eb8aaa007d332ddc674d118f0a433620ae22e8063175fce20f5bc5e3be",
+      "status": "resolved"
+    },
+    {
+      "alias": "vy",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/vy.mjs",
+      "target": "vyper",
+      "sha256": "7f65396d319e190f469debda43828ebb352ff495d43a35dde5f5ae8a98add67a",
+      "status": "resolved"
+    },
+    {
+      "alias": "wiki",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/wiki.mjs",
+      "target": "wikitext",
+      "sha256": "439f3250567a10ab3f077495b025a140658dc2b67249ef4f37aaed6dc403408c",
+      "status": "resolved"
+    },
+    {
+      "alias": "wl",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/wl.mjs",
+      "target": "wolfram",
+      "sha256": "71fe46ddd17de866a1ade3c2fbc2d4887edccff0515203e17eaa09764b534c28",
+      "status": "resolved"
+    },
+    {
+      "alias": "yml",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/yml.mjs",
+      "target": "yaml",
+      "sha256": "9d21c24686c52257cbb00a5ae464dd3a732c8a6959177d6bd1aa90e3abb415b8",
+      "status": "resolved"
+    },
+    {
+      "alias": "zsh",
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/zsh.mjs",
+      "target": "shellscript",
+      "sha256": "24eefdcb104df67933ca88ea5e2a359d3b3f1ca841ec0c0fbe5c4094cee7781d",
+      "status": "resolved"
+    }
+  ],
+  "themes": [
+    {
+      "id": "andromeeda",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/andromeeda.mjs",
+      "sha256": "274d6725cc8a244f5cfa6c78d740508217e88fa6a8172d40a2d5143b68c0dfac",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "aurora-x",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/aurora-x.mjs",
+      "sha256": "7695171f4c80d866064b46922964f20b1110d20015cf33b383df290b6fc1d3c7",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "ayu-dark",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/ayu-dark.mjs",
+      "sha256": "14b7b2d8516b0d0be4763a8d958c95b6ccc4631422ba631af820af8b3c414b21",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "ayu-light",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/ayu-light.mjs",
+      "sha256": "961d40c0d83b7251b99bd3e916b5aa625a4311d66d7de3dd19cb6b9fad9b1ed1",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "ayu-mirage",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/ayu-mirage.mjs",
+      "sha256": "9ef7c1299a42bfd30dd4b8f1e58478cdb064ffd7e9540a00d35a1277131696e9",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "catppuccin-frappe",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/catppuccin-frappe.mjs",
+      "sha256": "35997022f0032866e9f76de9adc81d38782eabd3acc4795658cb44bbfedd5751",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "catppuccin-latte",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/catppuccin-latte.mjs",
+      "sha256": "01267ce737b4421cfee905b18d82f2093ffa454220175062af41a45955e83e44",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "catppuccin-macchiato",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/catppuccin-macchiato.mjs",
+      "sha256": "de7acb721c730d23ae812439bd708fe42dcfca3614b3b104d00ecb52fffefa07",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "catppuccin-mocha",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/catppuccin-mocha.mjs",
+      "sha256": "6c275b4ae4ffa62dc6f9fc5a420914a3056c74e46ee57c7a02b73ac43499a812",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "dark-plus",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/dark-plus.mjs",
+      "sha256": "5ce7e9ba2fd8f84f5e8d571c7957d8d87cec0c82b41f0a5ba73553511725e46b",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "dracula",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/dracula.mjs",
+      "sha256": "e27c59dc81295ed73f60b987b08fdbf7f5946126180fd13d4afcc8ed9115ff8e",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "dracula-soft",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/dracula-soft.mjs",
+      "sha256": "e70e06d770228df9393d07200871f8f51a320c31d3defd759c4dc61752a7c9a6",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "everforest-dark",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/everforest-dark.mjs",
+      "sha256": "2fc1165b77aa6099781ef50d1f70b2ae522a7a5843d8be9b3e61095d166b02a4",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "everforest-light",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/everforest-light.mjs",
+      "sha256": "5626360c1c5ade4c8208665ea57f3780e0b7646dcb3a63ce47fc6e82cdaba311",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "github-dark",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/github-dark.mjs",
+      "sha256": "dce7a67a736fbdbd0a82e758b8671c31a6f2dde41bdc88992f15137adb9ca05c",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "github-dark-default",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/github-dark-default.mjs",
+      "sha256": "8c619b33eb1bfdfc95569195daa25626e99c324253a8f4ff25fb7bcd9b66b4a6",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "github-dark-dimmed",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/github-dark-dimmed.mjs",
+      "sha256": "f229267ee123371c5c54c5a2d2d5dab888741259b29e8c299d5d28f6b5ce8749",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "github-dark-high-contrast",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/github-dark-high-contrast.mjs",
+      "sha256": "680f740096cb9598270957e0a192478afbbf871d6b987a54c82630a3365e0215",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "github-light",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/github-light.mjs",
+      "sha256": "17ca8a8e256f0ecd28f62b09f4a6ff4604bfbddd12b5a902c56ab3afae5e7e5f",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "github-light-default",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/github-light-default.mjs",
+      "sha256": "d155fd26ffd50fb4ee12dfc0348741a901e7ec689d7056d9d45d4ede2acb8324",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "github-light-high-contrast",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/github-light-high-contrast.mjs",
+      "sha256": "8ba9b278e0bc7582f7c056ff914352e17061149feb60be4f3c255b6ae623d820",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "gruvbox-dark-hard",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/gruvbox-dark-hard.mjs",
+      "sha256": "5c4fe26ba39efc79934c594f68b8ecf2ceffa4076cf3294cb06f46fb83f8df1d",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "gruvbox-dark-medium",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/gruvbox-dark-medium.mjs",
+      "sha256": "d44db648b69a1ef8d0eaf6dd83f19df70e1188b915c2520c3a11633afd83bf68",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "gruvbox-dark-soft",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/gruvbox-dark-soft.mjs",
+      "sha256": "bb273103229a97e2fa514ff31d8aaed5e5095585728a7a1946bf76aebf4c85c9",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "gruvbox-light-hard",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/gruvbox-light-hard.mjs",
+      "sha256": "de1001e946d9d5752416e79418857a99e5ed9a79db90248e4e36bfe0de57446f",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "gruvbox-light-medium",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/gruvbox-light-medium.mjs",
+      "sha256": "1c2d2459ed1fd0cbaab5f79cac59dfbb44d482d65f12870a187081e335157341",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "gruvbox-light-soft",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/gruvbox-light-soft.mjs",
+      "sha256": "1a19f61f20f40569930cb10de0c3b54455374b44afe6447352f94943b05a7013",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "horizon",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/horizon.mjs",
+      "sha256": "87aba2cbdecb4cf16a531cee3e6c323a42307e33939826e4b8709664cb8128c9",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "horizon-bright",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/horizon-bright.mjs",
+      "sha256": "34b4c57fa66acc5feb9a9dd705c52b43ca43cd628e86961b31f14feae7a11afb",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "houston",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/houston.mjs",
+      "sha256": "a5d4d96793705650423cc1c822f76582b6c7bcef70e14b02cb78c22d4135955c",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "kanagawa-dragon",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/kanagawa-dragon.mjs",
+      "sha256": "4a4b65b4c3dcb96835ffa8ab8a58f1ac2d2bbc3b62cabeca97cb4775242a7283",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "kanagawa-lotus",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/kanagawa-lotus.mjs",
+      "sha256": "7d6392dae7cb4153b6dc393e25b1579e88701c61e36fb4919d8f746c2af7a38c",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "kanagawa-wave",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/kanagawa-wave.mjs",
+      "sha256": "2ec6b8823f0e976c96bd008daa5ce0572e0f6f1330dd74a4fc59c447e7abe44a",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "laserwave",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/laserwave.mjs",
+      "sha256": "da3c51a364aef1324c8d063d14c31f4ad2965d3e99e1ee267d615eed15fb2200",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "light-plus",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/light-plus.mjs",
+      "sha256": "0265d40427c4e3dc36611bcc722a0777703b5f0612318b84b0e86f8e615d0041",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "material-theme",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/material-theme.mjs",
+      "sha256": "52568d5a700f96fefc0903481fabb25185ee3e2e2b97decd13d22cd0694966f8",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "material-theme-darker",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/material-theme-darker.mjs",
+      "sha256": "90d2e8cac3684c55d88091e021a676cf432db82312fb9b81fdc83e5a22a1edea",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "material-theme-lighter",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/material-theme-lighter.mjs",
+      "sha256": "dc39dcd588007420ee77d6418f7b0c8cfa63ffda62e8c766d02175e6145b8151",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "material-theme-ocean",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/material-theme-ocean.mjs",
+      "sha256": "6b22c97680d8c6041dd1e4b5926229624e2cf9687b8573013cbc22c57e7b12b9",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "material-theme-palenight",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/material-theme-palenight.mjs",
+      "sha256": "02190e63e46d93fa0e398f175764f8205ca9903f3fee600076a18f77c156fc45",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "min-dark",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/min-dark.mjs",
+      "sha256": "a71d623a1cf0a9e7fd46e3e01819ce3ae35a700efe57ede033ea3a8a6ffe5ffe",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "min-light",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/min-light.mjs",
+      "sha256": "c972906b0ee41687f707b4d3b0ea2ecc9bfbc2cb24d28928ea7e03cc7854a7d6",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "monokai",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/monokai.mjs",
+      "sha256": "47c1ee053254ee025bd90c52de4fd94de0c20933012075c6794ddf245802c281",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "night-owl",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/night-owl.mjs",
+      "sha256": "6ad7a3faf4d17b6485988803a577602cc2e64970c63c65cf8f9e2b3f31469816",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "night-owl-light",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/night-owl-light.mjs",
+      "sha256": "cc2f5baa4ccc06c294ab4c55676f30f488d68c9a672c6100416e98d3589a3e02",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "nord",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/nord.mjs",
+      "sha256": "e762149157c9de25cfc32c0230fd9a36db2ca3eba1583bb5899c095665c7f35f",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "one-dark-pro",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/one-dark-pro.mjs",
+      "sha256": "a5f95bb16d755c0696473dfa95cd80f8b254f0bef0af512cc4d69d9cd38f3d42",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "one-light",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/one-light.mjs",
+      "sha256": "bbf6d106007d2050ff8eca958eeeed0c3ca8cc3798871b0aec2da02b8761ce48",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "plastic",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/plastic.mjs",
+      "sha256": "17c15e381ac02b755408c5f28b8508b069d9dc0a30a39270754f1f58fe848f50",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "poimandres",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/poimandres.mjs",
+      "sha256": "ba2d153145e6900c3e26b4ec33a1e8fdd36a4eba208eb1e1963e24206c6489ea",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "red",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/red.mjs",
+      "sha256": "405484dcb0f0d8d97679466a3e9ac836ce0662fbdfb28c4c555c545e9373a796",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "rose-pine",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/rose-pine.mjs",
+      "sha256": "a308ed6bdbca368a585b24310debe354cfe2b2a7e333f70f8685b15e046928b2",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "rose-pine-dawn",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/rose-pine-dawn.mjs",
+      "sha256": "bdefbc795ea17b90b98b100b7e391aec995896f2b69a634be1464212f6666300",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "rose-pine-moon",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/rose-pine-moon.mjs",
+      "sha256": "98bcdc2768b0d252c29832791e0adacdcd88e6c775938f5aeabca8d49081da6b",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "slack-dark",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/slack-dark.mjs",
+      "sha256": "e37eacc2dc6037d88bb6bbf5322f944391e619f80af86f9da48913f1d618d2a2",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "slack-ochin",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/slack-ochin.mjs",
+      "sha256": "2fab986f0df033174ffe15b5f4dd93903ee10ea1ba57e3a534284936ab1921f6",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "snazzy-light",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/snazzy-light.mjs",
+      "sha256": "91edcfe0fb90ce6c3569608498c704aa2db9c1236b182398c7a634a79c38d8c0",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "solarized-dark",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/solarized-dark.mjs",
+      "sha256": "4bd32b33eea4ced927601f45ebb8a681546ead0cfe810b6c4ecc1d1ba0ced145",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "solarized-light",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/solarized-light.mjs",
+      "sha256": "95b7729d5b745358ed932777a93ef4e7224f648762c9a16f60960100e3006c7a",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "synthwave-84",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/synthwave-84.mjs",
+      "sha256": "6ec00028b63d9a5062a06e5c13fb1856edeed36802ab76eacff43520cb7204a0",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "tokyo-night",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/tokyo-night.mjs",
+      "sha256": "b7e1965bfc1c7f12005b97610a46a827682909f08803fd4c8a0ed73dd4528eda",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "vesper",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/vesper.mjs",
+      "sha256": "f4c51d72afd314893205ebad3b0e09d1f9e3ada1f7f3b4d2b25b2ea62a9d401f",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "vitesse-black",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/vitesse-black.mjs",
+      "sha256": "6d90fcbc7f6a312590cc1c737766214e7f2e00505d29f67d1158cdc18d5a7ba3",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "vitesse-dark",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/vitesse-dark.mjs",
+      "sha256": "67f3c411944a98925ae854bccb45d91b86089673b020cad9b38b82665d6d732d",
+      "status": "resolved",
+      "hostSelectable": true
+    },
+    {
+      "id": "vitesse-light",
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/vitesse-light.mjs",
+      "sha256": "09a6c27be440c6d11face2de931815df08c71d94e840139791cac3a8dd538681",
+      "status": "resolved",
+      "hostSelectable": true
+    }
+  ],
+  "engine": [
+    {
+      "package": "@shikijs/engine-oniguruma",
+      "version": "4.4.3",
+      "path": "dist/wasm-inlined.mjs",
+      "sha256": "39a43f044abd46544a20151fe88c4c898df1a0bf496ca111b56460b16e730be2"
+    },
+    {
+      "package": "shiki",
+      "version": "4.4.3",
+      "path": "dist/onig.wasm",
+      "sha256": "fd885c2d12e5951e59d761ebd4a006e06254b1491fd6f530c92b69fb4d8d77d9",
+      "sameBytesAsInlined": true
+    }
+  ],
+  "runtime": [
+    {
+      "package": "@shikijs/core",
+      "version": "4.4.3",
+      "path": "dist/index.mjs",
+      "sha256": "eea6671d6de13c05caa0544ce6cd60d635fd8ebda601f8a0769b4083e93a9ccc"
+    },
+    {
+      "package": "@shikijs/langs",
+      "version": "4.4.3",
+      "path": "dist/index.mjs",
+      "sha256": "c8a6ed5c4ca38b550c12dc914a66aff8899198c66b4e44754e48bbe58936eb65"
+    },
+    {
+      "package": "@shikijs/primitive",
+      "version": "4.4.3",
+      "path": "dist/index.mjs",
+      "sha256": "65cd5db33752ccfa81e681be14e4a9e8d63faec2c7e4aace8776f383efe3fb66"
+    },
+    {
+      "package": "@shikijs/themes",
+      "version": "4.4.3",
+      "path": "dist/index.mjs",
+      "sha256": "c5fe85b28c42c4800fbe96b59be54e0bda44915c556719cb5dfe6713465c06cf"
+    },
+    {
+      "package": "@shikijs/vscode-textmate",
+      "version": "10.0.2",
+      "path": "dist/index.js",
+      "sha256": "e620383bf90108b309c238d054a06e519328425a02d0ce62b84c7023ba5543d9"
+    },
+    {
+      "package": "shiki",
+      "version": "4.4.3",
+      "path": "dist/langs-bundle-full-xQVO1Cek.mjs",
+      "sha256": "14bb76ef90c09bea094fbfb84c8ae3292625b738d466f6be7b416d991f5c708b"
+    },
+    {
+      "package": "shiki",
+      "version": "4.4.3",
+      "path": "dist/langs.mjs",
+      "sha256": "e53b8b127e78e1dd93af100469b5c24dc1906a51b69081d44b23d1782b0b4855"
+    },
+    {
+      "package": "shiki",
+      "version": "4.4.3",
+      "path": "dist/themes.mjs",
+      "sha256": "96297d1a251bae403e2e6eb76bc1f8ffb37e4481c21cc460507d236541e5d927"
+    }
+  ]
+}
