@@ -18,7 +18,9 @@
     "@shikijs/langs": "4.4.3",
     "@shikijs/themes": "4.4.3",
     "@shikijs/vscode-textmate": "10.0.2",
-    "shiki": "4.4.3"
+    "shiki": "4.4.3",
+    "vscode-oniguruma": "2.0.1",
+    "vscode-textmate": "9.3.2"
   },
   "devDependencies": {
     "@types/node": "26.6.1",
