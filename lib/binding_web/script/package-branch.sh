@@ -18,14 +18,7 @@ CJS=1 node script/build.js
 npm run build:dts
 npm pack --pack-destination "$work"
 tar xzf "$work"/*.tgz -C "$work"
-node -e '
-const fs = require("fs");
-const file = process.argv[1];
-const p = JSON.parse(fs.readFileSync(file, "utf8"));
-delete p.scripts;
-delete p.devDependencies;
-fs.writeFileSync(file, JSON.stringify(p, null, 2) + "\n");
-' "$work/package/package.json"
+node script/git-package-manifest.ts "$work/package/package.json"
 
 git fetch -q origin "$branch"
 git worktree add -q --detach "$work/branch" FETCH_HEAD
