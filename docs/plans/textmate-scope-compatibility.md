@@ -1,6 +1,6 @@
 # Plan: native Tree-sitter scopes with VS Code theme compatibility
 
-Status: **PROPOSED; documentation only; implementation not started by this PR.**
+Status: **Approved.** Implementation started 2026-09-30 with Phases 0 and 1.
 
 Date: 2026-09-28. Target: `ShaulLavo/tree-sitter-x`, based on `90dae9cb8e78b074d99d411c6cb3e440d3cd7def`.
 
