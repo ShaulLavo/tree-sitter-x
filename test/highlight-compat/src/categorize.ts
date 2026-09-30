@@ -32,7 +32,7 @@ function sharesLeaf(a: readonly string[], b: readonly string[]): boolean {
   return a[a.length - 1] === b[b.length - 1]
 }
 
-/** Precondition: the paths differ. */
+/** A conservative label from the first rule that explains the pair; mixed edits such as a reorder plus an insertion fall to `ancestor` or `other`. Precondition: the paths differ. */
 export function categorize(reference: readonly string[], candidate: readonly string[]): MismatchCategory {
   if (isProperSubsequence(candidate, reference)) return 'missing-scope'
   if (isProperSubsequence(reference, candidate)) return 'extra-scope'

@@ -18,7 +18,7 @@ npm run golden:update -- --profile product # the only writer; reference profiles
 - `sourceSha256` hashes the source as WTF-8. For well-formed text that equals `sha256sum` of the UTF-8 file; lone surrogates stay distinct from U+FFFD.
 - A `complete` result's scope, metadata and style tracks each tile `[0, sourceLength)` with raw, uncoalesced token spans. An empty source has zero spans.
 - Scope names, paths, language ids and styles are interned in first-use order, and the validator rejects any other order. Build results with `ResultBuilder` (`src/build.ts`) so equal content always means equal JSON.
-- Scope names contain no whitespace. Colours are lowercase `#rrggbb` or `#rrggbbaa`. An absent style field inherits the theme default; `fontStyle: 'reset'` is an explicit empty font style.
+- Scope names contain no whitespace. Colours are lowercase `#rrggbb` or `#rrggbbaa`. An absent style field inherits the theme default; `fontStyle: 'reset'` is an explicit empty font style. Styles compare by representation, so adapters resolve theme defaults the same way on both sides: an absent foreground and an explicit default colour disagree.
 - Any other status carries no spans and at least one diagnostic. Such results are never comparable and never become goldens (`unsupported` is the one exception that may be recorded).
 - Timing stays out of results (`ResultTiming` is a separate sidecar); `engine` holds identities only.
 

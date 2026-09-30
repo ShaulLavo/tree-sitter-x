@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
-// The worker heap limit in memory.test.ts cannot see off-heap typed arrays, so the streaming
-// modules also must not contain any construct that sizes storage by the source.
+// The worker heap limit in memory.test.ts cannot see off-heap typed arrays. This is a source
+// convention for these two modules, not a proof: helpers they import are outside its reach.
 const STREAMING_MODULES = ['../src/compare.ts', '../src/sweep.ts']
 const PER_UNIT_STORAGE = [
   /\bArray\s*\(/,
