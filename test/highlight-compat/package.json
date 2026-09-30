@@ -1,0 +1,28 @@
+{
+  "name": "@tree-sitter-x/highlight-compat",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Differential harness comparing TextMate scope and style output across reference and candidate engines",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "compare": "node src/cli/compare.ts",
+    "golden:update": "node src/cli/golden-update.ts"
+  },
+  "dependencies": {
+    "@shikijs/engine-oniguruma": "4.4.3",
+    "@shikijs/langs": "4.4.3",
+    "@shikijs/themes": "4.4.3",
+    "@shikijs/vscode-textmate": "10.0.2",
+    "shiki": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.1",
+    "typescript": "5.9.3",
+    "vitest": "3.2.4"
+  }
+}
