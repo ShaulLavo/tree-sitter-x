@@ -71,7 +71,10 @@ class StyleWriter {
 
 /** Collects raw (uncoalesced) spans and interns names, paths and styles in first-use order. */
 export class ResultBuilder {
-  readonly #header: ResultHeader
+  readonly #profileId: ProfileId
+  readonly #languageId: string
+  readonly #documentRevision: number
+  readonly #engine: Readonly<Record<string, string>>
   readonly #sourceLength: number
   readonly #sourceSha256: string
   readonly #names = new Interner<string>()
@@ -81,9 +84,13 @@ export class ResultBuilder {
   readonly #languages: SpanWriter
   readonly #themes = new Map<string, StyleWriter>()
   readonly #diagnostics: string[] = []
+  #published = false
 
   constructor(header: ResultHeader, source: string) {
-    this.#header = header
+    this.#profileId = header.profileId
+    this.#languageId = header.languageId
+    this.#documentRevision = header.documentRevision ?? 0
+    this.#engine = Object.fromEntries(Object.entries(header.engine ?? {}))
     this.#sourceLength = source.length
     this.#sourceSha256 = sourceSha256(source)
     this.#scopes = new SpanWriter('scopes', source.length)
@@ -91,6 +98,7 @@ export class ResultBuilder {
   }
 
   scope(from: number, to: number, scopes: readonly string[]): this {
+    this.#requireOpen()
     const bad = scopes.find((name) => !isScopeName(name))
     if (bad !== undefined) throw new RangeError(`scope name ${JSON.stringify(bad)} must be non-empty without whitespace`)
     this.#scopes.require(from, to)
@@ -102,6 +110,7 @@ export class ResultBuilder {
   }
 
   language(from: number, to: number, languageId: string): this {
+    this.#requireOpen()
     if (!isLanguageId(languageId)) throw new RangeError(`language id ${JSON.stringify(languageId)} is not a valid language id`)
     this.#languages.require(from, to)
     this.#languages.push(from, to, this.#languageIds.index(languageId, () => languageId))
@@ -109,6 +118,7 @@ export class ResultBuilder {
   }
 
   style(themeId: string, from: number, to: number, style: Style): this {
+    this.#requireOpen()
     if (!isThemeId(themeId)) throw new RangeError(`theme id ${JSON.stringify(themeId)} must be non-empty without whitespace`)
     const theme = this.#themes.get(themeId) ?? new StyleWriter(themeId, this.#sourceLength)
     theme.writer.require(from, to)
@@ -121,11 +131,14 @@ export class ResultBuilder {
   }
 
   diagnostic(text: string): this {
+    this.#requireOpen()
     this.#diagnostics.push(text)
     return this
   }
 
+  /** Publishes the result and seals the builder, so the published arrays never change again. */
   complete(): CompleteResult {
+    this.#requireOpen()
     this.#scopes.requireEnd()
     if (this.#languages.spans.length > 0) this.#languages.requireEnd()
     for (const theme of this.#themes.values()) theme.writer.requireEnd()
@@ -139,24 +152,39 @@ export class ResultBuilder {
       ...this.#styles(),
     })
     if (result.status !== 'complete') throw new RangeError(`published status ${result.status}, expected complete`)
+    this.#published = true
     return result
   }
 
   incomplete(status: IncompleteStatus, reason: string): IncompleteResult {
-    this.#diagnostics.push(reason)
-    return { ...this.#common(), status, scopeNames: [], paths: [], spans: [] }
+    this.#requireOpen()
+    const result = parseResult({
+      ...this.#common(),
+      diagnostics: [...this.#diagnostics, reason],
+      status,
+      scopeNames: [],
+      paths: [],
+      spans: [],
+    })
+    if (result.status === 'complete') throw new RangeError('published status complete, expected incomplete')
+    this.#published = true
+    return result
+  }
+
+  #requireOpen(): void {
+    if (this.#published) throw new Error('ResultBuilder: result already published; start a new builder')
   }
 
   #common() {
     return {
       schema: 1 as const,
-      profileId: this.#header.profileId,
-      languageId: this.#header.languageId,
+      profileId: this.#profileId,
+      languageId: this.#languageId,
       sourceSha256: this.#sourceSha256,
       sourceLength: this.#sourceLength,
-      documentRevision: this.#header.documentRevision ?? 0,
+      documentRevision: this.#documentRevision,
       diagnostics: this.#diagnostics,
-      engine: this.#header.engine ?? {},
+      engine: this.#engine,
     }
   }
 

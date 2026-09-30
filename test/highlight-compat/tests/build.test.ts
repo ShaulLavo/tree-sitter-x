@@ -61,6 +61,23 @@ describe('ResultBuilder', () => {
     expect(result.styles?.['light']?.styles).toEqual([{ foreground: '#ffffff' }])
   })
 
+  it('keeps a published result unchanged by later builder calls and caller edits', () => {
+    const engine: Record<string, string> = { shiki: '4.4.3' }
+    const builder = new ResultBuilder({ ...header, engine }, 'ab').scope(0, 2, ['s']).diagnostic('first')
+    const complete = builder.complete()
+    const snapshot = structuredClone(complete)
+    engine['shiki'] = 'changed'
+    expect(() => builder.incomplete('timeout', 'late deadline')).toThrow(/already published/)
+    expect(() => builder.diagnostic('late')).toThrow(/already published/)
+    expect(() => builder.complete()).toThrow(/already published/)
+    expect(complete).toEqual(snapshot)
+
+    const failed = new ResultBuilder(header, 'ab')
+    const incomplete = failed.incomplete('error', 'grammar missing')
+    expect(() => failed.scope(0, 2, ['s'])).toThrow(/already published/)
+    expect(incomplete.diagnostics).toEqual(['grammar missing'])
+  })
+
   it('publishes an empty source as a complete result with no spans', () => {
     expect(new ResultBuilder(header, '').complete().spans).toEqual([])
   })
