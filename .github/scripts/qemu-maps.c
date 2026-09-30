@@ -50,7 +50,7 @@ static int torn(const char *line) {
   sscanf(line, "%lx-%lx %4s %*s %*s %*s %n", &start, &end, perms, &path);
   if (path < 0) abort();
   if (flip_addr < start || flip_addr >= end) return 0;
-  return (perms[1] == 'w') == (line[path] != '\0');
+  return (perms[1] == 'w') == (line[path] == '/');
 }
 
 int main(void) {

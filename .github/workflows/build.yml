@@ -126,6 +126,7 @@ jobs:
         case $arch in
           amd64) sha256=4f2837268b556263fa5c9d3bd21d4ba7661e7b1a92007e2d793c42909f8050f0 ;;
           arm64) sha256=32c3fb5491322417d568ed272fe2d0561f0168e478f45fc59bb3d6c906ca473f ;;
+          *) echo "::error::No pinned qemu-user package for runner architecture $arch"; exit 1 ;;
         esac
         case $PLATFORM in
           linux-arm) emulator=qemu-arm sysroot=/usr/arm-linux-gnueabihf ;;
