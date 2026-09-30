@@ -10,8 +10,9 @@ describe('committed goldens', () => {
 
   for (const [profileId, producer] of Object.entries(goldenProducers)) {
     if (producer === undefined || !isReferenceProfile(profileId)) continue
+    // Each producer runs every original fixture in its own oracle worker; the bound is that work.
     it(`${profileId} goldens equal the producer's cases, one to one`, async () => {
       expect((await auditGoldens(GOLDEN_ROOT, profileId, producer)).join('\n')).toBe('')
-    })
+    }, 120_000)
   }
 })
