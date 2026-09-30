@@ -9,7 +9,7 @@ import type {
 } from './schema.ts'
 import { sourceSha256 } from './source.ts'
 import { canonicalStyle, styleKey } from './style.ts'
-import { parseResult } from './validate.ts'
+import { isLanguageId, isScopeName, isThemeId, parseResult, styleErrors } from './validate.ts'
 
 export interface ResultHeader {
   readonly profileId: ProfileId
@@ -42,10 +42,14 @@ class SpanWriter {
     this.#limit = limit
   }
 
-  push(from: number, to: number, value: number): void {
+  /** Call before interning, so a rejected write changes nothing. */
+  require(from: number, to: number): void {
     if (from !== this.#end || !Number.isInteger(to) || to <= from || to > this.#limit) {
       throw new RangeError(`${this.#label}: span [${from}, ${to}) must start at ${this.#end} and end after it, by ${this.#limit}`)
     }
+  }
+
+  push(from: number, to: number, value: number): void {
     this.spans.push(from, to, value)
     this.#end = to
   }
@@ -64,7 +68,6 @@ class StyleWriter {
   }
 }
 
-const SCOPE_NAME = /^\S+$/
 
 /** Collects raw (uncoalesced) spans and interns names, paths and styles in first-use order. */
 export class ResultBuilder {
@@ -88,8 +91,9 @@ export class ResultBuilder {
   }
 
   scope(from: number, to: number, scopes: readonly string[]): this {
-    const bad = scopes.find((name) => !SCOPE_NAME.test(name))
+    const bad = scopes.find((name) => !isScopeName(name))
     if (bad !== undefined) throw new RangeError(`scope name ${JSON.stringify(bad)} must be non-empty without whitespace`)
+    this.#scopes.require(from, to)
     const path = this.#paths.index(scopes.join(' '), () =>
       scopes.map((name) => this.#names.index(name, () => name)),
     )
@@ -98,17 +102,20 @@ export class ResultBuilder {
   }
 
   language(from: number, to: number, languageId: string): this {
+    if (!isLanguageId(languageId)) throw new RangeError(`language id ${JSON.stringify(languageId)} is not a valid language id`)
+    this.#languages.require(from, to)
     this.#languages.push(from, to, this.#languageIds.index(languageId, () => languageId))
     return this
   }
 
   style(themeId: string, from: number, to: number, style: Style): this {
-    let theme = this.#themes.get(themeId)
-    if (theme === undefined) {
-      theme = new StyleWriter(themeId, this.#sourceLength)
-      this.#themes.set(themeId, theme)
-    }
+    if (!isThemeId(themeId)) throw new RangeError(`theme id ${JSON.stringify(themeId)} must be non-empty without whitespace`)
+    const theme = this.#themes.get(themeId) ?? new StyleWriter(themeId, this.#sourceLength)
+    theme.writer.require(from, to)
     const canonical = canonicalStyle(style)
+    const errors = styleErrors(canonical)
+    if (errors.length > 0) throw new RangeError(`theme ${themeId}: ${errors.join('; ')}`)
+    this.#themes.set(themeId, theme)
     theme.writer.push(from, to, theme.styles.index(styleKey(canonical), () => canonical))
     return this
   }

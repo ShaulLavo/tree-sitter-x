@@ -42,6 +42,25 @@ describe('ResultBuilder', () => {
     )
   })
 
+  it('leaves interning canonical after a rejected write is replaced by a valid one', () => {
+    const builder = new ResultBuilder(header, 'abc').scope(0, 1, ['s'])
+    expect(() => builder.scope(1, 1, ['bad'])).toThrow(RangeError)
+    builder.scope(1, 3, ['good'])
+    expect(() => builder.language(1, 1, 'bad')).toThrow(RangeError)
+    expect(() => builder.language(0, 3, 'not a language')).toThrow(/language id/)
+    builder.language(0, 3, 'ts')
+    expect(() => builder.style('dark', 1, 3, { foreground: '#000000' })).toThrow(RangeError)
+    expect(() => builder.style('light', 0, 3, { foreground: '#FFF' })).toThrow(/foreground/)
+    expect(() => builder.style('light', 0, 3, { fontStyle: {} })).toThrow(/fontStyle/)
+    expect(() => builder.style('not a theme', 0, 3, {})).toThrow(/theme id/)
+    builder.style('light', 0, 3, { foreground: '#ffffff' })
+    const result = builder.complete()
+    expect(result.scopeNames).toEqual(['s', 'good'])
+    expect(result.metadata?.languageIds).toEqual(['ts'])
+    expect(Object.keys(result.styles ?? {})).toEqual(['light'])
+    expect(result.styles?.['light']?.styles).toEqual([{ foreground: '#ffffff' }])
+  })
+
   it('publishes an empty source as a complete result with no spans', () => {
     expect(new ResultBuilder(header, '').complete().spans).toEqual([])
   })

@@ -365,6 +365,16 @@ function checkSource(value: Json, source: string, errors: Errors): void {
   if (value['sourceSha256'] !== hash) errors.add(`sourceSha256: ${show(value['sourceSha256'])} does not match the source hash ${hash}`)
 }
 
+export const isScopeName = (name: string): boolean => NAME.test(name)
+export const isThemeId = (themeId: string): boolean => NAME.test(themeId)
+export const isLanguageId = (languageId: string): boolean => LANGUAGE_ID.test(languageId)
+
+export function styleErrors(style: unknown): readonly string[] {
+  const errors = new Errors()
+  checkStyle(style, 'style', errors)
+  return errors.list()
+}
+
 export function validateResult(value: unknown, source?: string): Validation {
   const errors = new Errors()
   if (!isObject(value)) return { ok: false, errors: [`result: expected an object, got ${show(value)}`] }
