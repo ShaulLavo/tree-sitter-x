@@ -206,3 +206,29 @@ describe('sourceSha256', () => {
     expect(sourceSha256('\uD800')).not.toBe(sourceSha256('�'))
   })
 })
+
+function withHole<T>(values: readonly T[], index: number): T[] {
+  const copy: T[] = [...values]
+  if (index >= copy.length) copy.length = index + 1
+  else delete copy[index]
+  return copy
+}
+
+describe('holes and undefined entries', () => {
+  const base = scoped()
+  const dark = styled().styles?.['dark']
+  const cases: readonly (readonly [string, () => unknown])[] = [
+    ['an undefined path index', () => ({ ...base, scopeNames: ['source.ts'], paths: [[undefined]], spans: [0, 9, 0] })],
+    ['a hole inside a path', () => ({ ...base, paths: [withHole([0, 1], 1), [0]] })],
+    ['a hole in scopeNames', () => ({ ...base, scopeNames: withHole(base.scopeNames, 2) })],
+    ['a hole in paths', () => ({ ...base, paths: withHole(base.paths, 2) })],
+    ['a hole in spans', () => ({ ...base, spans: withHole(base.spans, 1) })],
+    ['a hole in diagnostics', () => ({ ...base, diagnostics: withHole(['x'], 0) })],
+    ['a hole in metadata languageIds', () => ({ ...styled(), metadata: { ...styled().metadata, languageIds: withHole(['typescript', 'css'], 2) } })],
+    ['a hole in a style table', () => ({ ...styled(), styles: { dark: { ...dark, styles: withHole(dark?.styles ?? [], 2) } } })],
+  ]
+
+  it.each(cases)('rejects %s', (_, make) => {
+    expect(errorsOf(make())).toMatch(/hole|undefined/)
+  })
+})

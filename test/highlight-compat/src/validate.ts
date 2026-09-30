@@ -82,11 +82,22 @@ function checkExactKeys(value: Json, at: string, allowed: readonly string[], req
   }
 }
 
-function checkStringArray(value: unknown, at: string, errors: Errors): value is readonly string[] {
+/** forEach skips holes and find reports them as undefined, so every table is checked for holes first. */
+function checkDense(value: unknown, at: string, expected: string, errors: Errors): value is readonly unknown[] {
   if (!Array.isArray(value)) {
-    errors.add(`${at}: expected an array of strings, got ${show(value)}`)
+    errors.add(`${at}: expected ${expected}, got ${show(value)}`)
     return false
   }
+  for (let i = 0; i < value.length; i++) {
+    if (Object.hasOwn(value, i)) continue
+    errors.add(`${at}[${i}]: hole in array`)
+    return false
+  }
+  return true
+}
+
+function checkStringArray(value: unknown, at: string, errors: Errors): value is readonly string[] {
+  if (!checkDense(value, at, 'an array of strings', errors)) return false
   const before = errors.count
   value.forEach((item: unknown, index) => {
     if (typeof item !== 'string') errors.add(`${at}[${index}]: expected a string, got ${show(item)}`)
@@ -162,10 +173,7 @@ function checkIncomplete(value: Json, status: string, errors: Errors): void {
 }
 
 function checkSpanShape(spans: unknown, track: Track, errors: Errors): spans is readonly number[] {
-  if (!Array.isArray(spans)) {
-    errors.add(`${track.at}: expected an array of integers, got ${show(spans)}`)
-    return false
-  }
+  if (!checkDense(spans, track.at, 'an array of integers', errors)) return false
   const bad = spans.findIndex((item: unknown) => !Number.isSafeInteger(item))
   if (bad !== -1) {
     errors.add(`${track.at}[${Math.floor(bad / 3)}]: expected integer triples, element ${bad} is ${show(spans[bad])}`)
@@ -219,21 +227,15 @@ function checkTrack(spans: unknown, track: Track, errors: Errors): void {
 }
 
 function checkPath(path: unknown, index: number, nameCount: number, errors: Errors): path is readonly number[] {
-  if (!Array.isArray(path)) {
-    errors.add(`paths[${index}]: expected an array of scope name indices, got ${show(path)}`)
-    return false
-  }
-  const bad = path.find((item: unknown) => !Number.isSafeInteger(item) || Number(item) < 0 || Number(item) >= nameCount)
-  if (bad === undefined) return true
-  errors.add(`paths[${index}]: scope name index ${show(bad)} out of range (${nameCount} scopeNames)`)
+  if (!checkDense(path, `paths[${index}]`, 'an array of scope name indices', errors)) return false
+  const bad = path.findIndex((item: unknown) => !Number.isSafeInteger(item) || Number(item) < 0 || Number(item) >= nameCount)
+  if (bad === -1) return true
+  errors.add(`paths[${index}]: scope name index ${show(path[bad])} out of range (${nameCount} scopeNames)`)
   return false
 }
 
 function checkPaths(value: unknown, nameCount: number, errors: Errors): value is readonly (readonly number[])[] {
-  if (!Array.isArray(value)) {
-    errors.add(`paths: expected an array of paths, got ${show(value)}`)
-    return false
-  }
+  if (!checkDense(value, 'paths', 'an array of paths', errors)) return false
   const before = errors.count
   const seen = new Map<string, number>()
   value.forEach((path: unknown, index) => {
@@ -312,10 +314,7 @@ function checkStyle(value: unknown, at: string, errors: Errors): value is Style 
 }
 
 function checkStyleList(value: unknown, at: string, errors: Errors): value is readonly Style[] {
-  if (!Array.isArray(value)) {
-    errors.add(`${at}: expected an array of styles, got ${show(value)}`)
-    return false
-  }
+  if (!checkDense(value, at, 'an array of styles', errors)) return false
   const before = errors.count
   const seen = new Map<string, number>()
   value.forEach((style: unknown, index) => {
