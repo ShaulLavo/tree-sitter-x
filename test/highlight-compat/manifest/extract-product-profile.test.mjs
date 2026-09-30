@@ -14,7 +14,7 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { after, describe, test } from 'node:test'
+import { afterAll, describe, test } from 'vitest'
 import { fileURLToPath } from 'node:url'
 
 import {
@@ -30,7 +30,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 const script = join(here, 'extract-product-profile.mjs')
 const platformRoot = process.env.PLATFORM_ROOT ?? '/work/projects/platform'
 const scratch = mkdtempSync(join(tmpdir(), 'tsx-l0-profile-test-'))
-after(() => rmSync(scratch, { recursive: true, force: true }))
+afterAll(() => rmSync(scratch, { recursive: true, force: true }))
 
 const LANGS_DIST = 'node_modules/.bun/@shikijs+langs@4.4.3/node_modules/@shikijs/langs/dist'
 const THEMES_DIST = 'node_modules/.bun/@shikijs+themes@4.4.3/node_modules/@shikijs/themes/dist'

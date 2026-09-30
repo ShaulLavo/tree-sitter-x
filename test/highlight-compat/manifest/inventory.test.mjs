@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { basename, dirname, join } from 'node:path'
 import { decodeGrammarModule } from './extract-product-profile.mjs'
-import { test } from 'node:test'
+import { test } from 'vitest'
 import { fileURLToPath } from 'node:url'
 
 const here = dirname(fileURLToPath(import.meta.url))
