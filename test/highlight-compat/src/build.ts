@@ -9,6 +9,7 @@ import type {
 } from './schema.ts'
 import { sourceSha256 } from './source.ts'
 import { canonicalStyle, styleKey } from './style.ts'
+import { parseResult } from './validate.ts'
 
 export interface ResultHeader {
   readonly profileId: ProfileId
@@ -42,11 +43,15 @@ class SpanWriter {
   }
 
   push(from: number, to: number, value: number): void {
-    if (!Number.isInteger(from) || !Number.isInteger(to) || from < this.#end || to <= from || to > this.#limit) {
-      throw new RangeError(`${this.#label}: span [${from}, ${to}) must follow ${this.#end} and end by ${this.#limit}`)
+    if (from !== this.#end || !Number.isInteger(to) || to <= from || to > this.#limit) {
+      throw new RangeError(`${this.#label}: span [${from}, ${to}) must start at ${this.#end} and end after it, by ${this.#limit}`)
     }
     this.spans.push(from, to, value)
     this.#end = to
+  }
+
+  requireEnd(): void {
+    if (this.#end !== this.#limit) throw new RangeError(`${this.#label}: clipped at ${this.#end} of ${this.#limit}`)
   }
 }
 
@@ -114,7 +119,10 @@ export class ResultBuilder {
   }
 
   complete(): CompleteResult {
-    return {
+    this.#scopes.requireEnd()
+    if (this.#languages.spans.length > 0) this.#languages.requireEnd()
+    for (const theme of this.#themes.values()) theme.writer.requireEnd()
+    const result = parseResult({
       ...this.#common(),
       status: 'complete',
       scopeNames: this.#names.values,
@@ -122,7 +130,9 @@ export class ResultBuilder {
       spans: this.#scopes.spans,
       ...this.#metadata(),
       ...this.#styles(),
-    }
+    })
+    if (result.status !== 'complete') throw new RangeError(`published status ${result.status}, expected complete`)
+    return result
   }
 
   incomplete(status: IncompleteStatus, reason: string): IncompleteResult {

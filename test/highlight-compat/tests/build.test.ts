@@ -22,6 +22,30 @@ describe('ResultBuilder', () => {
     expect(() => builder.scope(3, 7, ['source.ts'])).toThrow(RangeError)
   })
 
+  it('rejects a gap at the start or between spans', () => {
+    expect(() => new ResultBuilder(header, 'abc').scope(1, 3, ['s'])).toThrow(/must start at 0/)
+    expect(() => new ResultBuilder(header, 'abc').scope(0, 1, ['s']).scope(2, 3, ['s'])).toThrow(/must start at 1/)
+    expect(() => new ResultBuilder(header, 'abc').scope(0, 3, ['s']).style('dark', 1, 3, {})).toThrow(/must start at 0/)
+    expect(() => new ResultBuilder(header, 'abc').scope(0, 3, ['s']).language(0, 1, 'ts').language(2, 3, 'ts')).toThrow(
+      /must start at 1/,
+    )
+  })
+
+  it('refuses to publish a complete result whose tracks stop short of the source end', () => {
+    expect(() => new ResultBuilder(header, 'abc').scope(0, 1, ['s']).complete()).toThrow(/scopes: clipped at 1 of 3/)
+    expect(() => new ResultBuilder(header, 'abc').complete()).toThrow(/scopes: clipped at 0 of 3/)
+    expect(() => new ResultBuilder(header, 'abc').scope(0, 3, ['s']).style('dark', 0, 2, {}).complete()).toThrow(
+      /style dark: clipped at 2 of 3/,
+    )
+    expect(() => new ResultBuilder(header, 'abc').scope(0, 3, ['s']).language(0, 1, 'ts').complete()).toThrow(
+      /metadata: clipped at 1 of 3/,
+    )
+  })
+
+  it('publishes an empty source as a complete result with no spans', () => {
+    expect(new ResultBuilder(header, '').complete().spans).toEqual([])
+  })
+
   it('rejects scope names that would collide once joined into a path key', () => {
     const builder = new ResultBuilder(header, 'ab')
     expect(() => builder.scope(0, 1, ['source.ts meta.a'])).toThrow(/whitespace/)
