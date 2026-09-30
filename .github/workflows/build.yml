@@ -154,22 +154,6 @@ jobs:
       env:
         CC: ${{ matrix.platform == 'linux-arm' && 'arm-linux-gnueabihf-gcc' || 'powerpc64-linux-gnu-gcc' }}
 
-    - name: Old QEMU evidence (temporary)
-      if: inputs.run-test && (matrix.platform == 'linux-arm' || matrix.platform == 'linux-powerpc64')
-      run: |
-        sudo apt-get install -qy --no-install-recommends qemu-user
-        read -r pinned _ sysroot <<< "$QEMU_RUNNER"
-        for emulator in "/usr/bin/${pinned##*/}" "$pinned"; do
-          pass=0 torn=0 segv=0 other=0
-          for i in $(seq 20); do
-            rc=0; out=$(timeout 300 "$emulator" -L "$sysroot" "$RUNNER_TEMP/qemu-maps" 2>&1) || rc=$?
-            case $rc in 0) pass=$((pass+1)) ;; 1) torn=$((torn+1)); last=$out ;; 139) segv=$((segv+1)); last=$out ;; *) other=$((other+1)); last="rc=$rc $out" ;; esac
-          done
-          echo "EVIDENCE $("$emulator" --version | head -1) on $(uname -m) nproc=$(nproc): runs=20 pass=$pass torn=$torn segv=$segv other=$other"
-          [ -n "${last:-}" ] && echo "EVIDENCE   last failure: ${last:0:200}"
-          last=
-        done
-
     - name: Install MinGW and Clang (Windows x64 MSYS2)
       if: matrix.platform == 'windows-x64'
       uses: msys2/setup-msys2@v2
