@@ -11,7 +11,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "compare": "node src/cli/compare.ts",
-    "golden:update": "node src/cli/golden-update.ts"
+    "golden:update": "node src/cli/golden-update.ts",
+    "report:references": "node src/cli/report-references.ts"
   },
   "dependencies": {
     "@shikijs/engine-oniguruma": "4.4.3",
