@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "profileId": "product",
+  "languageId": "typescript",
+  "sourceSha256": "d9c65efa4cee39550db1b4bde2d9bd7d938989ba1fcb32c8c1287a4946aede08",
+  "sourceLength": 6,
+  "documentRevision": 0,
+  "status": "complete",
+  "diagnostics": [
+    "shiki: tokenized"
+  ],
+  "engine": {
+    "grammar": "typescript@1",
+    "shiki": "4.4.3"
+  },
+  "scopeNames": [
+    "source.ts",
+    "storage.type.ts"
+  ],
+  "paths": [
+    [0, 1],
+    [0]
+  ],
+  "spans": [
+    0, 3, 0,
+    3, 6, 1
+  ],
+  "metadata": {
+    "languageIds": [
+      "typescript"
+    ],
+    "spans": [
+      0, 6, 0
+    ]
+  },
+  "styles": {
+    "dark": {
+      "styles": [
+        {"foreground": "#569cd6", "fontStyle": {"bold": true, "italic": true}},
+        {"fontStyle": "reset"}
+      ],
+      "spans": [
+        0, 3, 0,
+        3, 6, 1
+      ]
+    },
+    "light": {
+      "styles": [
+        {"foreground": "#000000"}
+      ],
+      "spans": [
+        0, 6, 0
+      ]
+    }
+  }
+}
