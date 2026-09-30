@@ -7,7 +7,7 @@ export default defineConfig({
     environment: 'node',
     coverage: {
       include: [
-        'web-tree-sitter.js',
+        'src/**/*.ts',
       ],
       exclude: [
         'test/**',
