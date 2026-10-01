@@ -44,6 +44,8 @@ jobs:
           # Both names of a rename matter when a file moves into or out of native inputs.
           native=$(git diff --no-renames --name-only -z "$BASE_SHA...$HEAD_SHA" |
             bash .github/scripts/native-ci-paths.sh)
+          # Temporary proof: publish an invalid filter output.
+          native=invalid
           echo "native=$native" >> "$GITHUB_OUTPUT"
           echo "Native CI inputs changed: $native" >> "$GITHUB_STEP_SUMMARY"
 
