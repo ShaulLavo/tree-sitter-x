@@ -1,4 +1,5 @@
 import type { DocumentResult, Style } from './schema.ts'
+import { isProfileId, PROFILE_ID_GRAMMAR } from './schema.ts'
 import { sourceSha256 } from './source.ts'
 import { styleKey } from './style.ts'
 
@@ -26,8 +27,6 @@ const COMMON_KEYS = [
 const COMPLETE_KEYS = ['metadata', 'styles'] as const
 const ALL_KEYS: readonly string[] = [...COMMON_KEYS, ...COMPLETE_KEYS]
 const STATUSES = ['complete', 'unsupported', 'timeout', 'error', 'canceled']
-const PROFILE_IDS = ['product', 'raw', 'vscode', 'native']
-const BASELINE_PROFILE = /^baseline:[a-z0-9][a-z0-9._-]*$/
 const LANGUAGE_ID = /^[A-Za-z0-9][A-Za-z0-9._+#-]*$/
 const SHA256 = /^[0-9a-f]{64}$/
 const NAME = /^\S+$/
@@ -126,9 +125,6 @@ function field(test: (value: unknown) => boolean, description: string): FieldChe
   }
 }
 
-const isProfileId = (value: unknown): boolean =>
-  typeof value === 'string' && (PROFILE_IDS.includes(value) || BASELINE_PROFILE.test(value))
-
 function checkEngine(value: unknown, at: string, errors: Errors): void {
   if (!isObject(value)) {
     errors.add(`${at}: expected an object of strings, got ${show(value)}`)
@@ -141,7 +137,7 @@ function checkEngine(value: unknown, at: string, errors: Errors): void {
 
 const HEADER_CHECKS: readonly (readonly [string, FieldCheck])[] = [
   ['schema', field((value) => value === 1, '1')],
-  ['profileId', field(isProfileId, `one of ${PROFILE_IDS.join(', ')} or ${BASELINE_PROFILE}`)],
+  ['profileId', field((value) => typeof value === 'string' && isProfileId(value), PROFILE_ID_GRAMMAR)],
   ['languageId', field((value) => typeof value === 'string' && LANGUAGE_ID.test(value), `a string matching ${LANGUAGE_ID}`)],
   ['sourceSha256', field((value) => typeof value === 'string' && SHA256.test(value), '64 lowercase hex digits')],
   ['sourceLength', field(isCount, 'a non-negative safe integer')],

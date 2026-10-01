@@ -48,6 +48,10 @@ const rejections: readonly (readonly [string, () => unknown, string])[] = [
   ['schema other than 1', () => ({ ...scoped(), schema: 2 }), 'schema: expected 1'],
   ['an unknown profile id', () => ({ ...scoped(), profileId: 'Product' }), 'profileId: expected'],
   ['a baseline profile without a name', () => ({ ...scoped(), profileId: 'baseline:' }), 'profileId: expected'],
+  ['a reference profile with an empty variant', () => ({ ...scoped(), profileId: 'product:' }), 'profileId: expected'],
+  ['a reference profile with two variants', () => ({ ...scoped(), profileId: 'raw:a:b' }), 'profileId: expected'],
+  ['an unknown reference base', () => ({ ...scoped(), profileId: 'shiki:warm' }), 'profileId: expected'],
+  ['a variant on a candidate', () => ({ ...scoped(), profileId: 'native:x' }), 'profileId: expected'],
   ['a language id that is not a path segment', () => ({ ...scoped(), languageId: '../ts' }), 'languageId: expected'],
   ['an uppercase sha256', () => ({ ...scoped(), sourceSha256: scoped().sourceSha256.toUpperCase() }), 'sourceSha256: expected'],
   ['a fractional sourceLength', () => ({ ...scoped(), sourceLength: 8.5 }), 'sourceLength: expected a non-negative safe integer'],
@@ -114,6 +118,9 @@ describe('validateResult', () => {
     expect(errorsOf(styled(), source)).toBe('')
     expect(errorsOf(incomplete(), source)).toBe('')
     expect(errorsOf({ ...scoped(), profileId: 'baseline:vscode-1.99' })).toBe('')
+    for (const profileId of ['shiki-api', 'product:warm', 'raw:shiki-fork', 'vscode:1.99']) {
+      expect(errorsOf({ ...scoped(), profileId })).toBe('')
+    }
   })
 
   it.each(rejections)('rejects %s', (_name, make, message) => {

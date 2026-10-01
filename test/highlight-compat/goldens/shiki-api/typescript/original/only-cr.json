@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "profileId": "shiki-api",
+  "languageId": "typescript",
+  "sourceSha256": "9d1e0e2d9459d06523ad13e28a4093c2316baafe7aec5b25f30eba2e113599c4",
+  "sourceLength": 1,
+  "documentRevision": 0,
+  "status": "complete",
+  "diagnostics": [],
+  "engine": {
+    "api": "codeToTokensBase",
+    "grammars": "@shikijs/langs@4.4.3",
+    "oniguruma": "@shikijs/engine-oniguruma@4.4.3",
+    "options": "includeExplanation=scopeName tokenizeMaxLineLength=20000 tokenizeTimeLimit=0",
+    "shiki": "shiki@4.4.3",
+    "textmate": "@shikijs/vscode-textmate@10.0.2",
+    "themes": "@shikijs/themes@4.4.3"
+  },
+  "scopeNames": [
+    "source.ts"
+  ],
+  "paths": [
+    [0]
+  ],
+  "spans": [
+    0, 1, 0
+  ],
+  "styles": {
+    "dracula": {
+      "styles": [
+        {"foreground": "#f8f8f2"}
+      ],
+      "spans": [
+        0, 1, 0
+      ]
+    },
+    "github-dark": {
+      "styles": [
+        {"foreground": "#e1e4e8"}
+      ],
+      "spans": [
+        0, 1, 0
+      ]
+    },
+    "light-plus": {
+      "styles": [
+        {"foreground": "#000000"}
+      ],
+      "spans": [
+        0, 1, 0
+      ]
+    },
+    "vesper": {
+      "styles": [
+        {"foreground": "#ffffff"}
+      ],
+      "spans": [
+        0, 1, 0
+      ]
+    }
+  }
+}

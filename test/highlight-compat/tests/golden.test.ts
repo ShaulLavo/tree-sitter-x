@@ -57,6 +57,10 @@ describe('goldenPath', () => {
     expect(goldenPath('/g', 'product', 'typescript', 'basic/let')).toBe('/g/product/typescript/basic/let.json')
   })
 
+  it('spells a profile variant with + so the path has no colon', () => {
+    expect(goldenPath('/g', 'product:warm', 'markdown', 'fences')).toBe('/g/product+warm/markdown/fences.json')
+  })
+
   it('rejects fixture ids that could leave the profile directory', () => {
     expect(() => goldenPath('/g', 'product', 'typescript', '../escape')).toThrow(/segment "\.\."/)
     expect(() => goldenPath('/g', 'product', 'typescript', 'a//b')).toThrow(/segment ""/)
@@ -206,10 +210,10 @@ describe('updateGoldens', () => {
     expect(readdirSync(root)).toEqual(['product'])
   })
 
-  it.each(['native', 'baseline:x', 'Product'])('refuses %s without calling the producer', async (profileId) => {
+  it.each(['native', 'baseline:x', 'Product', 'product:', 'native:warm'])('refuses %s without calling the producer', async (profileId) => {
     const { producer, calls } = recording([goldenCase(keyword())])
     await expect(updateGoldens(root, profileId, producer)).rejects.toThrow(
-      `golden update accepts reference profiles only (product, raw, vscode); refusing "${profileId}"`,
+      `golden update accepts reference profiles only (product, raw, shiki-api, vscode, each optionally :<variant>); refusing "${profileId}"`,
     )
     expect(calls).toEqual([])
   })
@@ -270,9 +274,14 @@ describe('updateGoldens', () => {
 
 describe('unregisteredGoldenDirs', () => {
   it('lists directories that are not reference profiles with a producer', () => {
-    for (const name of ['native', 'product', 'raw', 'vscode']) mkdirSync(join(root, name))
+    for (const name of ['native', 'product', 'raw', 'vscode', 'product+warm', 'raw+fork', 'product:warm']) mkdirSync(join(root, name))
     const producer: GoldenProducer = () => []
-    expect(unregisteredGoldenDirs(root, { product: producer, raw: producer })).toEqual(['native', 'vscode'])
+    expect(unregisteredGoldenDirs(root, { product: producer, raw: producer, 'product:warm': producer })).toEqual([
+      'native',
+      'product:warm',
+      'raw+fork',
+      'vscode',
+    ])
     expect(unregisteredGoldenDirs(join(root, 'absent'), {})).toEqual([])
   })
 })

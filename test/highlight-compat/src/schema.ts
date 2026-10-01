@@ -1,11 +1,27 @@
 export type ResultStatus = 'complete' | 'unsupported' | 'timeout' | 'error' | 'canceled'
 export type IncompleteStatus = Exclude<ResultStatus, 'complete'>
 
-export type ReferenceProfileId = 'product' | 'raw' | 'vscode'
+export type ReferenceBase = 'product' | 'raw' | 'shiki-api' | 'vscode'
+/** A reference base, optionally narrowed by a variant: `product`, `product:warm`, `raw:shiki-fork`. */
+export type ReferenceProfileId = ReferenceBase | `${ReferenceBase}:${string}`
 export type CandidateProfileId = 'native' | `baseline:${string}`
 export type ProfileId = ReferenceProfileId | CandidateProfileId
 
-export const REFERENCE_PROFILES: readonly ReferenceProfileId[] = ['product', 'raw', 'vscode']
+export const REFERENCE_BASES: readonly ReferenceBase[] = ['product', 'raw', 'shiki-api', 'vscode']
+
+const VARIANT = '[a-z0-9][a-z0-9._-]*'
+const REFERENCE_PROFILE = new RegExp(`^(${REFERENCE_BASES.join('|')})(:${VARIANT})?$`)
+const CANDIDATE_PROFILE = new RegExp(`^(native|baseline:${VARIANT})$`)
+
+export function isReferenceProfile(profileId: string): profileId is ReferenceProfileId {
+  return REFERENCE_PROFILE.test(profileId)
+}
+
+export function isProfileId(profileId: string): profileId is ProfileId {
+  return isReferenceProfile(profileId) || CANDIDATE_PROFILE.test(profileId)
+}
+
+export const PROFILE_ID_GRAMMAR = `<${REFERENCE_BASES.join('|')}>[:variant], native or baseline:<name>`
 
 export interface FontStyle {
   readonly bold?: true

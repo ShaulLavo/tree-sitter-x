@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, w
 import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { CompleteResult, DocumentResult, ReferenceProfileId, SpanTriples, Style, StyleTrack } from './schema.ts'
-import { REFERENCE_PROFILES } from './schema.ts'
+import { isReferenceProfile, REFERENCE_BASES } from './schema.ts'
 import { parseResultText, serializeResult } from './serialize.ts'
 import { canonicalStyle, styleKey, themeTrack } from './style.ts'
 import { sweep } from './sweep.ts'
@@ -19,6 +19,8 @@ export interface GoldenCase {
 
 export type GoldenProducer = () => AsyncIterable<GoldenCase> | Iterable<GoldenCase>
 
+export type GoldenProducers = Readonly<Partial<Record<ReferenceProfileId, GoldenProducer>>>
+
 export type GoldenCheck = { readonly ok: true } | { readonly ok: false; readonly message: string }
 
 export interface GoldenUpdate {
@@ -29,18 +31,24 @@ export interface GoldenUpdate {
 
 const FIXTURE_SEGMENT = /^[A-Za-z0-9][A-Za-z0-9._-]*$/
 
-export function isReferenceProfile(profileId: string): profileId is ReferenceProfileId {
-  return REFERENCE_PROFILES.some((reference) => reference === profileId)
+export function referenceRefusal(profileId: string): string {
+  const bases = REFERENCE_BASES.join(', ')
+  return `golden update accepts reference profiles only (${bases}, each optionally :<variant>); refusing ${JSON.stringify(profileId)}`
 }
 
-export function referenceRefusal(profileId: string): string {
-  return `golden update accepts reference profiles only (${REFERENCE_PROFILES.join(', ')}); refusing ${JSON.stringify(profileId)}`
+// Windows checkouts reject ':' in paths; '+' never occurs in a profile id, so the mapping inverts.
+export function profileDirName(profileId: string): string {
+  return profileId.replace(':', '+')
+}
+
+function profileIdOfDir(name: string): string {
+  return name.replace('+', ':')
 }
 
 export function goldenPath(root: string, profileId: string, languageId: string, fixtureId: string): string {
   const bad = fixtureId.split('/').find((segment) => !FIXTURE_SEGMENT.test(segment))
   if (bad !== undefined) throw new Error(`fixture id ${JSON.stringify(fixtureId)}: segment ${JSON.stringify(bad)} does not match ${FIXTURE_SEGMENT}`)
-  return join(root, profileId, languageId, `${fixtureId}.json`)
+  return join(root, profileDirName(profileId), languageId, `${fixtureId}.json`)
 }
 
 const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error))
@@ -222,7 +230,7 @@ function planCase(root: string, profileId: ReferenceProfileId, golden: GoldenCas
 
 /** A fixture file whose path is also a directory of another fixture cannot be written. */
 function pathConflicts(root: string, profileId: string, paths: readonly string[]): string[] {
-  const profileDir = join(root, profileId)
+  const profileDir = join(root, profileDirName(profileId))
   const files = new Set(paths)
   const conflicts: string[] = []
   for (const path of paths) {
@@ -267,9 +275,9 @@ function summarize(planned: readonly Planned[], previous: readonly string[]): Go
 }
 
 function publish(root: string, profileId: ReferenceProfileId, planned: readonly Planned[]): void {
-  const profileDir = join(root, profileId)
-  const staging = join(root, `.${profileId}.staging`)
-  const retired = join(root, `.${profileId}.retired`)
+  const profileDir = join(root, profileDirName(profileId))
+  const staging = join(root, `.${profileDirName(profileId)}.staging`)
+  const retired = join(root, `.${profileDirName(profileId)}.retired`)
   rmSync(staging, { recursive: true, force: true })
   rmSync(retired, { recursive: true, force: true })
   for (const plan of planned) {
@@ -295,7 +303,7 @@ function publish(root: string, profileId: ReferenceProfileId, planned: readonly 
 export async function updateGoldens(root: string, profileId: string, producer: GoldenProducer): Promise<GoldenUpdate> {
   if (!isReferenceProfile(profileId)) throw new Error(referenceRefusal(profileId))
   const planned = await planAll(root, profileId, producer)
-  const profileDir = join(root, profileId)
+  const profileDir = join(root, profileDirName(profileId))
   const update = summarize(planned, existsSync(profileDir) ? listJsonFiles(profileDir) : [])
   if (update.written.length > 0 || update.removed.length > 0) publish(root, profileId, planned)
   return update
@@ -319,7 +327,7 @@ export async function auditGoldens(root: string, profileId: ReferenceProfileId, 
     const check = checkGolden(root, profileId, golden)
     if (!check.ok) problems.push(`${label}: ${check.message}`)
   }
-  const profileDir = join(root, profileId)
+  const profileDir = join(root, profileDirName(profileId))
   const committed = existsSync(profileDir) ? listJsonFiles(profileDir).sort() : []
   for (const path of committed) {
     if (!produced.has(path)) problems.push(`${path}: committed golden is not produced by the ${profileId} producer`)
@@ -328,11 +336,14 @@ export async function auditGoldens(root: string, profileId: ReferenceProfileId, 
 }
 
 /** Directories under `root` that are not a reference profile with a registered producer. */
-export function unregisteredGoldenDirs(root: string, producers: Readonly<Partial<Record<ReferenceProfileId, GoldenProducer>>>): string[] {
+export function unregisteredGoldenDirs(root: string, producers: GoldenProducers): string[] {
   if (!existsSync(root)) return []
   return readdirSync(root, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
-    .filter((name) => !isReferenceProfile(name) || producers[name] === undefined)
+    .filter((name) => {
+      const profileId = profileIdOfDir(name)
+      return name !== profileDirName(profileId) || !isReferenceProfile(profileId) || producers[profileId] === undefined
+    })
     .sort()
 }
