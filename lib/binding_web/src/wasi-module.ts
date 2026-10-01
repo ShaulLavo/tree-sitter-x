@@ -139,9 +139,11 @@ export default async function createModule(options: ModuleOptions = {}): Promise
   // addresses, and these calls are the hot path of query and node unmarshaling.
   const getValue = (ptr: number, type = 'i8'): number => {
     refresh();
+    // Wasm32 pointers can arrive as signed i32 values when memory exceeds 2 GiB.
+    ptr >>>= 0;
     switch (type) {
-      case 'i32': case '*': return heap32[ptr >> 2];
-      case 'i16': return heap16[ptr >> 1];
+      case 'i32': case '*': return heap32[ptr >>> 2];
+      case 'i16': return heap16[ptr >>> 1];
       case 'i1':
       case 'i8': return heap8[ptr];
       case 'i64': return Number(heap.getBigInt64(ptr, true));
@@ -152,9 +154,10 @@ export default async function createModule(options: ModuleOptions = {}): Promise
   };
   const setValue = (ptr: number, value: number, type = 'i8'): void => {
     refresh();
+    ptr >>>= 0;
     switch (type) {
-      case 'i32': case '*': heap32[ptr >> 2] = value; return;
-      case 'i16': heap16[ptr >> 1] = value; return;
+      case 'i32': case '*': heap32[ptr >>> 2] = value; return;
+      case 'i16': heap16[ptr >>> 1] = value; return;
       case 'i1':
       case 'i8': heap8[ptr] = value; return;
       case 'i64': heap.setBigInt64(ptr, BigInt(value), true); return;
@@ -165,6 +168,7 @@ export default async function createModule(options: ModuleOptions = {}): Promise
   };
   const UTF8ToString = (ptr: number, maxBytesToRead?: number, ignoreNul?: boolean): string => {
     if (!ptr) return '';
+    ptr >>>= 0;
     const heapU8 = bytes();
     const limit = maxBytesToRead === undefined ? heapU8.length : Math.min(heapU8.length, ptr + maxBytesToRead);
     let end = ptr;
@@ -173,6 +177,7 @@ export default async function createModule(options: ModuleOptions = {}): Promise
     return utf8Decoder.decode(heapU8.subarray(ptr, end));
   };
   const AsciiToString = (ptr: number): string => {
+    ptr >>>= 0;
     const heapU8 = bytes();
     let result = '';
     for (let at = ptr; heapU8[at]; at++) result += String.fromCharCode(heapU8[at]);
@@ -181,6 +186,7 @@ export default async function createModule(options: ModuleOptions = {}): Promise
   const lengthBytesUTF8 = (str: string): number => utf8Encoder.encode(str).length;
   const stringToUTF8 = (str: string, outPtr: number, maxBytesToWrite: number): number => {
     if (maxBytesToWrite <= 0) return 0;
+    outPtr >>>= 0;
     const target = bytes().subarray(outPtr, outPtr + maxBytesToWrite - 1);
     const { written } = utf8Encoder.encodeInto(str, target);
     bytes()[outPtr + written] = 0;
@@ -188,6 +194,7 @@ export default async function createModule(options: ModuleOptions = {}): Promise
   };
   const stringToUTF16 = (str: string, outPtr: number, maxBytesToWrite = 0x7fffffff): number => {
     if (maxBytesToWrite < 2) return 0;
+    outPtr >>>= 0;
     const length = Math.min(str.length, (maxBytesToWrite - 2) >> 1);
     // wasm32 is little-endian, like every host that runs it, so a Uint16Array writes UTF-16LE.
     const units = new Uint16Array(bytes().buffer, outPtr, length + 1);
@@ -235,7 +242,8 @@ export default async function createModule(options: ModuleOptions = {}): Promise
   function link(wasmModule: WebAssembly.Module): SideExports {
     const info = dylinkInfo(wasmModule);
     const align = Math.max(2 ** info.memoryAlign, 16);
-    const memoryBase = info.memorySize ? Math.ceil(exports.malloc(info.memorySize + align) / align) * align : 0;
+    // Unsigned, so the zero fill below starts at the block above 2 GiB and not near the heap's end.
+    const memoryBase = info.memorySize ? Math.ceil((exports.malloc(info.memorySize + align) >>> 0) / align) * align : 0;
     if (info.memorySize) bytes().fill(0, memoryBase, memoryBase + info.memorySize);
     const table = exports.__indirect_function_table;
     const tableBase = table.grow(info.tableSize);
