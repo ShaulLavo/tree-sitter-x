@@ -49,9 +49,4 @@ jobs:
 
       - name: Check tests left the checkout unchanged
         if: always()
-        run: |
-          changes=$(git status --porcelain)
-          if [ -n "$changes" ]; then
-            printf '%s\n' "$changes"
-            exit 1
-          fi
+        run: node scripts/check-tracked-imports.mjs --check-clean
