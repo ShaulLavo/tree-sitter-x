@@ -41,16 +41,16 @@ afterEach(() => rmSync(root, { recursive: true, force: true }))
 
 describe('tracked import check', () => {
   it('accepts tracked static, type, re-export, dynamic, require and transitive imports', () => {
-    write('test/highlight-compat/src/main.ts', `
-      import type { Value } from './types.js'
-      export { value } from './value.ts'
-      export * from './bridge.mjs'
-      type Other = import('./types.ts').Value
-      const lazy = import('./value.ts')
-      const required = require('./value.ts')
-      import { readFileSync } from 'node:fs'
-      import path from 'path'
-    `)
+    write('test/highlight-compat/src/main.ts', [
+      "import type { Value } from './types.js'",
+      "export { value } from './value.ts'",
+      "export * from './bridge.mjs'",
+      "type Other = import('./types.ts').Value",
+      "const lazy = import('./value.ts')",
+      "const required = require('./value.ts')",
+      "import { readFileSync } from 'node:fs'",
+      "import path from 'path'",
+    ].join('\n'))
     write('test/highlight-compat/src/types.ts', 'export type Value = number\n')
     write('test/highlight-compat/src/value.ts', 'export const value = 1\n')
     write('test/highlight-compat/src/bridge.mjs', "export * from '../../../shared.ts'\n")
@@ -133,6 +133,7 @@ describe('tracked import check', () => {
 
   it.each([
     "new Worker(new URL('./worker', import.meta.url))",
+    "const url = new URL('./worker', import.meta.url); new Worker(url)",
     "new Worker('./src/worker.mjs')",
   ])('rejects a missing Worker entry point in %s', (source) => {
     write('test/highlight-compat/src/main.mjs', source)
@@ -177,12 +178,12 @@ describe('tracked import check', () => {
   })
 
   it('accepts declarations for erased type-only dependencies', () => {
-    write('test/highlight-compat/src/main.ts', `
-      import type { Value } from './runtime.js'
-      import { type Other } from './runtime.js'
-      export type { Value } from './runtime.js'
-      export { type Other } from './runtime.js'
-    `)
+    write('test/highlight-compat/src/main.ts', [
+      "import type { Value } from './runtime.js'",
+      "import { type Other } from './runtime.js'",
+      "export type { Value } from './runtime.js'",
+      "export { type Other } from './runtime.js'",
+    ].join('\n'))
     write('test/highlight-compat/src/runtime.d.ts', 'export type Value = number\nexport type Other = string\n')
     track('test/highlight-compat/src')
     const result = check()

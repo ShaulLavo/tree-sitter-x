@@ -65,9 +65,14 @@ function dependenciesIn(file) {
   const source = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true)
   const mode = ts.getImpliedNodeFormatForFile(file, undefined, ts.sys, options) ?? ts.ModuleKind.ESNext
   const dependencies = []
+  const urlVariables = new Map()
+  const workerUrls = new Set()
   function add(node, typeOnly, resolutionMode = mode, kind = 'import') {
     if (!node || !ts.isStringLiteralLike(node)) return
-    dependencies.push({ specifier: node.text, typeOnly: typeOnly || isDeclaration(file), mode: resolutionMode, kind })
+    const dependency = { specifier: node.text, typeOnly: typeOnly || isDeclaration(file), mode: resolutionMode, kind }
+    dependencies.push(dependency)
+    const declaration = node.parent?.parent
+    if (kind === 'url' && declaration && ts.isVariableDeclaration(declaration) && ts.isIdentifier(declaration.name)) urlVariables.set(declaration.name.text, dependency)
   }
   function visit(node) {
     if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) add(node.moduleSpecifier, node.importClause?.isTypeOnly || onlyTypes(node))
@@ -77,9 +82,14 @@ function dependenciesIn(file) {
     if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'require') add(node.arguments[0], false, ts.ModuleKind.CommonJS)
     if (ts.isNewExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'URL' && node.arguments?.[1]?.getText(source) === 'import.meta.url') add(node.arguments[0], false, mode, isWorker(node.parent) ? 'worker-url' : 'url')
     if (isWorker(node) && node.arguments?.[0] && ts.isStringLiteralLike(node.arguments[0]) && /^(?:\.\.?\/|\/|file:)/.test(node.arguments[0].text)) add(node.arguments[0], false, mode, 'worker-path')
+    if (isWorker(node) && node.arguments?.[0] && ts.isIdentifier(node.arguments[0])) workerUrls.add(node.arguments[0].text)
     ts.forEachChild(node, visit)
   }
   visit(source)
+  for (const name of workerUrls) {
+    const dependency = urlVariables.get(name)
+    if (dependency) dependency.kind = 'worker-url'
+  }
   return dependencies
 }
 
