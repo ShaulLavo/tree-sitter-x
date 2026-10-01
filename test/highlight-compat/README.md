@@ -81,5 +81,3 @@ Composition orders active captures by start ascending, end descending, accepted 
 `reports/baselines.md` separates real and original fixtures, gives UTF-16 and file-macro denominators, and lists each unsupported or failed comparison. `reports/historical-expectations.md` grades the historical annotations against raw/product goldens and never gates native acceptance.
 
 `artifacts:check` runs the mandatory self-tests, regenerates every reference golden and report twice in temporary trees, and requires identical content hashes and bytes. It generates `reports/phase-1-gate.md` from those runs and Vitest test-case counts, then checks the entire generated tree against the checkout. Missing, extra or edited artifacts fail. `artifacts:update` uses the same checks before replacing the generated directories. Normal `npm test` and `artifacts:check` are read-only. Neither command needs a Platform checkout or network access.
-
-CI path-filter proof: harness-only temporary change.
