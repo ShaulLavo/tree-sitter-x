@@ -117,7 +117,8 @@ jobs:
       env:
         PLATFORM: ${{ matrix.platform }}
 
-    - name: Install QEMU
+    - name: Select QEMU package
+      id: qemu-package
       if: inputs.run-test && (matrix.platform == 'linux-arm' || matrix.platform == 'linux-powerpc64')
       run: |
         # QEMU 8.2 snapshots /proc/self/maps outside mmap_lock while other threads change mappings.
@@ -128,14 +129,51 @@ jobs:
           arm64) sha256=32c3fb5491322417d568ed272fe2d0561f0168e478f45fc59bb3d6c906ca473f ;;
           *) echo "::error::No pinned qemu-user package for runner architecture $arch"; exit 1 ;;
         esac
+        printf 'deb=qemu-user_9.2.1+ds-1ubuntu5_%s.deb\nsha256=%s\n' "$arch" "$sha256" >> $GITHUB_OUTPUT
+
+    - name: Restore QEMU package
+      id: qemu-cache
+      if: inputs.run-test && (matrix.platform == 'linux-arm' || matrix.platform == 'linux-powerpc64')
+      uses: actions/cache/restore@v5
+      with:
+        path: ${{ runner.temp }}/qemu-user.deb
+        key: qemu-user-${{ steps.qemu-package.outputs.sha256 }}
+
+    - name: Install QEMU
+      if: inputs.run-test && (matrix.platform == 'linux-arm' || matrix.platform == 'linux-powerpc64')
+      run: |
         case $PLATFORM in
           linux-arm) emulator=qemu-arm sysroot=/usr/arm-linux-gnueabihf ;;
           linux-powerpc64) emulator=qemu-ppc64 sysroot=/usr/powerpc64-linux-gnu ;;
         esac
         package="$RUNNER_TEMP/qemu-user.deb"
-        curl -fLSs --retry 5 --retry-all-errors -o "$package" \
-          "https://snapshot.ubuntu.com/ubuntu/20250501T000000Z/pool/universe/q/qemu/qemu-user_9.2.1+ds-1ubuntu5_$arch.deb"
-        echo "$sha256  $package" | sha256sum --check
+        # The release mirrors the snapshot bytes so CI does not depend on snapshot.ubuntu.com being up.
+        release="https://github.com/ShaulLavo/tree-sitter-x/releases/download/ci-qemu-user-9.2.1-ubuntu5/$DEB"
+        snapshot="https://snapshot.ubuntu.com/ubuntu/20250501T000000Z/pool/universe/q/qemu/$DEB"
+        verify() {
+          if echo "$SHA256  $package" | sha256sum --check --strict; then
+            echo "qemu-user source: $1"
+            return 0
+          fi
+          echo "::error::qemu-user from $1 does not match pinned SHA-256 $SHA256"
+          rm -f "$package"
+          return 1
+        }
+        fetch() {
+          rm -f "$package"
+          if curl -fLSs --retry 5 --retry-all-errors -o "$package" "$2"; then
+            verify "$1"
+            return
+          fi
+          echo "::warning::qemu-user download from $1 failed: $2"
+          return 1
+        }
+        [[ -f $package ]] && verify cache ||
+          fetch release "$release" ||
+          fetch snapshot "$snapshot" || {
+            echo "::error::No source served $DEB with SHA-256 $SHA256"
+            exit 1
+          }
         mkdir -p "$RUNNER_TEMP/qemu"
         dpkg-deb --fsys-tarfile "$package" | tar -xf - -C "$RUNNER_TEMP/qemu" "./usr/bin/$emulator"
         emulator="$RUNNER_TEMP/qemu/usr/bin/$emulator"
@@ -146,6 +184,15 @@ jobs:
       env:
         PLATFORM: ${{ matrix.platform }}
         TARGET: ${{ matrix.target }}
+        DEB: ${{ steps.qemu-package.outputs.deb }}
+        SHA256: ${{ steps.qemu-package.outputs.sha256 }}
+
+    - name: Save QEMU package
+      if: inputs.run-test && (matrix.platform == 'linux-arm' || matrix.platform == 'linux-powerpc64') && steps.qemu-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v5
+      with:
+        path: ${{ runner.temp }}/qemu-user.deb
+        key: ${{ steps.qemu-cache.outputs.cache-primary-key }}
 
     - name: Check QEMU mapping concurrency
       if: inputs.run-test && (matrix.platform == 'linux-arm' || matrix.platform == 'linux-powerpc64')
