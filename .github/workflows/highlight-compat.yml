@@ -5,11 +5,19 @@ on:
     branches: [master]
     paths:
       - 'test/highlight-compat/**'
+      - 'lib/**'
+      - 'crates/xtask/**'
+      - 'crates/loader/**'
+      - 'Cargo.*'
       - '.github/workflows/highlight-compat.yml'
   push:
     branches: [master]
     paths:
       - 'test/highlight-compat/**'
+      - 'lib/**'
+      - 'crates/xtask/**'
+      - 'crates/loader/**'
+      - 'Cargo.*'
       - '.github/workflows/highlight-compat.yml'
 
 permissions:
@@ -18,7 +26,7 @@ permissions:
 jobs:
   harness:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     env:
       PLATFORM_ROOT: /nonexistent/highlight-compat-platform
     defaults:
@@ -33,7 +41,22 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: test/highlight-compat/package-lock.json
+          cache-dependency-path: |
+            test/highlight-compat/package-lock.json
+            lib/binding_web/package-lock.json
+
+      - name: Set up stable Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v2
+        with:
+          toolchain: stable
+
+      - name: Build checkout web binding
+        working-directory: .
+        run: |
+          cargo xtask build-wasm
+          cd lib/binding_web
+          npm ci
+          npm run build:ts
 
       - name: Install dependencies
         run: npm ci
@@ -46,6 +69,9 @@ jobs:
 
       - name: Test
         run: npx vitest run
+
+      - name: Check reference golden and report staleness
+        run: npm run artifacts:check
 
       - name: Check tests left the checkout unchanged
         if: always()

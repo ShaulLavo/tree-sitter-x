@@ -1,11 +1,17 @@
-import type { GoldenProducers } from './golden.ts'
+import type { GoldenCase, GoldenProducers } from './golden.ts'
+import { realCases } from './corpus.ts'
+import type { OracleProfileId } from './oracles/request.ts'
 import { differingCases, originalCases } from './reference-results.ts'
 
-/** Reference profiles over the original fixtures; raw:shiki-fork only where it differs from raw. */
+async function* cases(profileId: OracleProfileId): AsyncIterable<GoldenCase> {
+  yield* originalCases(profileId)
+  yield* realCases(profileId)
+}
+
 export const goldenProducers: GoldenProducers = {
-  raw: () => originalCases('raw'),
+  raw: () => cases('raw'),
   'raw:shiki-fork': () => differingCases('raw:shiki-fork', 'raw'),
-  'shiki-api': () => originalCases('shiki-api'),
-  product: () => originalCases('product'),
-  'product:warm': () => originalCases('product:warm'),
+  'shiki-api': () => cases('shiki-api'),
+  product: () => cases('product'),
+  'product:warm': () => cases('product:warm'),
 }

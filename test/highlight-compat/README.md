@@ -2,14 +2,24 @@
 
 Development harness that compares TextMate scope and style output between reference profiles (`<product|raw|shiki-api|vscode>[:variant]`) and candidates (`native`, `baseline:<name>`). The plan is `docs/plans/textmate-scope-compatibility.md`.
 
+Build this checkout's web binding before running the baseline tests. Rust, Node.js 24 and npm are required. The WASI build downloads its pinned SDK and Binaryen tools when the build cache is empty. Tests and regeneration use only local assets.
+
 ```sh
+# From the repository root:
+cargo xtask build-wasm
+(cd lib/binding_web && npm ci && npm run build:ts)
+cd test/highlight-compat
 npm ci
 npm test                                   # read-only: fails on any golden difference
 npm run test:platform                      # opt-in: manifest checks against a live Platform checkout (PLATFORM_ROOT)
 npx tsc --noEmit
 npm run compare -- ref.json cand.json [--source file] [--theme id] [--runs n] [--json out.json]
-npm run golden:update -- --profile product # the only writer; reference profiles only
+npm run golden:update -- --profile product # updates one reference profile
 npm run report:references                  # rewrites reports/reference-differences.md
+npm run report:historical                  # grades historical scope annotations
+npm run report:baselines                   # scores both candidate baselines
+npm run artifacts:check                    # two temp regenerations, no checkout writes
+npm run artifacts:update                   # replaces generated goldens and reports
 ```
 
 ## Result contract
@@ -26,7 +36,7 @@ npm run report:references                  # rewrites reports/reference-differen
 
 ## Goldens
 
-`goldens/<profileId>/<languageId>/<fixtureId>.json`, written only by `golden:update` from producers registered in `src/golden-producers.ts`. The update validates every case against its source and refuses non-reference profiles, failed reference work and fixture paths that collide as file and directory. It stages the new profile tree and swaps it in whole, so a failure writes nothing and stale files disappear. The read-only check (`tests/goldens.test.ts`) requires each registered producer to yield exactly the committed goldens of its own profile.
+`goldens/<profileId>/<languageId>/<fixtureId>.json`, written by `golden:update` or `artifacts:update` from producers registered in `src/golden-producers.ts`. The update validates every case against its source and refuses non-reference profiles, failed reference work and fixture paths that collide as file and directory. It stages the new profile tree and swaps it in whole, so a failure writes nothing and stale files disappear. The read-only check (`tests/goldens.test.ts`) requires each registered producer to yield exactly the committed goldens of its own profile.
 
 ## Reference oracles
 
@@ -55,3 +65,15 @@ Each file under `src/oracles/product/` that starts with `// Port of Platform <pa
 ## Original fixtures and the reference report
 
 `fixtures/original/<language>/` holds byte-exact adversarial inputs (empty lines in open constructs, the 20000-unit line cap, EOL variants, BOM, Unicode, Markdown fences); `tests/original-fixtures.test.ts` pins the property each one exists for. `npm run report:references` compares every pair of reference profiles over them and the conformance cases, and writes `reports/reference-differences.md`. Each observed difference must belong to exactly one named expectation in `src/oracles/reference-expectations.ts`, which claims source lines per input and the values it accepts; a mismatch outside those lines, on a terminator, or with other values is unexplained. Each claim must be observed; `npm test` fails otherwise, and when the committed report is stale.
+
+## Capture baselines and generated gate evidence
+
+`src/baselines/` executes candidate queries through this checkout's built `lib/binding_web/web-tree-sitter.js`. `baseline:captures` maps the product's ordinary captures through the versioned table in `capture-map.ts`. `baseline:vscode-ts` preserves the pinned VS Code query's TextMate capture names. Neither baseline can write goldens.
+
+`vendor/baselines/NOTICE.md` records source identities and licenses. Tests check every pilot parser/query against `manifest/tree-sitter-languages.json`, and check the VS Code query against its pinned hash. Markdown stays at tree-sitter-md 0.1.1. That manifest uses native `MarkdownDocument.highlights` without an external query or inline parser, so ordinary-capture Markdown is unsupported. The JS/TS/TSX queries require local-variable analysis for two patterns. Those patterns are excluded with line numbers and reasons. Unknown predicates and directives fail.
+
+Composition orders active captures by start ascending, end descending, accepted query-pattern index, capture ordinal, then code-point capture name. The root scope is first; duplicates remain. Every LF/CRLF separator has empty scopes and styles. Styles use the pinned TextMate theme matcher with raw/product normalization, independently checked by repainting reference scope paths.
+
+`reports/baselines.md` separates real and original fixtures, gives UTF-16 and file-macro denominators, and lists each unsupported or failed comparison. `reports/historical-expectations.md` grades the historical annotations against raw/product goldens and never gates native acceptance.
+
+`artifacts:check` runs the mandatory self-tests, regenerates every reference golden and report twice in temporary trees, and requires identical content hashes and bytes. It generates `reports/phase-1-gate.md` from those runs and Vitest test-case counts, then checks the entire generated tree against the checkout. Missing, extra or edited artifacts fail. `artifacts:update` uses the same checks before replacing the generated directories. Normal `npm test` and `artifacts:check` are read-only. Neither command needs a Platform checkout or network access.
