@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - 'master'
@@ -15,14 +16,47 @@ concurrency:
   cancel-in-progress: ${{ github.event_name != 'push' }}
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      native: ${{ steps.paths.outputs.native }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Test native CI path filter
+        run: python3 .github/scripts/test-native-ci-paths.py
+
+      - name: Check native CI inputs
+        id: paths
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [[ "$EVENT_NAME" == push || "$EVENT_NAME" == workflow_dispatch ]]; then
+            echo 'native=true' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Both names of a rename matter when a file moves into or out of native inputs.
+          native=$(git diff --no-renames --name-only -z "$BASE_SHA...$HEAD_SHA" |
+            bash .github/scripts/native-ci-paths.sh)
+          echo "native=$native" >> "$GITHUB_OUTPUT"
+          echo "Native CI inputs changed: $native" >> "$GITHUB_STEP_SUMMARY"
+
   checks:
+    needs: changes
+    if: needs.changes.outputs.native == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up stable Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v2
+        uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2
         with:
           toolchain: stable
           components: clippy, rustfmt
@@ -31,7 +65,7 @@ jobs:
         run: make lint
 
       - name: Install Taplo
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2
         with:
           tool: taplo@0.10.0
 
@@ -42,10 +76,40 @@ jobs:
         run: make lint-web
 
   sanitize:
+    needs: changes
+    if: needs.changes.outputs.native == 'true'
     uses: ./.github/workflows/sanitize.yml
 
   build:
+    needs: changes
+    if: needs.changes.outputs.native == 'true'
     uses: ./.github/workflows/build.yml
 
   check-wasm-stdlib:
+    needs: changes
+    if: needs.changes.outputs.native == 'true'
     uses: ./.github/workflows/wasm_stdlib.yml
+
+  native-ci:
+    if: always()
+    needs: [changes, checks, sanitize, build, check-wasm-stdlib]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check native CI results
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          NATIVE: ${{ needs.changes.outputs.native }}
+          CHECKS: ${{ needs.checks.result }}
+          SANITIZE: ${{ needs.sanitize.result }}
+          BUILD: ${{ needs.build.result }}
+          WASM_STDLIB: ${{ needs.check-wasm-stdlib.result }}
+        run: |
+          [[ "$CHANGES" == success ]] || exit 1
+          case "$NATIVE" in
+            true) expected=success ;;
+            false) expected=skipped ;;
+            *) echo '::error::Native CI filter output must be true or false'; exit 1 ;;
+          esac
+          for result in "$CHECKS" "$SANITIZE" "$BUILD" "$WASM_STDLIB"; do
+            [[ "$result" == "$expected" ]] || exit 1
+          done
