@@ -9,7 +9,7 @@ declare module 'vitest' {
   }
 }
 
-const referenceRoot = inject('referenceRoot', undefined)
+const referenceRoot = inject('referenceRoot')
 
 for (const reference of ['raw', 'product'] as const) {
   it(`${reference} scopes reproduce direct reference styles with the pinned matcher`, async () => {

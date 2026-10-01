@@ -66,7 +66,7 @@ jobs:
           node --input-type=module <<'NODE'
           import { spawnSync } from 'node:child_process'
           import { readFileSync, writeFileSync } from 'node:fs'
-          
+
           function negative(path, change, tests, signature) {
             const original = readFileSync(path, 'utf8')
             const modified = change(original)
@@ -82,15 +82,15 @@ jobs:
               writeFileSync(path, original)
             }
           }
-          
+
           negative('src/artifacts.ts', source => source
             .replace("  const status = lstatSync(root, { throwIfNoEntry: false })\n  if (status === undefined) return []\n  if (!status.isDirectory()) throw new Error(`unsupported artifact entry: ${root}`)", '  if (!existsSync(root)) return []')
             .replace('    else throw new Error(`unsupported artifact entry: ${path}`)\n', ''),
           ['tests/artifacts.test.ts'], 'AssertionError')
-          
+
           negative('src/regeneration.ts', source => source.replace("  await steps.generate(first)\n  const counts = steps.selfTests(join(first, 'goldens'))", "  const counts = steps.selfTests(join(first, 'goldens'))\n  await steps.generate(first)"),
           ['tests/regeneration.test.ts', '-t', 'mandatory checks|after a theme change'], 'ENOENT')
-          
+
           negative('src/regeneration.ts', source => source.slice(0, source.indexOf('export function publishArtifacts')) + `export function publishArtifacts(generated: string, root: string, operations: PublicationOperations = {}): void {
             const copy = operations.copy ?? cpSync
             for (const directory of ['goldens', 'reports']) {
@@ -99,10 +99,10 @@ jobs:
             }
           }
           `, ['tests/regeneration.test.ts', '-t', 'publication fails'], 'AssertionError')
-          
+
           negative('../../.github/workflows/highlight-compat.yml', source => source.replace('toolchain: 1.98.1', 'toolchain: stable'),
           ['tests/runtime-pins.test.ts', '-t', 'Rust release'], 'AssertionError')
-          
+
           negative('src/oracles/run.ts', source => source
             .replace("    worker.once('error', (error: unknown) => {\n      const failure: Settled = { status: 'error', diagnostic: `oracle worker failed: ${messageOf(error)}` }\n      if (outcome?.status === 'complete') outcome = failure\n      else settle(failure)\n    })", "    worker.once('error', (error: unknown) => settle({ status: 'error', diagnostic: `oracle worker failed: ${messageOf(error)}` }))")
             .replace("      if (code !== 0 && outcome?.status === 'complete') outcome = { status: 'error', diagnostic: `oracle worker exited with code ${code} after answering` }\n", ''),
