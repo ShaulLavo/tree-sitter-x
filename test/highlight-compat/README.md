@@ -5,6 +5,7 @@ Development harness that compares TextMate scope and style output between refere
 ```sh
 npm ci
 npm test                                   # read-only: fails on any golden difference
+npm run test:platform                      # opt-in: manifest checks against a live Platform checkout (PLATFORM_ROOT)
 npx tsc --noEmit
 npm run compare -- ref.json cand.json [--source file] [--theme id] [--runs n] [--json out.json]
 npm run golden:update -- --profile product # the only writer; reference profiles only

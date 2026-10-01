@@ -95,17 +95,27 @@ function sortedJson(value) {
   return Object.fromEntries(Object.keys(value).sort().map((key) => [key, sortedJson(value[key])]))
 }
 
+// Platform's Bun store path `node_modules/.bun/<name>@<version>/node_modules/<name>/<file>` maps to
+// this harness's own pinned install of the same version; the recorded sha256 proves the bytes match.
+function pinnedPackageFile(platformPath) {
+  const match = /^node_modules\/\.bun\/[^/]+@([^/@]+)\/node_modules\/((?:@[^/]+\/)?[^/]+)\/(.+)$/.exec(platformPath)
+  assert.ok(match, platformPath)
+  const [, version, name, file] = match
+  const packageDir = join(here, '../node_modules', name)
+  assert.equal(JSON.parse(readFileSync(join(packageDir, 'package.json'), 'utf8')).version, version, platformPath)
+  return join(packageDir, file)
+}
+
 test('grammar comparison modules define the recorded scope and reproduce core hashes', () => {
   const files = new Map(fixtures.files.map((file) => [file.id, file]))
   const expectations = new Map(fixtures.grammarExpectations.map((entry) => [entry.id, entry]))
-  const root = process.env.PLATFORM_ROOT ?? '/work/projects/platform'
   for (const expectation of expectations.values()) {
     if (!expectation.coreComparison?.productSha256) continue
     const defining = expectation.productModuleFileId ? expectation : expectations.get(expectation.productGrammarExpectationId)
     assert.ok(defining?.productModuleFileId, expectation.id)
     const file = files.get(defining.productModuleFileId)
     assert.ok(file, expectation.id)
-    const bytes = readFileSync(join(root, file.path))
+    const bytes = readFileSync(pinnedPackageFile(file.path))
     assert.equal(createHash('sha256').update(bytes).digest('hex'), file.sha256, expectation.id)
     const { grammar } = decodeGrammarModule(bytes.toString('utf8'), file.path)
     assert.equal(grammar.name, basename(file.path, '.mjs'), expectation.id)

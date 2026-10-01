@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "compare": "node src/cli/compare.ts",
     "golden:update": "node src/cli/golden-update.ts",
-    "report:references": "node src/cli/report-references.ts"
+    "report:references": "node src/cli/report-references.ts",
+    "test:platform": "vitest run --config vitest.platform.config.ts"
   },
   "dependencies": {
     "@shikijs/engine-oniguruma": "4.4.3",
