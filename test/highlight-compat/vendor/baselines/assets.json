@@ -1,0 +1,100 @@
+[
+  {
+    "languageId": "javascript",
+    "kind": "wasm",
+    "path": "tree-sitter-javascript/tree-sitter-javascript.wasm",
+    "sha256": "5fb488d0cabb4775a594bab85682de5ad6ce83c0d6ac997a9f82dd084d571240",
+    "manifestPath": "editor/packages/tree-sitter-languages/node_modules/tree-sitter-javascript/tree-sitter-javascript.wasm"
+  },
+  {
+    "languageId": "javascript",
+    "kind": "highlights",
+    "path": "queries/javascript-highlights.scm",
+    "sha256": "5f13a9435d7a49d6cbaab666cb1ebe79bce439a4d31cd50767e4617854f25eb8",
+    "manifestPath": "editor/packages/tree-sitter-languages/src/queries/javascript-highlights.scm"
+  },
+  {
+    "languageId": "javascript",
+    "kind": "highlights",
+    "path": "tree-sitter-javascript/queries/highlights-jsx.scm",
+    "sha256": "0cad1712acaf40804bc5dc7c8476858752c1f549cdf7d8c63c747317be0f8fa6",
+    "manifestPath": "editor/packages/tree-sitter-languages/node_modules/tree-sitter-javascript/queries/highlights-jsx.scm"
+  },
+  {
+    "languageId": "typescript",
+    "kind": "wasm",
+    "path": "tree-sitter-typescript/tree-sitter-typescript.wasm",
+    "sha256": "778025db5a8be0e70f8ccc3671e486dfeddd048c25d9e8a70c26de2e1bf6f97d",
+    "manifestPath": "editor/packages/tree-sitter-languages/node_modules/tree-sitter-typescript/tree-sitter-typescript.wasm"
+  },
+  {
+    "languageId": "typescript",
+    "kind": "highlights",
+    "path": "queries/typescript-highlights.scm",
+    "sha256": "5e449bfe55190c18253431446bc75ab316ea70637e2143c5081973b0a9d90b8b",
+    "manifestPath": "editor/packages/tree-sitter-languages/src/queries/typescript-highlights.scm"
+  },
+  {
+    "languageId": "typescript",
+    "kind": "highlights",
+    "path": "queries/javascript-highlights.scm",
+    "sha256": "5f13a9435d7a49d6cbaab666cb1ebe79bce439a4d31cd50767e4617854f25eb8",
+    "manifestPath": "editor/packages/tree-sitter-languages/src/queries/javascript-highlights.scm"
+  },
+  {
+    "languageId": "tsx",
+    "kind": "wasm",
+    "path": "tree-sitter-typescript/tree-sitter-tsx.wasm",
+    "sha256": "79e5da75ea62855a0cd67177685f0164eac87d5f630b3cbe1e0a099751ad30f8",
+    "manifestPath": "editor/packages/tree-sitter-languages/node_modules/tree-sitter-typescript/tree-sitter-tsx.wasm"
+  },
+  {
+    "languageId": "tsx",
+    "kind": "highlights",
+    "path": "queries/typescript-highlights.scm",
+    "sha256": "5e449bfe55190c18253431446bc75ab316ea70637e2143c5081973b0a9d90b8b",
+    "manifestPath": "editor/packages/tree-sitter-languages/src/queries/typescript-highlights.scm"
+  },
+  {
+    "languageId": "tsx",
+    "kind": "highlights",
+    "path": "queries/javascript-highlights.scm",
+    "sha256": "5f13a9435d7a49d6cbaab666cb1ebe79bce439a4d31cd50767e4617854f25eb8",
+    "manifestPath": "editor/packages/tree-sitter-languages/src/queries/javascript-highlights.scm"
+  },
+  {
+    "languageId": "tsx",
+    "kind": "highlights",
+    "path": "tree-sitter-javascript/queries/highlights-jsx.scm",
+    "sha256": "0cad1712acaf40804bc5dc7c8476858752c1f549cdf7d8c63c747317be0f8fa6",
+    "manifestPath": "editor/packages/tree-sitter-languages/node_modules/tree-sitter-javascript/queries/highlights-jsx.scm"
+  },
+  {
+    "languageId": "json",
+    "kind": "wasm",
+    "path": "tree-sitter-json/tree-sitter-json.wasm",
+    "sha256": "d2119fb98d5912719b13f9458574f8608d2d29dfbe45f6be1f860ea1fe2a2405",
+    "manifestPath": "editor/packages/tree-sitter-languages/node_modules/tree-sitter-json/tree-sitter-json.wasm"
+  },
+  {
+    "languageId": "json",
+    "kind": "highlights",
+    "path": "tree-sitter-json/queries/highlights.scm",
+    "sha256": "0511524465b56aed122580792254e68b6abbbfde7119f1d02b135acbe278233f",
+    "manifestPath": "editor/packages/tree-sitter-languages/node_modules/tree-sitter-json/queries/highlights.scm"
+  },
+  {
+    "languageId": "markdown",
+    "kind": "wasm",
+    "path": "tree-sitter-md/tree-sitter-markdown.wasm",
+    "sha256": "4d71e4c53f38c368b3c80fad9a6ff5d000873b2e63d8666ac9dac8ff736b6367",
+    "manifestPath": "editor/packages/tree-sitter-languages/node_modules/tree-sitter-md/tree-sitter-markdown.wasm"
+  },
+  {
+    "languageId": "markdown",
+    "kind": "resolver",
+    "path": "tree-sitter-md/tree-sitter-md.wasm",
+    "sha256": "f0a19a99ebb9cd0f50d3b4797e6fb28e600ee8a73fff7028a429c68aab222ac9",
+    "manifestPath": "editor/packages/tree-sitter-languages/node_modules/tree-sitter-md/tree-sitter-md.wasm"
+  }
+]

@@ -1,0 +1,167 @@
+{
+  "schema": 1,
+  "profileId": "shiki-api",
+  "languageId": "javascript",
+  "sourceSha256": "d52bc9ad2005e16422027a5c3ff81130cff1ce6ea8427cbba12e92e151044ae1",
+  "sourceLength": 96,
+  "documentRevision": 0,
+  "status": "complete",
+  "diagnostics": [],
+  "engine": {
+    "api": "codeToTokensBase",
+    "grammars": "@shikijs/langs@4.4.3",
+    "oniguruma": "@shikijs/engine-oniguruma@4.4.3",
+    "options": "includeExplanation=scopeName tokenizeMaxLineLength=20000 tokenizeTimeLimit=0",
+    "shiki": "shiki@4.4.3",
+    "textmate": "@shikijs/vscode-textmate@10.0.2",
+    "themes": "@shikijs/themes@4.4.3"
+  },
+  "scopeNames": [
+    "source.js",
+    "meta.function-call.js",
+    "entity.name.function.js",
+    "meta.brace.round.js",
+    "variable.other.readwrite.js",
+    "string.template.js",
+    "punctuation.definition.string.template.begin.js",
+    "punctuation.definition.string.template.end.js",
+    "comment.line.double-slash.js",
+    "punctuation.definition.comment.js"
+  ],
+  "paths": [
+    [0, 1, 2],
+    [0, 3],
+    [0, 4],
+    [0],
+    [0, 5, 6],
+    [0, 5],
+    [0, 5, 7],
+    [],
+    [0, 8, 9],
+    [0, 8]
+  ],
+  "spans": [
+    0, 4, 0,
+    4, 5, 1,
+    5, 7, 2,
+    7, 8, 3,
+    8, 9, 4,
+    9, 16, 5,
+    16, 17, 6,
+    17, 18, 1,
+    18, 19, 7,
+    19, 21, 8,
+    21, 33, 9,
+    33, 34, 7,
+    34, 36, 8,
+    36, 50, 9,
+    50, 51, 7,
+    51, 53, 8,
+    53, 70, 9,
+    70, 71, 7,
+    71, 73, 8,
+    73, 95, 9,
+    95, 96, 7
+  ],
+  "styles": {
+    "dracula": {
+      "styles": [
+        {"foreground": "#50fa7b"},
+        {"foreground": "#f8f8f2"},
+        {"foreground": "#f1fa8c"},
+        {},
+        {"foreground": "#6272a4"}
+      ],
+      "spans": [
+        0, 4, 0,
+        4, 8, 1,
+        8, 17, 2,
+        17, 18, 1,
+        18, 19, 3,
+        19, 33, 4,
+        33, 34, 3,
+        34, 50, 4,
+        50, 51, 3,
+        51, 70, 4,
+        70, 71, 3,
+        71, 95, 4,
+        95, 96, 3
+      ]
+    },
+    "github-dark": {
+      "styles": [
+        {"foreground": "#b392f0"},
+        {"foreground": "#e1e4e8"},
+        {"foreground": "#9ecbff"},
+        {},
+        {"foreground": "#6a737d"}
+      ],
+      "spans": [
+        0, 4, 0,
+        4, 8, 1,
+        8, 17, 2,
+        17, 18, 1,
+        18, 19, 3,
+        19, 33, 4,
+        33, 34, 3,
+        34, 50, 4,
+        50, 51, 3,
+        51, 70, 4,
+        70, 71, 3,
+        71, 95, 4,
+        95, 96, 3
+      ]
+    },
+    "light-plus": {
+      "styles": [
+        {"foreground": "#795e26"},
+        {"foreground": "#000000"},
+        {"foreground": "#001080"},
+        {"foreground": "#a31515"},
+        {},
+        {"foreground": "#008000"}
+      ],
+      "spans": [
+        0, 4, 0,
+        4, 5, 1,
+        5, 7, 2,
+        7, 8, 1,
+        8, 17, 3,
+        17, 18, 1,
+        18, 19, 4,
+        19, 33, 5,
+        33, 34, 4,
+        34, 50, 5,
+        50, 51, 4,
+        51, 70, 5,
+        70, 71, 4,
+        71, 95, 5,
+        95, 96, 4
+      ]
+    },
+    "vesper": {
+      "styles": [
+        {"foreground": "#ffc799"},
+        {"foreground": "#ffffff"},
+        {"foreground": "#99ffe4"},
+        {},
+        {"foreground": "#8b8b8b94"}
+      ],
+      "spans": [
+        0, 4, 0,
+        4, 8, 1,
+        8, 17, 2,
+        17, 18, 1,
+        18, 19, 3,
+        19, 33, 4,
+        33, 34, 3,
+        34, 50, 4,
+        50, 51, 3,
+        51, 70, 4,
+        70, 71, 3,
+        71, 95, 4,
+        95, 96, 3
+      ]
+    }
+  }
+}

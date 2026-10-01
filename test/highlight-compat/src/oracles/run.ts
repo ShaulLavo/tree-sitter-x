@@ -27,46 +27,70 @@ async function acquire(): Promise<() => void> {
   }
 }
 
+export interface OracleWorkerOptions {
+  readonly deadlineMs?: number
+  readonly exitGraceMs?: number
+  readonly workerUrl?: URL
+}
+
 type Failure = { readonly status: Exclude<IncompleteStatus, 'unsupported' | 'canceled'>; readonly diagnostic: string }
 type Settled = { readonly status: 'complete'; readonly value: unknown } | Failure
 
 /** One request in a fresh worker; the worker is terminated at the deadline, so no answer arrives late. */
-async function inWorker(request: OracleRequest, deadlineMs: number): Promise<Settled> {
+async function inWorker(request: OracleRequest, options: OracleWorkerOptions): Promise<Settled> {
   const release = await acquire()
   try {
-    return await oneWorker(request, deadlineMs)
+    return await oneWorker(request, options)
   } finally {
     release()
   }
 }
 
-function oneWorker(request: OracleRequest, deadlineMs: number): Promise<Settled> {
+function oneWorker(request: OracleRequest, options: OracleWorkerOptions): Promise<Settled> {
   return new Promise((resolve) => {
-    const worker = new Worker(WORKER_URL, { workerData: request })
-    let settled = false
-    const settle = (outcome: Settled): void => {
-      if (settled) return
-      settled = true
-      clearTimeout(timer)
+    const worker = new Worker(options.workerUrl ?? WORKER_URL, { workerData: request })
+    const deadlineMs = options.deadlineMs ?? DEFAULT_DEADLINE_MS
+    const exitGraceMs = options.exitGraceMs ?? 1000
+    let outcome: Settled | undefined
+    let teardownTimer: ReturnType<typeof setTimeout> | undefined
+    const terminateAfterAnswer = (): void => {
+      outcome = { status: 'error', diagnostic: `oracle worker answered but did not exit within the ${exitGraceMs} ms teardown grace period` }
       void worker.terminate()
-      resolve(outcome)
     }
-    const timer = setTimeout(() => settle({ status: 'timeout', diagnostic: `no answer within the ${deadlineMs} ms process deadline` }), deadlineMs)
+    const settle = (answer: Settled): void => {
+      if (outcome !== undefined) return
+      outcome = answer
+      clearTimeout(timer)
+      teardownTimer = setTimeout(terminateAfterAnswer, exitGraceMs)
+    }
+    const timer = setTimeout(() => {
+      outcome = { status: 'timeout', diagnostic: `no answer within the ${deadlineMs} ms process deadline` }
+      void worker.terminate()
+    }, deadlineMs)
     worker.once('message', (reply: WorkerReply) => {
       settle(reply.ok ? { status: 'complete', value: reply.value } : { status: 'error', diagnostic: reply.message })
     })
-    worker.once('error', (error: unknown) => settle({ status: 'error', diagnostic: `oracle worker failed: ${messageOf(error)}` }))
-    worker.once('exit', (code) => settle({ status: 'error', diagnostic: `oracle worker exited with code ${code} before answering` }))
+    worker.once('error', (error: unknown) => {
+      const failure: Settled = { status: 'error', diagnostic: `oracle worker failed: ${messageOf(error)}` }
+      if (outcome?.status === 'complete') outcome = failure
+      else settle(failure)
+    })
+    worker.once('exit', (code) => {
+      clearTimeout(timer)
+      clearTimeout(teardownTimer)
+      if (code !== 0 && outcome?.status === 'complete') outcome = { status: 'error', diagnostic: `oracle worker exited with code ${code} after answering` }
+      resolve(outcome ?? { status: 'error', diagnostic: `oracle worker exited with code ${code} before answering` })
+    })
   })
 }
 
 const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error))
 
 /** A validated result, or an incomplete one with the reason; never a partial result. */
-export async function runDocument(request: DocumentRequest, deadlineMs = DEFAULT_DEADLINE_MS): Promise<DocumentResult> {
+export async function runDocument(request: DocumentRequest, options: OracleWorkerOptions = {}): Promise<DocumentResult> {
   const failed = (status: Failure['status'], diagnostic: string) =>
     new ResultBuilder({ profileId: request.profileId, languageId: request.languageId }, request.source).incomplete(status, diagnostic)
-  const settled = await inWorker(request, deadlineMs)
+  const settled = await inWorker(request, options)
   if (settled.status !== 'complete') return failed(settled.status, settled.diagnostic)
   try {
     const result = parseResult(settled.value, request.source)
@@ -79,8 +103,8 @@ export async function runDocument(request: DocumentRequest, deadlineMs = DEFAULT
 
 export type ConformanceOutcome = { readonly status: 'complete'; readonly answer: ConformanceAnswer } | Failure
 
-export async function runConformance(request: ConformanceRequest, deadlineMs = DEFAULT_DEADLINE_MS): Promise<ConformanceOutcome> {
-  const settled = await inWorker(request, deadlineMs)
+export async function runConformance(request: ConformanceRequest, options: OracleWorkerOptions = {}): Promise<ConformanceOutcome> {
+  const settled = await inWorker(request, options)
   if (settled.status !== 'complete') return settled
   const answer = settled.value as ConformanceAnswer
   const source = loadCase(request).lines.map((line) => line.line).join('\n')

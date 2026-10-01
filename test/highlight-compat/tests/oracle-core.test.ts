@@ -1,5 +1,6 @@
+import { Worker } from 'node:worker_threads'
 import { EncodedTokenMetadata } from '@shikijs/vscode-textmate'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { compareResults } from '../src/compare.ts'
 import { SEPARATOR_SCOPES, sourceLines, writeTrack } from '../src/oracles/lines.ts'
 import { decodeFontStyle, decodeForeground } from '../src/oracles/raw.ts'
@@ -97,7 +98,7 @@ describe('runDocument', () => {
   })
 
   it('returns timeout with no spans when the worker misses its deadline', async () => {
-    const result = await runDocument(request(), 1)
+    const result = await runDocument(request(), { deadlineMs: 1 })
     expect(result.status).toBe('timeout')
     expect(result.spans).toEqual([])
     expect(result.diagnostics).toEqual(['no answer within the 1 ms process deadline'])
@@ -109,6 +110,61 @@ describe('runDocument', () => {
     expect(unknown.diagnostics.join('')).toContain('no-such-language')
     const themeless = await runDocument(request({ themeIds: [] }))
     expect(themeless.diagnostics).toEqual(['an oracle request needs at least one theme'])
+  })
+
+  it('waits for natural worker exits after successful and failed answers', async () => {
+    const terminate = vi.spyOn(Worker.prototype, 'terminate')
+    const emit = vi.spyOn(Worker.prototype, 'emit')
+    try {
+      expect((await runDocument(request())).status).toBe('complete')
+      expect((await runDocument(request({ languageId: 'no-such-language' }))).status).toBe('error')
+      expect(terminate).not.toHaveBeenCalled()
+      expect(emit.mock.calls.filter(([event]) => event === 'exit')).toHaveLength(2)
+    } finally {
+      terminate.mockRestore()
+      emit.mockRestore()
+    }
+  })
+
+  it('terminates an answered worker with an open handle after bounded teardown grace', async () => {
+    const terminate = vi.spyOn(Worker.prototype, 'terminate')
+    const emit = vi.spyOn(Worker.prototype, 'emit')
+    try {
+      const result = await runDocument(request(), {
+        workerUrl: new URL('./fixtures/answered-worker.ts', import.meta.url),
+        exitGraceMs: 10,
+      })
+      expect(result.status).toBe('error')
+      expect(result.spans).toEqual([])
+      expect(result.diagnostics).toEqual(['oracle worker answered but did not exit within the 10 ms teardown grace period'])
+      expect(terminate).toHaveBeenCalledOnce()
+      expect(emit.mock.calls.filter(([event]) => event === 'exit')).toHaveLength(1)
+    } finally {
+      terminate.mockRestore()
+      emit.mockRestore()
+    }
+  })
+
+  it.each([
+    ['throw-after-answer', 'oracle worker failed: failure after answer'],
+    ['exit-after-answer', 'oracle worker exited with code 3 after answering'],
+  ])('rejects worker failures after an answer: %s', async (source, diagnostic) => {
+    const originalEmit = Worker.prototype.emit
+    const emit = vi.spyOn(Worker.prototype, 'emit').mockImplementation(function (this: Worker, event, ...args) {
+      const emitted = Reflect.apply(originalEmit, this, [event, ...args]) as boolean
+      if (event === 'message') this.postMessage('answer received')
+      return emitted
+    })
+    try {
+      const result = await runDocument(request({ source }), {
+        workerUrl: new URL('./fixtures/answered-worker.ts', import.meta.url),
+      })
+      expect(result.status).toBe('error')
+      expect(result.spans).toEqual([])
+      expect(result.diagnostics).toEqual([diagnostic])
+    } finally {
+      emit.mockRestore()
+    }
   })
 
   it('gives identical results for concurrent runs with other themes, so no state is shared', async () => {

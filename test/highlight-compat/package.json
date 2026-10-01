@@ -5,7 +5,7 @@
   "description": "Differential harness comparing TextMate scope and style output across reference and candidate engines",
   "type": "module",
   "engines": {
-    "node": ">=22.18"
+    "node": "26.7.0"
   },
   "scripts": {
     "test": "vitest run",
@@ -13,6 +13,10 @@
     "compare": "node src/cli/compare.ts",
     "golden:update": "node src/cli/golden-update.ts",
     "report:references": "node src/cli/report-references.ts",
+    "report:historical": "node src/cli/report-historical.ts",
+    "report:baselines": "node src/cli/report-baselines.ts",
+    "artifacts:check": "node scripts/regenerate.ts --check",
+    "artifacts:update": "node scripts/regenerate.ts --update",
     "test:platform": "vitest run --config vitest.platform.config.ts",
     "fixtures:comments": "node scripts/fixtures.ts --comments",
     "fixtures:check": "node scripts/fixtures.ts --check",
