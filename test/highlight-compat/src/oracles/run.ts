@@ -10,14 +10,37 @@ const WORKER_URL = new URL('./worker.ts', import.meta.url)
 /** Generous next to the few seconds the slowest fixture takes; only a runaway grammar reaches it. */
 export const DEFAULT_DEADLINE_MS = 60_000
 
-/** Oracle workers run at once; each holds its own engine and grammars. */
+/** Oracle workers alive at once in this process, across every caller; each holds its own engine and grammars. */
 export const ORACLE_CONCURRENCY = 4
+
+const waiting: (() => void)[] = []
+let running = 0
+
+// One gate for the whole process: a report runs seven profile batches at once, and per-batch pools
+// would multiply the worker count.
+async function acquire(): Promise<() => void> {
+  if (running >= ORACLE_CONCURRENCY) await new Promise<void>((resolve) => waiting.push(resolve))
+  running++
+  return () => {
+    running--
+    waiting.shift()?.()
+  }
+}
 
 type Failure = { readonly status: Exclude<IncompleteStatus, 'unsupported' | 'canceled'>; readonly diagnostic: string }
 type Settled = { readonly status: 'complete'; readonly value: unknown } | Failure
 
 /** One request in a fresh worker; the worker is terminated at the deadline, so no answer arrives late. */
-function inWorker(request: OracleRequest, deadlineMs: number): Promise<Settled> {
+async function inWorker(request: OracleRequest, deadlineMs: number): Promise<Settled> {
+  const release = await acquire()
+  try {
+    return await oneWorker(request, deadlineMs)
+  } finally {
+    release()
+  }
+}
+
+function oneWorker(request: OracleRequest, deadlineMs: number): Promise<Settled> {
   return new Promise((resolve) => {
     const worker = new Worker(WORKER_URL, { workerData: request })
     let settled = false
@@ -71,13 +94,7 @@ export async function runConformance(request: ConformanceRequest, deadlineMs = D
   }
 }
 
-/** Maps `items` through `run` with at most `limit` in flight, keeping input order. */
-export async function runAll<T, R>(items: readonly T[], run: (item: T) => Promise<R>, limit = ORACLE_CONCURRENCY): Promise<R[]> {
-  const results: R[] = new Array(items.length)
-  let next = 0
-  const lane = async (): Promise<void> => {
-    for (let index = next++; index < items.length; index = next++) results[index] = await run(items[index] as T)
-  }
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, lane))
-  return results
+/** Maps `items` through `run` in input order; the process-wide gate bounds how many workers run. */
+export function runAll<T, R>(items: readonly T[], run: (item: T) => Promise<R>): Promise<R[]> {
+  return Promise.all(items.map(run))
 }

@@ -63,13 +63,15 @@ export async function shikiApiDocument(request: ShikiApiRequest): Promise<Comple
   const builder = new ResultBuilder({ profileId: request.profileId, languageId: request.languageId, engine }, request.source)
   const plain = lines.filter((line) => line.text.length >= maxLineLength).length
   if (plain > 0) builder.diagnostic(`${plain} line(s) of ${maxLineLength} units or more stay one plain token`)
-  const tokenize = (themeName: string) => {
-    const tokens = highlighter.codeToTokensBase(request.source, { lang: request.languageId, theme: themeName, ...options })
+  // Scopes come from the first theme's explanations, so the later passes skip them.
+  const tokenize = (themeName: string, explain: boolean) => {
+    const passOptions = explain ? options : { ...options, includeExplanation: false }
+    const tokens = highlighter.codeToTokensBase(request.source, { lang: request.languageId, theme: themeName, ...passOptions })
     if (tokens.length !== lines.length) throw new Error(`Shiki split ${tokens.length} lines, the source has ${lines.length}`)
     return tokens
   }
   themes.forEach((theme, index) => {
-    const tokens = tokenize(theme.name)
+    const tokens = tokenize(theme.name, index === 0)
     const themeId = request.themeIds[index] ?? theme.name
     const line = (at: number): SourceLine => lines[at] ?? { text: '', start: 0, next: 0 }
     if (index === 0) {

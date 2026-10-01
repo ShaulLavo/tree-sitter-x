@@ -71,6 +71,11 @@ describe('resolved styles', () => {
     })
   })
 
+  it("decodes upstream's layout: font style in bits 11-14, foreground in bits 15-23", () => {
+    const metadata = ((200 << 24) | (17 << 15) | (0b1010 << 11) | 0x7ff) >>> 0
+    expect([decodeForeground(metadata), decodeFontStyle(metadata)]).toEqual([17, 0b1010])
+  })
+
   it('decodes metadata with the layout the fork exports too', () => {
     for (const metadata of [0, 0x7fff_ffff, 0x00ff_8000, 0x0000_7800, 0x1234_5678, 0xdead_beef >>> 0]) {
       expect([decodeForeground(metadata), decodeFontStyle(metadata)]).toEqual([
