@@ -1,7 +1,6 @@
-import { isDeepStrictEqual } from 'node:util'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { caseLabel, type CaseRef, expectedTokens, loadCase, selectedCases } from '../src/oracles/conformance.ts'
-import { CONFORMANCE_DIFFERENCES, conformanceDifference } from '../src/oracles/conformance-expectations.ts'
+import { caseLabel, expectedTokens, loadCase, selectedCases } from '../src/oracles/conformance.ts'
+import { CONFORMANCE_DIFFERENCES, conformanceDifference, conformanceProblems } from '../src/oracles/conformance-expectations.ts'
 import { CONFORMANCE_PROFILES, type ConformanceProfileId } from '../src/oracles/request.ts'
 import { type ConformanceOutcome, runAll, runConformance } from '../src/oracles/run.ts'
 
@@ -14,14 +13,6 @@ beforeAll(async () => {
     outcomes.set(profileId, await runAll(cases, (ref) => runConformance({ kind: 'conformance', profileId, ...ref })))
   }
 }, 180_000)
-
-function mismatchedLines(ref: CaseRef, outcome: ConformanceOutcome): number[] {
-  if (outcome.status !== 'complete') return []
-  const conformance = loadCase(ref)
-  return conformance.lines.flatMap((line, index) =>
-    isDeepStrictEqual(outcome.answer.lines[index], expectedTokens(line.line, line.tokens)) ? [] : [index],
-  )
-}
 
 describe('vendored vscode-textmate suites', () => {
   it('select the 94 cases fixture-sources.json selects, without the SQL case', () => {
@@ -42,14 +33,33 @@ describe('vendored vscode-textmate suites', () => {
   })
 })
 
+describe('conformanceProblems', () => {
+  const ref = cases.find((candidate) => loadCase(candidate).desc === 'Issue #66')
+  const difference = CONFORMANCE_DIFFERENCES.find((entry) => entry.desc === 'Issue #66')
+  if (ref === undefined || difference === undefined) throw new Error('Issue #66 is not selected')
+  const conformance = loadCase(ref)
+  const pinned = conformance.lines.map((line, index) => difference.lines[index] ?? expectedTokens(line.line, line.tokens))
+
+  it('accepts exactly the pinned tokens of a named difference', () => {
+    expect(conformanceProblems(conformance, pinned, difference)).toEqual([])
+  })
+
+  it('rejects an unrelated corruption inside a named difference', () => {
+    const [first, ...rest] = pinned
+    const corrupted = [[{ value: 'J', scopes: ['text.test', 'string'] }, ...(first ?? []).slice(1)], ...rest]
+    expect(conformanceProblems(conformance, corrupted, difference)).toEqual([expect.stringMatching(/^line 0: expected pinned tokens/)])
+  })
+
+  it('rejects a difference the case does not name', () => {
+    expect(conformanceProblems(conformance, pinned, undefined)).toHaveLength(Object.keys(difference.lines).length)
+  })
+})
+
 describe.each(CONFORMANCE_PROFILES)('%s on the conformance suites', (profileId) => {
   it.each(cases.map((ref) => [caseLabel(ref, loadCase(ref)), ref] as const))('%s', (_label, ref) => {
     const outcome = outcomes.get(profileId)?.[cases.indexOf(ref)]
-    expect(outcome?.status).toBe('complete')
-    if (outcome === undefined) return
-    const difference = conformanceDifference(ref.suite, loadCase(ref).desc, profileId)
-    const mismatches = mismatchedLines(ref, outcome)
-    if (difference === undefined) expect(mismatches).toEqual([])
-    else expect(mismatches.length, difference.because).toBeGreaterThan(0)
+    if (outcome?.status !== 'complete') throw new Error(`${profileId}: ${outcome?.status ?? 'missing'}`)
+    const conformance = loadCase(ref)
+    expect(conformanceProblems(conformance, outcome.answer.lines, conformanceDifference(ref.suite, conformance.desc, profileId))).toEqual([])
   })
 })
