@@ -1,6 +1,6 @@
 # Plan: native Tree-sitter scopes with VS Code theme compatibility
 
-Status: **Approved.** Implementation started 2026-09-30 with Phases 0 and 1.
+Status: **Approved.** Phases 0 and 1 complete 2026-10-01; Phase 2 not started.
 
 Date: 2026-09-28. Target: `ShaulLavo/tree-sitter-x`, based on `90dae9cb8e78b074d99d411c6cb3e440d3cd7def`.
 
@@ -332,22 +332,26 @@ Each phase should become a separately reviewed implementation unit. The checkbox
 
 ### Phase 0: lock target and inventory
 
-- [ ] Freeze the product profile and all source/grammar/theme/engine identities.
-- [ ] Inventory target languages, aliases, parser availability, scope-pack status, injection dependencies, and fixture sources.
-- [ ] Review provenance and license handling; choose vendored versus fetched assets.
-- [ ] Establish reference differences and document the primary target for each fixture class.
-- [ ] Record the current Shiki baseline identity and measurement protocol, reusing Plan 112/201 evidence where applicable. Collect pending end-to-end measurements in parallel and refresh them before Phase 5's release evaluation; do not block oracle/harness work on the concurrent Shiki optimization.
-- [ ] Record the required downstream contracts from 197 and 099/198 as Phase 6 prerequisites, without creating dependencies on their unrelated units or changing their authorization gates.
+- [x] Freeze the product profile and all source/grammar/theme/engine identities.
+- [x] Inventory target languages, aliases, parser availability, scope-pack status, injection dependencies, and fixture sources.
+- [x] Review provenance and license handling; choose vendored versus fetched assets.
+- [x] Establish reference differences and document the primary target for each fixture class.
+- [x] Record the current Shiki baseline identity and measurement protocol, reusing Plan 112/201 evidence where applicable. Collect pending end-to-end measurements in parallel and refresh them before Phase 5's release evaluation; do not block oracle/harness work on the concurrent Shiki optimization.
+- [x] Record the required downstream contracts from 197 and 099/198 as Phase 6 prerequisites, without creating dependencies on their unrelated units or changing their authorization gates.
+
+**Gate passed 2026-10-01** (PR #7, `test/highlight-compat/manifest/`, `docs/plans/textmate-scope-compatibility-inventory.md`; reference differences established in PR #12, `reports/reference-differences.md`).
 
 **Gate:** a reproducible correctness manifest, explicit compatibility contract and named performance-control revision exist. Pending consumer performance runs do not block Phase 1. No parity claim is made without a denominator and a profile.
 
 ### Phase 1: trustworthy harness
 
-- [ ] Implement isolated oracle adapters and canonical interval/schema validation.
-- [ ] Add the upstream oracle suites, initial VS Code/TypeScript fixtures, annotation adapters, and original Unicode/EOL cases.
-- [ ] Add comparator self-tests for token splitting/coalescing, missing scopes, reordered scopes, extra scopes, default styles, empty input, clipping, and failed references.
-- [ ] Separate read-only test mode from explicit golden-update mode.
-- [ ] Produce baseline reports for simple capture mapping and, where compatible, VS Code queries.
+- [x] Implement isolated oracle adapters and canonical interval/schema validation.
+- [x] Add the upstream oracle suites, initial VS Code/TypeScript fixtures, annotation adapters, and original Unicode/EOL cases.
+- [x] Add comparator self-tests for token splitting/coalescing, missing scopes, reordered scopes, extra scopes, default styles, empty input, clipping, and failed references.
+- [x] Separate read-only test mode from explicit golden-update mode.
+- [x] Produce baseline reports for simple capture mapping and, where compatible, VS Code queries.
+
+**Gate passed 2026-10-01** (PRs #6, #10, #12, #13, #14, #15; evidence in `test/highlight-compat/reports/phase-1-gate.md`: 492/492 mandatory cases, two identical full regenerations in CI, ten consecutive identical regenerations in CI run 36815001134). Baselines against raw and product references: exact scope-path agreement 5.21–8.87% (non-whitespace 0–0.63%) while style agreement is 56–100%; historical assertions 2146/2148. Harness runtime is Node 26.7.0.
 
 **Gate:** required oracle/conversion/comparator self-tests pass; repeated runs have identical content results. Expected oracle-profile differences are documented, not suppressed. Synthetic tokenizer-only grammars remain in the oracle lane.
 
