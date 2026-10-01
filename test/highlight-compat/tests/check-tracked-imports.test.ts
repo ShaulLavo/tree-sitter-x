@@ -61,6 +61,42 @@ describe('tracked import check', () => {
     expect(result.stdout).toContain('Tracked imports checked in 5 source files.')
   })
 
+  it('leaves unimported highlighting data outside the executable graph', () => {
+    write('test/highlight-compat/src/main.ts', 'export {}\n')
+    for (const tree of ['fixtures', 'vendor', 'goldens', 'reports']) {
+      write(`test/highlight-compat/${tree}/sample.js`, "import 'missing-fixture-dependency'\n")
+    }
+    track('test/highlight-compat')
+    const result = check()
+    expect(result.status, String(result.stderr)).toBe(0)
+    expect(result.stdout).toContain('Tracked imports checked in 1 source files.')
+  })
+
+  it.each([
+    'src/main.ts',
+    'tests/main.test.ts',
+    'scripts/main.mjs',
+    'manifest/main.mjs',
+    'vitest.config.ts',
+    'vitest.platform.config.ts',
+  ])('rejects a missing dependency in executable entry point %s', (entry) => {
+    write(`test/highlight-compat/${entry}`, "import 'missing-code-dependency'\n")
+    track(`test/highlight-compat/${entry}`)
+    const result = check()
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain(`${entry} imports "missing-code-dependency"`)
+  })
+
+  it.each(['fixtures', 'vendor', 'goldens', 'reports'])('checks %s JavaScript when executable code imports it transitively', (tree) => {
+    write('test/highlight-compat/src/main.ts', "import './bridge.mjs'\n")
+    write('test/highlight-compat/src/bridge.mjs', `import '../${tree}/sample.js'\n`)
+    write(`test/highlight-compat/${tree}/sample.js`, "import 'missing-fixture-dependency'\n")
+    track('test/highlight-compat')
+    const result = check()
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain(`${tree}/sample.js imports "missing-fixture-dependency"`)
+  })
+
   it.each([
     "import type { Value } from './profile-hidden.ts'",
     "export * from './profile-hidden.ts'",

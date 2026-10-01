@@ -41,8 +41,13 @@ const visited = new Set()
 const isSource = (file) => /\.(?:[cm]?[jt]s|[jt]sx)$/.test(file)
 const isDeclaration = (file) => /\.d\.[cm]?ts$/.test(file)
 const queue = [...tracked]
-  .filter((path) => path.startsWith(`${packagePath}/`) && isSource(path))
-  .map((path) => resolve(repoRoot, path))
+  .filter((path) => path.startsWith(`${packagePath}/`))
+  .map((path) => path.slice(packagePath.length + 1))
+  .filter(isSource)
+  .filter((path) => /^(?:src|tests|scripts)\//.test(path)
+    || /^manifest\/[^/]+\.mjs$/.test(path)
+    || /^(?:[^/]+\.)?config\.[cm]?[jt]s$/.test(path))
+  .map((path) => resolve(packageRoot, path))
 
 function repoPath(file) {
   return relative(repoRoot, file).split(sep).join('/')
