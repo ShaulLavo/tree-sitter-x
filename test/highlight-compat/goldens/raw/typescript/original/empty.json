@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "profileId": "raw",
+  "languageId": "typescript",
+  "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "sourceLength": 0,
+  "documentRevision": 0,
+  "status": "complete",
+  "diagnostics": [],
+  "engine": {
+    "grammars": "@shikijs/langs@4.4.3",
+    "lines": "LF and CRLF terminators; every line tokenized, state carried",
+    "oniguruma": "vscode-oniguruma@2.0.1",
+    "onigurumaCommit": "184a6e2d4603c5a31efc0a33f544be1545d9ec6b",
+    "onigurumaWasmSha256": "76ebc1f0d87b2e7449a45ff3cd1a1546a9f05f54bdac44ee03e8a2b8348897be",
+    "textmate": "vscode-textmate@9.3.2",
+    "textmateCommit": "25b68dad91920b1ed79d357534b8c4582f62d80d",
+    "themeInput": "editor.foreground/background default rule, then tokenColors",
+    "themes": "@shikijs/themes@4.4.3"
+  },
+  "scopeNames": [],
+  "paths": [],
+  "spans": []
+}

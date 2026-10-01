@@ -1,0 +1,127 @@
+{
+  "schema": 1,
+  "profileId": "shiki-api",
+  "languageId": "typescript",
+  "sourceSha256": "ce74956f6d25e729ca574198828aa553192c3aa8488012355f0cb61b9f75d3ae",
+  "sourceLength": 20011,
+  "documentRevision": 0,
+  "status": "complete",
+  "diagnostics": [
+    "1 line(s) of 20000 units or more stay one plain token"
+  ],
+  "engine": {
+    "api": "codeToTokensBase",
+    "grammars": "@shikijs/langs@4.4.3",
+    "oniguruma": "@shikijs/engine-oniguruma@4.4.3",
+    "options": "includeExplanation=scopeName tokenizeMaxLineLength=20000 tokenizeTimeLimit=0",
+    "shiki": "shiki@4.4.3",
+    "textmate": "@shikijs/vscode-textmate@10.0.2",
+    "themes": "@shikijs/themes@4.4.3"
+  },
+  "scopeNames": [
+    "source.ts",
+    "meta.var.expr.ts",
+    "storage.type.ts",
+    "meta.var-single-variable.expr.ts",
+    "meta.definition.variable.ts",
+    "variable.other.readwrite.ts",
+    "keyword.operator.assignment.ts",
+    "constant.numeric.decimal.ts"
+  ],
+  "paths": [
+    [],
+    [0, 1, 2],
+    [0, 1],
+    [0, 1, 3, 4, 5],
+    [0, 1, 3],
+    [0, 1, 6],
+    [0, 1, 7]
+  ],
+  "spans": [
+    0, 20000, 0,
+    20000, 20001, 0,
+    20001, 20004, 1,
+    20004, 20005, 2,
+    20005, 20006, 3,
+    20006, 20007, 4,
+    20007, 20008, 5,
+    20008, 20009, 2,
+    20009, 20010, 6,
+    20010, 20011, 0
+  ],
+  "styles": {
+    "dracula": {
+      "styles": [
+        {},
+        {"foreground": "#ff79c6"},
+        {"foreground": "#f8f8f2"},
+        {"foreground": "#bd93f9"}
+      ],
+      "spans": [
+        0, 20000, 0,
+        20000, 20001, 0,
+        20001, 20004, 1,
+        20004, 20007, 2,
+        20007, 20008, 1,
+        20008, 20009, 2,
+        20009, 20010, 3,
+        20010, 20011, 0
+      ]
+    },
+    "github-dark": {
+      "styles": [
+        {},
+        {"foreground": "#f97583"},
+        {"foreground": "#e1e4e8"},
+        {"foreground": "#79b8ff"}
+      ],
+      "spans": [
+        0, 20000, 0,
+        20000, 20001, 0,
+        20001, 20004, 1,
+        20004, 20007, 2,
+        20007, 20008, 1,
+        20008, 20009, 2,
+        20009, 20010, 3,
+        20010, 20011, 0
+      ]
+    },
+    "light-plus": {
+      "styles": [
+        {},
+        {"foreground": "#0000ff"},
+        {"foreground": "#000000"},
+        {"foreground": "#001080"},
+        {"foreground": "#098658"}
+      ],
+      "spans": [
+        0, 20000, 0,
+        20000, 20001, 0,
+        20001, 20004, 1,
+        20004, 20005, 2,
+        20005, 20006, 3,
+        20006, 20009, 2,
+        20009, 20010, 4,
+        20010, 20011, 0
+      ]
+    },
+    "vesper": {
+      "styles": [
+        {},
+        {"foreground": "#a0a0a0"},
+        {"foreground": "#ffffff"},
+        {"foreground": "#ffc799"}
+      ],
+      "spans": [
+        0, 20000, 0,
+        20000, 20001, 0,
+        20001, 20004, 1,
+        20004, 20007, 2,
+        20007, 20008, 1,
+        20008, 20009, 2,
+        20009, 20010, 3,
+        20010, 20011, 0
+      ]
+    }
+  }
+}

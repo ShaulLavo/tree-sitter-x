@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "profileId": "shiki-api",
+  "languageId": "typescript",
+  "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "sourceLength": 0,
+  "documentRevision": 0,
+  "status": "complete",
+  "diagnostics": [],
+  "engine": {
+    "api": "codeToTokensBase",
+    "grammars": "@shikijs/langs@4.4.3",
+    "oniguruma": "@shikijs/engine-oniguruma@4.4.3",
+    "options": "includeExplanation=scopeName tokenizeMaxLineLength=20000 tokenizeTimeLimit=0",
+    "shiki": "shiki@4.4.3",
+    "textmate": "@shikijs/vscode-textmate@10.0.2",
+    "themes": "@shikijs/themes@4.4.3"
+  },
+  "scopeNames": [],
+  "paths": [],
+  "spans": []
+}

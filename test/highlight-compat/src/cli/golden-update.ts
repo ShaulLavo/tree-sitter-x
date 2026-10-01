@@ -1,10 +1,11 @@
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
-import { GOLDEN_ROOT, isReferenceProfile, referenceRefusal, updateGoldens } from '../golden.ts'
+import { GOLDEN_ROOT, referenceRefusal, updateGoldens } from '../golden.ts'
+import { isReferenceProfile } from '../schema.ts'
 import { goldenProducers } from '../golden-producers.ts'
 
-const USAGE = 'usage: npm run golden:update -- --profile <product|raw|vscode> [--root <dir>]'
+const USAGE = 'usage: npm run golden:update -- --profile <reference profile, e.g. product or product:warm> [--root <dir>]'
 
 interface Options {
   readonly profile: string
