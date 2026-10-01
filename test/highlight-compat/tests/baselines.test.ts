@@ -105,10 +105,20 @@ describe('candidate baseline contracts', () => {
   for (const profileId of ['baseline:captures', 'baseline:vscode-ts'] as const) {
     for (const languageId of ['typescript', 'tsx']) {
       it(`${profileId} executes ${languageId} with predicates and checkout-built binding`, async () => {
-        const result = await baselineDocument(profileId, languageId, 'const value = "hi";\n', 'raw')
+        const source = 'const face = "😀";\r\nconst answer = 42;\n'
+        const result = await baselineDocument(profileId, languageId, source, 'raw')
         expect(result.status).toBe('complete')
         expect(result.engine.binding).toBe('checkout lib/binding_web')
         expect(result.scopeNames).toContain('string.quoted' + (profileId === 'baseline:vscode-ts' ? '.double.ts' : ''))
+        const tokens = []
+        for (let index = 0; index < result.spans.length; index += 3) {
+          const scopes = result.paths[result.spans[index + 2] as number]?.map(name => result.scopeNames[name] as string) ?? []
+          tokens.push({ from: result.spans[index] as number, to: result.spans[index + 1] as number, scopes })
+        }
+        const numberAt = source.indexOf('42')
+        expect(tokens.some(token => token.from === numberAt && token.to === numberAt + 2 && token.scopes.some(scope => scope.startsWith('constant.numeric')))).toBe(true)
+        const stringAt = source.indexOf('"')
+        expect(tokens.some(token => token.from === stringAt && token.to === stringAt + 4 && token.scopes.some(scope => scope.startsWith('string.quoted')))).toBe(true)
       })
     }
   }
