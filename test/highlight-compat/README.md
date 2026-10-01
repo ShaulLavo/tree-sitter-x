@@ -2,7 +2,7 @@
 
 Development harness that compares TextMate scope and style output between reference profiles (`<product|raw|shiki-api|vscode>[:variant]`) and candidates (`native`, `baseline:<name>`). The plan is `docs/plans/textmate-scope-compatibility.md`.
 
-Build this checkout's web binding before running the baseline tests. Rust 1.98.1, Node.js 24.21.0 and npm are required. The harness engines field, lock metadata and CI pin this same Node runtime; CI also pins the tested Rust release. The WASI build downloads its pinned SDK and Binaryen tools when the build cache is empty. Tests and regeneration use only local assets.
+Build this checkout's web binding before running the baseline tests. Rust 1.98.1, Node.js 26.7.0 and npm are required. The harness engines field, lock metadata and CI pin this same Node runtime; CI also pins the tested Rust release. The WASI build downloads its pinned SDK and Binaryen tools when the build cache is empty. Tests and regeneration use only local assets.
 
 ```sh
 # From the repository root:

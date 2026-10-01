@@ -26,7 +26,7 @@ permissions:
 jobs:
   harness:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       PLATFORM_ROOT: /nonexistent/highlight-compat-platform
     defaults:
@@ -39,7 +39,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7.0.0
         with:
-          node-version: 24.21.0
+          node-version: 26.7.0
           cache: npm
           cache-dependency-path: |
             test/highlight-compat/package-lock.json

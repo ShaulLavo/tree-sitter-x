@@ -7,9 +7,9 @@ const builder = new ResultBuilder({ profileId: request.profileId, languageId: re
 builder.scope(0, request.source.length, [])
 parentPort?.postMessage({ ok: true, value: builder.complete() })
 if (request.source === 'throw-after-answer') {
-  setImmediate(() => { throw new Error('failure after answer') })
+  parentPort?.once('message', () => { throw new Error('failure after answer') })
 } else if (request.source === 'exit-after-answer') {
-  setImmediate(() => process.exit(3))
+  parentPort?.once('message', () => process.exit(3))
 } else {
   setInterval(() => undefined, 1000)
 }

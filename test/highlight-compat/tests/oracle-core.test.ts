@@ -149,12 +149,22 @@ describe('runDocument', () => {
     ['throw-after-answer', 'oracle worker failed: failure after answer'],
     ['exit-after-answer', 'oracle worker exited with code 3 after answering'],
   ])('rejects worker failures after an answer: %s', async (source, diagnostic) => {
-    const result = await runDocument(request({ source }), {
-      workerUrl: new URL('./fixtures/answered-worker.ts', import.meta.url),
+    const originalEmit = Worker.prototype.emit
+    const emit = vi.spyOn(Worker.prototype, 'emit').mockImplementation(function (this: Worker, event, ...args) {
+      const emitted = Reflect.apply(originalEmit, this, [event, ...args]) as boolean
+      if (event === 'message') this.postMessage('answer received')
+      return emitted
     })
-    expect(result.status).toBe('error')
-    expect(result.spans).toEqual([])
-    expect(result.diagnostics).toEqual([diagnostic])
+    try {
+      const result = await runDocument(request({ source }), {
+        workerUrl: new URL('./fixtures/answered-worker.ts', import.meta.url),
+      })
+      expect(result.status).toBe('error')
+      expect(result.spans).toEqual([])
+      expect(result.diagnostics).toEqual([diagnostic])
+    } finally {
+      emit.mockRestore()
+    }
   })
 
   it('gives identical results for concurrent runs with other themes, so no state is shared', async () => {
