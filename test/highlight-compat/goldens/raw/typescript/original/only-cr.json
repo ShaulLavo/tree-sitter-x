@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "profileId": "raw",
+  "languageId": "typescript",
+  "sourceSha256": "9d1e0e2d9459d06523ad13e28a4093c2316baafe7aec5b25f30eba2e113599c4",
+  "sourceLength": 1,
+  "documentRevision": 0,
+  "status": "complete",
+  "diagnostics": [],
+  "engine": {
+    "grammars": "@shikijs/langs@4.4.3",
+    "lines": "LF and CRLF terminators; every line tokenized, state carried",
+    "oniguruma": "vscode-oniguruma@2.0.1",
+    "onigurumaCommit": "184a6e2d4603c5a31efc0a33f544be1545d9ec6b",
+    "onigurumaWasmSha256": "76ebc1f0d87b2e7449a45ff3cd1a1546a9f05f54bdac44ee03e8a2b8348897be",
+    "textmate": "vscode-textmate@9.3.2",
+    "textmateCommit": "25b68dad91920b1ed79d357534b8c4582f62d80d",
+    "themeInput": "editor.foreground/background default rule, then tokenColors",
+    "themes": "@shikijs/themes@4.4.3"
+  },
+  "scopeNames": [
+    "source.ts"
+  ],
+  "paths": [
+    [0]
+  ],
+  "spans": [
+    0, 1, 0
+  ],
+  "styles": {
+    "dracula": {
+      "styles": [
+        {"foreground": "#f8f8f2"}
+      ],
+      "spans": [
+        0, 1, 0
+      ]
+    },
+    "github-dark": {
+      "styles": [
+        {"foreground": "#e1e4e8"}
+      ],
+      "spans": [
+        0, 1, 0
+      ]
+    },
+    "light-plus": {
+      "styles": [
+        {"foreground": "#000000"}
+      ],
+      "spans": [
+        0, 1, 0
+      ]
+    },
+    "vesper": {
+      "styles": [
+        {"foreground": "#ffffff"}
+      ],
+      "spans": [
+        0, 1, 0
+      ]
+    }
+  }
+}

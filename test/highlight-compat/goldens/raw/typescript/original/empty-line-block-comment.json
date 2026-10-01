@@ -1,0 +1,167 @@
+{
+  "schema": 1,
+  "profileId": "raw",
+  "languageId": "typescript",
+  "sourceSha256": "6b2f6a2de4eb1b784e0f639b070e4373bdb21d4718df9ff4786b3b93071f890f",
+  "sourceLength": 30,
+  "documentRevision": 0,
+  "status": "complete",
+  "diagnostics": [],
+  "engine": {
+    "grammars": "@shikijs/langs@4.4.3",
+    "lines": "LF and CRLF terminators; every line tokenized, state carried",
+    "oniguruma": "vscode-oniguruma@2.0.1",
+    "onigurumaCommit": "184a6e2d4603c5a31efc0a33f544be1545d9ec6b",
+    "onigurumaWasmSha256": "76ebc1f0d87b2e7449a45ff3cd1a1546a9f05f54bdac44ee03e8a2b8348897be",
+    "textmate": "vscode-textmate@9.3.2",
+    "textmateCommit": "25b68dad91920b1ed79d357534b8c4582f62d80d",
+    "themeInput": "editor.foreground/background default rule, then tokenColors",
+    "themes": "@shikijs/themes@4.4.3"
+  },
+  "scopeNames": [
+    "source.ts",
+    "comment.block.ts",
+    "punctuation.definition.comment.ts",
+    "meta.var.expr.ts",
+    "storage.type.ts",
+    "meta.var-single-variable.expr.ts",
+    "meta.definition.variable.ts",
+    "variable.other.constant.ts",
+    "keyword.operator.assignment.ts",
+    "constant.numeric.decimal.ts"
+  ],
+  "paths": [
+    [0, 1, 2],
+    [],
+    [0, 1],
+    [0, 3, 4],
+    [0, 3],
+    [0, 3, 5, 6, 7],
+    [0, 3, 5],
+    [0, 3, 8],
+    [0, 3, 9]
+  ],
+  "spans": [
+    0, 2, 0,
+    2, 3, 1,
+    3, 4, 1,
+    4, 13, 2,
+    13, 14, 1,
+    14, 15, 1,
+    15, 17, 0,
+    17, 18, 1,
+    18, 23, 3,
+    23, 24, 4,
+    24, 25, 5,
+    25, 26, 6,
+    26, 27, 7,
+    27, 28, 4,
+    28, 29, 8,
+    29, 30, 1
+  ],
+  "styles": {
+    "dracula": {
+      "styles": [
+        {"foreground": "#6272a4"},
+        {},
+        {"foreground": "#ff79c6"},
+        {"foreground": "#f8f8f2"},
+        {"foreground": "#bd93f9"}
+      ],
+      "spans": [
+        0, 2, 0,
+        2, 3, 1,
+        3, 4, 1,
+        4, 13, 0,
+        13, 14, 1,
+        14, 15, 1,
+        15, 17, 0,
+        17, 18, 1,
+        18, 23, 2,
+        23, 26, 3,
+        26, 27, 2,
+        27, 28, 3,
+        28, 29, 4,
+        29, 30, 1
+      ]
+    },
+    "github-dark": {
+      "styles": [
+        {"foreground": "#6a737d"},
+        {},
+        {"foreground": "#f97583"},
+        {"foreground": "#e1e4e8"},
+        {"foreground": "#79b8ff"}
+      ],
+      "spans": [
+        0, 2, 0,
+        2, 3, 1,
+        3, 4, 1,
+        4, 13, 0,
+        13, 14, 1,
+        14, 15, 1,
+        15, 17, 0,
+        17, 18, 1,
+        18, 23, 2,
+        23, 24, 3,
+        24, 25, 4,
+        25, 26, 3,
+        26, 27, 2,
+        27, 28, 3,
+        28, 29, 4,
+        29, 30, 1
+      ]
+    },
+    "light-plus": {
+      "styles": [
+        {"foreground": "#008000"},
+        {},
+        {"foreground": "#0000ff"},
+        {"foreground": "#000000"},
+        {"foreground": "#0070c1"},
+        {"foreground": "#098658"}
+      ],
+      "spans": [
+        0, 2, 0,
+        2, 3, 1,
+        3, 4, 1,
+        4, 13, 0,
+        13, 14, 1,
+        14, 15, 1,
+        15, 17, 0,
+        17, 18, 1,
+        18, 23, 2,
+        23, 24, 3,
+        24, 25, 4,
+        25, 28, 3,
+        28, 29, 5,
+        29, 30, 1
+      ]
+    },
+    "vesper": {
+      "styles": [
+        {"foreground": "#8b8b8b94"},
+        {},
+        {"foreground": "#a0a0a0"},
+        {"foreground": "#ffffff"},
+        {"foreground": "#ffc799"}
+      ],
+      "spans": [
+        0, 2, 0,
+        2, 3, 1,
+        3, 4, 1,
+        4, 13, 0,
+        13, 14, 1,
+        14, 15, 1,
+        15, 17, 0,
+        17, 18, 1,
+        18, 23, 2,
+        23, 26, 3,
+        26, 27, 2,
+        27, 28, 3,
+        28, 29, 4,
+        29, 30, 1
+      ]
+    }
+  }
+}

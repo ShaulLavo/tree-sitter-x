@@ -1,0 +1,19 @@
+These files are unmodified copies from microsoft/vscode-textmate at commit
+fbe49961ab8077e587fdf5282019655ae69e5f9e, kept at their upstream paths.
+Each file's sha256 is recorded in ../../manifest/fixture-sources.json and
+checked by tests/vendor.test.ts.
+
+Included: test-cases/first-mate/tests.json, test-cases/suite1/tests.json,
+test-cases/suite1/whileTests.json and the grammar fixtures those suites load,
+except test-cases/first-mate/fixtures/sql.json, which the manifest excludes
+together with the one first-mate case that needs it.
+
+Licenses, as stated in the included ThirdPartyNotices.txt:
+- test-cases/first-mate/**: MIT, Copyright (c) 2013 GitHub Inc.
+- test-cases/suite1/**: the TextMate project permission notice
+  ("Permission to copy, use, modify, sell and distribute this software is
+  granted..."), with its stated exceptions.
+- The repository itself: MIT, Copyright (c) Microsoft Corporation (LICENSE.md).
+
+These grammars are artificial or historical oracle-conformance inputs. They
+never count toward any native-language coverage denominator.

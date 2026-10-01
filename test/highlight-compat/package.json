@@ -11,18 +11,23 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "compare": "node src/cli/compare.ts",
-    "golden:update": "node src/cli/golden-update.ts"
+    "golden:update": "node src/cli/golden-update.ts",
+    "report:references": "node src/cli/report-references.ts",
+    "test:platform": "vitest run --config vitest.platform.config.ts"
   },
   "dependencies": {
     "@shikijs/engine-oniguruma": "4.4.3",
     "@shikijs/langs": "4.4.3",
     "@shikijs/themes": "4.4.3",
     "@shikijs/vscode-textmate": "10.0.2",
-    "shiki": "4.4.3"
+    "shiki": "4.4.3",
+    "vscode-oniguruma": "2.0.1",
+    "vscode-textmate": "9.3.2"
   },
   "devDependencies": {
     "@types/node": "26.6.1",
     "typescript": "5.9.3",
-    "vitest": "3.2.4"
+    "vite": "8.3.1",
+    "vitest": "5.0.3"
   }
 }

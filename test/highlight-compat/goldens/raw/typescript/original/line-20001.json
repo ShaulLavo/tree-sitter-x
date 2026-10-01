@@ -1,0 +1,136 @@
+{
+  "schema": 1,
+  "profileId": "raw",
+  "languageId": "typescript",
+  "sourceSha256": "7140b6e6d7444ecbc8b2925add8127d8e7a8b347d34920d8dace1abe1ab9e62f",
+  "sourceLength": 20012,
+  "documentRevision": 0,
+  "status": "complete",
+  "diagnostics": [],
+  "engine": {
+    "grammars": "@shikijs/langs@4.4.3",
+    "lines": "LF and CRLF terminators; every line tokenized, state carried",
+    "oniguruma": "vscode-oniguruma@2.0.1",
+    "onigurumaCommit": "184a6e2d4603c5a31efc0a33f544be1545d9ec6b",
+    "onigurumaWasmSha256": "76ebc1f0d87b2e7449a45ff3cd1a1546a9f05f54bdac44ee03e8a2b8348897be",
+    "textmate": "vscode-textmate@9.3.2",
+    "textmateCommit": "25b68dad91920b1ed79d357534b8c4582f62d80d",
+    "themeInput": "editor.foreground/background default rule, then tokenColors",
+    "themes": "@shikijs/themes@4.4.3"
+  },
+  "scopeNames": [
+    "source.ts",
+    "comment.line.double-slash.ts",
+    "punctuation.definition.comment.ts",
+    "meta.var.expr.ts",
+    "storage.type.ts",
+    "meta.var-single-variable.expr.ts",
+    "meta.definition.variable.ts",
+    "variable.other.readwrite.ts",
+    "keyword.operator.assignment.ts",
+    "constant.numeric.decimal.ts"
+  ],
+  "paths": [
+    [0, 1, 2],
+    [0, 1],
+    [],
+    [0, 3, 4],
+    [0, 3],
+    [0, 3, 5, 6, 7],
+    [0, 3, 5],
+    [0, 3, 8],
+    [0, 3, 9]
+  ],
+  "spans": [
+    0, 2, 0,
+    2, 20001, 1,
+    20001, 20002, 2,
+    20002, 20005, 3,
+    20005, 20006, 4,
+    20006, 20007, 5,
+    20007, 20008, 6,
+    20008, 20009, 7,
+    20009, 20010, 4,
+    20010, 20011, 8,
+    20011, 20012, 2
+  ],
+  "styles": {
+    "dracula": {
+      "styles": [
+        {"foreground": "#6272a4"},
+        {},
+        {"foreground": "#ff79c6"},
+        {"foreground": "#f8f8f2"},
+        {"foreground": "#bd93f9"}
+      ],
+      "spans": [
+        0, 20001, 0,
+        20001, 20002, 1,
+        20002, 20005, 2,
+        20005, 20008, 3,
+        20008, 20009, 2,
+        20009, 20010, 3,
+        20010, 20011, 4,
+        20011, 20012, 1
+      ]
+    },
+    "github-dark": {
+      "styles": [
+        {"foreground": "#6a737d"},
+        {},
+        {"foreground": "#f97583"},
+        {"foreground": "#e1e4e8"},
+        {"foreground": "#79b8ff"}
+      ],
+      "spans": [
+        0, 20001, 0,
+        20001, 20002, 1,
+        20002, 20005, 2,
+        20005, 20008, 3,
+        20008, 20009, 2,
+        20009, 20010, 3,
+        20010, 20011, 4,
+        20011, 20012, 1
+      ]
+    },
+    "light-plus": {
+      "styles": [
+        {"foreground": "#008000"},
+        {},
+        {"foreground": "#0000ff"},
+        {"foreground": "#000000"},
+        {"foreground": "#001080"},
+        {"foreground": "#098658"}
+      ],
+      "spans": [
+        0, 20001, 0,
+        20001, 20002, 1,
+        20002, 20005, 2,
+        20005, 20006, 3,
+        20006, 20007, 4,
+        20007, 20010, 3,
+        20010, 20011, 5,
+        20011, 20012, 1
+      ]
+    },
+    "vesper": {
+      "styles": [
+        {"foreground": "#8b8b8b94"},
+        {},
+        {"foreground": "#a0a0a0"},
+        {"foreground": "#ffffff"},
+        {"foreground": "#ffc799"}
+      ],
+      "spans": [
+        0, 20001, 0,
+        20001, 20002, 1,
+        20002, 20005, 2,
+        20005, 20008, 3,
+        20008, 20009, 2,
+        20009, 20010, 3,
+        20010, 20011, 4,
+        20011, 20012, 1
+      ]
+    }
+  }
+}

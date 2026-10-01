@@ -1,0 +1,144 @@
+{
+  "schema": 1,
+  "profileId": "shiki-api",
+  "languageId": "json",
+  "sourceSha256": "d09be27b946f7c24e886ff3f719bf01aa2a696260746fc182b61cb09bc4f9b79",
+  "sourceLength": 14,
+  "documentRevision": 0,
+  "status": "complete",
+  "diagnostics": [],
+  "engine": {
+    "api": "codeToTokensBase",
+    "grammars": "@shikijs/langs@4.4.3",
+    "oniguruma": "@shikijs/engine-oniguruma@4.4.3",
+    "options": "includeExplanation=scopeName tokenizeMaxLineLength=20000 tokenizeTimeLimit=0",
+    "shiki": "shiki@4.4.3",
+    "textmate": "@shikijs/vscode-textmate@10.0.2",
+    "themes": "@shikijs/themes@4.4.3"
+  },
+  "scopeNames": [
+    "source.json",
+    "meta.structure.dictionary.json",
+    "punctuation.definition.dictionary.begin.json",
+    "string.json",
+    "support.type.property-name.json",
+    "punctuation.support.type.property-name.begin.json",
+    "punctuation.support.type.property-name.end.json",
+    "meta.structure.dictionary.value.json",
+    "punctuation.separator.dictionary.key-value.json",
+    "constant.numeric.json",
+    "punctuation.definition.dictionary.end.json"
+  ],
+  "paths": [
+    [0, 1, 2],
+    [],
+    [0, 1],
+    [0, 1, 3, 4, 5],
+    [0, 1, 3, 4],
+    [0, 1, 3, 4, 6],
+    [0, 1, 7, 8],
+    [0, 1, 7],
+    [0, 1, 7, 9],
+    [0, 1, 10]
+  ],
+  "spans": [
+    0, 1, 0,
+    1, 2, 1,
+    2, 3, 1,
+    3, 5, 2,
+    5, 6, 3,
+    6, 7, 4,
+    7, 8, 5,
+    8, 9, 6,
+    9, 10, 7,
+    10, 11, 8,
+    11, 12, 1,
+    12, 13, 9,
+    13, 14, 1
+  ],
+  "styles": {
+    "dracula": {
+      "styles": [
+        {"foreground": "#f8f8f2"},
+        {},
+        {"foreground": "#8be9fe"},
+        {"foreground": "#8be9fd"},
+        {"foreground": "#ff79c6"},
+        {"foreground": "#bd93f9"}
+      ],
+      "spans": [
+        0, 1, 0,
+        1, 2, 1,
+        2, 3, 1,
+        3, 5, 0,
+        5, 6, 2,
+        6, 7, 3,
+        7, 8, 2,
+        8, 9, 4,
+        9, 10, 0,
+        10, 11, 5,
+        11, 12, 1,
+        12, 13, 0,
+        13, 14, 1
+      ]
+    },
+    "github-dark": {
+      "styles": [
+        {"foreground": "#e1e4e8"},
+        {},
+        {"foreground": "#79b8ff"}
+      ],
+      "spans": [
+        0, 1, 0,
+        1, 2, 1,
+        2, 3, 1,
+        3, 5, 0,
+        5, 8, 2,
+        8, 10, 0,
+        10, 11, 2,
+        11, 12, 1,
+        12, 13, 0,
+        13, 14, 1
+      ]
+    },
+    "light-plus": {
+      "styles": [
+        {"foreground": "#000000"},
+        {},
+        {"foreground": "#0451a5"},
+        {"foreground": "#098658"}
+      ],
+      "spans": [
+        0, 1, 0,
+        1, 2, 1,
+        2, 3, 1,
+        3, 5, 0,
+        5, 8, 2,
+        8, 10, 0,
+        10, 11, 3,
+        11, 12, 1,
+        12, 13, 0,
+        13, 14, 1
+      ]
+    },
+    "vesper": {
+      "styles": [
+        {"foreground": "#ffffff"},
+        {},
+        {"foreground": "#ffc799"}
+      ],
+      "spans": [
+        0, 1, 0,
+        1, 2, 1,
+        2, 3, 1,
+        3, 5, 0,
+        5, 8, 2,
+        8, 10, 0,
+        10, 11, 2,
+        11, 12, 1,
+        12, 13, 0,
+        13, 14, 1
+      ]
+    }
+  }
+}
