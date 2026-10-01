@@ -1,0 +1,109 @@
+Selected vscode-colorize fixtures. Original bytes preserved.
+
+extensions/vscode-colorize-tests/test/colorize-fixtures/test-brackets.tsx
+Source set: vscode-colorize-fixtures
+Repository: https://github.com/microsoft/vscode
+Revision: 5470377e71f72089f2bbd5eb8aeb862892f78b31
+SHA-256: 2d33e00ba3c02b140644715a43770c0750fb1774ec31ee1d349eaa17f5518609
+License: vscode-mit
+
+extensions/vscode-colorize-tests/test/colorize-fixtures/test-keywords.ts
+Source set: vscode-colorize-fixtures
+Repository: https://github.com/microsoft/vscode
+Revision: 5470377e71f72089f2bbd5eb8aeb862892f78b31
+SHA-256: 491e4563c720e23b629f295fcea28dc589b557ece4595f2b5f4ae70011fab1f6
+License: vscode-mit
+
+extensions/vscode-colorize-tests/test/colorize-fixtures/test-object-literals.ts
+Source set: vscode-colorize-fixtures
+Repository: https://github.com/microsoft/vscode
+Revision: 5470377e71f72089f2bbd5eb8aeb862892f78b31
+SHA-256: 276ecad82959d3fb8c77d19586a8f54e65b05093a5c3feb217278cf7f5f22355
+License: vscode-mit
+
+extensions/vscode-colorize-tests/test/colorize-fixtures/test.js
+Source set: vscode-colorize-fixtures
+Repository: https://github.com/microsoft/vscode
+Revision: 5470377e71f72089f2bbd5eb8aeb862892f78b31
+SHA-256: d86234cda3285c0d00e0e0326f5f4d29a768e7b91dd8ce255abcf251d5afc053
+License: vscode-mit
+
+extensions/vscode-colorize-tests/test/colorize-fixtures/test.json
+Source set: vscode-colorize-fixtures
+Repository: https://github.com/microsoft/vscode
+Revision: 5470377e71f72089f2bbd5eb8aeb862892f78b31
+SHA-256: b2d531295f4856719d5eb1bf2f5fa42bc0ea8436b5687cde0ed19e504866c360
+License: vscode-mit
+
+extensions/vscode-colorize-tests/test/colorize-results/test-brackets_tsx.json
+Source set: vscode-colorize-results
+Repository: https://github.com/microsoft/vscode
+Revision: 5470377e71f72089f2bbd5eb8aeb862892f78b31
+SHA-256: aca259963a00993ce3794d8d5efd8b7b6668f24c81127f587b26057c280b3c3e
+License: vscode-mit
+
+extensions/vscode-colorize-tests/test/colorize-results/test-keywords_ts.json
+Source set: vscode-colorize-results
+Repository: https://github.com/microsoft/vscode
+Revision: 5470377e71f72089f2bbd5eb8aeb862892f78b31
+SHA-256: 5c6f223454f3341775dafc79a5d22d1f55518b4cbe1c9787b946ae0021e39bd2
+License: vscode-mit
+
+extensions/vscode-colorize-tests/test/colorize-results/test-object-literals_ts.json
+Source set: vscode-colorize-results
+Repository: https://github.com/microsoft/vscode
+Revision: 5470377e71f72089f2bbd5eb8aeb862892f78b31
+SHA-256: 0e9025351d57423af73ba0d72232ec1867e174ecf6c5ff2e27c2f21cd686e36b
+License: vscode-mit
+
+extensions/vscode-colorize-tests/test/colorize-results/test_js.json
+Source set: vscode-colorize-results
+Repository: https://github.com/microsoft/vscode
+Revision: 5470377e71f72089f2bbd5eb8aeb862892f78b31
+SHA-256: 1e6b893c095975b6308086eb547830e7921859b2bdb6b81fdb3f09a02b6ee43a
+License: vscode-mit
+
+extensions/vscode-colorize-tests/test/colorize-results/test_json.json
+Source set: vscode-colorize-results
+Repository: https://github.com/microsoft/vscode
+Revision: 5470377e71f72089f2bbd5eb8aeb862892f78b31
+SHA-256: b5b7401ddbb3d72346defbbc46f518bb9f5ae9e3a623dcb0c49c06445117fc8d
+License: vscode-mit
+
+extensions/vscode-colorize-tests/test/colorize-tree-sitter-results/test-keywords_ts.json
+Source set: vscode-colorize-tree-sitter-results
+Repository: https://github.com/microsoft/vscode
+Revision: 5470377e71f72089f2bbd5eb8aeb862892f78b31
+SHA-256: 107372c95b5195e38871abb9e71d8fe8ef55895587a1837a7c37848b3a5b42d8
+License: vscode-mit
+
+extensions/vscode-colorize-tests/test/colorize-tree-sitter-results/test-object-literals_ts.json
+Source set: vscode-colorize-tree-sitter-results
+Repository: https://github.com/microsoft/vscode
+Revision: 5470377e71f72089f2bbd5eb8aeb862892f78b31
+SHA-256: dc3e873a718dd1b60f162930dcff1b30568da7d4cc4e64b84245a1bf132c9fa7
+License: vscode-mit
+
+===== vscode-mit (MIT), vscode:LICENSE.txt@5470377e71f72089f2bbd5eb8aeb862892f78b31 =====
+MIT License
+
+Copyright (c) 2015 - present Microsoft Corporation
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+

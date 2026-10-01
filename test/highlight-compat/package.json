@@ -13,7 +13,11 @@
     "compare": "node src/cli/compare.ts",
     "golden:update": "node src/cli/golden-update.ts",
     "report:references": "node src/cli/report-references.ts",
-    "test:platform": "vitest run --config vitest.platform.config.ts"
+    "test:platform": "vitest run --config vitest.platform.config.ts",
+    "fixtures:comments": "node scripts/fixtures.ts --comments",
+    "fixtures:check": "node scripts/fixtures.ts --check",
+    "fixtures:update": "node scripts/fixtures.ts --update",
+    "fixtures:report": "node scripts/fixtures.ts --report"
   },
   "dependencies": {
     "@shikijs/engine-oniguruma": "4.4.3",

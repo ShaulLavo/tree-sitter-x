@@ -1,0 +1,81 @@
+Selected typescript-tmlanguage fixtures. Original bytes preserved.
+
+tests/cases/AsConstSatisfies.ts
+Source set: typescript-tmlanguage-cases
+Repository: https://github.com/microsoft/TypeScript-TmLanguage
+Revision: eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81
+SHA-256: d3043db40b618696d156fd5c17542762f95371a217b3f253b70efe26975c2f33
+License: typescript-mit
+
+tests/cases/autoAccessor.ts
+Source set: typescript-tmlanguage-cases
+Repository: https://github.com/microsoft/TypeScript-TmLanguage
+Revision: eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81
+SHA-256: d600d45bb9f7b9c915dbe2a396b19f4e5d8e8598e335a42423f2af00263f37e8
+License: typescript-mit
+
+tests/cases/awaitUsing.ts
+Source set: typescript-tmlanguage-cases
+Repository: https://github.com/microsoft/TypeScript-TmLanguage
+Revision: eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81
+SHA-256: c5cde4b5312fd7f765b9632a1a9e910002daf35a3347f73d1b19638688fa0572
+License: typescript-mit
+
+tests/cases/constTypeParameter.ts
+Source set: typescript-tmlanguage-cases
+Repository: https://github.com/microsoft/TypeScript-TmLanguage
+Revision: eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81
+SHA-256: 60e7a09ae8399bd4b54e11db5a8804bb52a1d9a2b061e4c0da4179ffb10248b4
+License: typescript-mit
+
+tests/baselines/AsConstSatisfies.baseline.txt
+Source set: typescript-tmlanguage-baselines
+Repository: https://github.com/microsoft/TypeScript-TmLanguage
+Revision: eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81
+SHA-256: 9359c69c82f7e60855d02a3a518d6021554afac199b694c7afd382f4aea921c0
+License: typescript-mit
+
+tests/baselines/autoAccessor.baseline.txt
+Source set: typescript-tmlanguage-baselines
+Repository: https://github.com/microsoft/TypeScript-TmLanguage
+Revision: eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81
+SHA-256: 9fc779967c02034a66c43a33418e87415edcd39d767e24375c380485d92c2271
+License: typescript-mit
+
+tests/baselines/awaitUsing.baseline.txt
+Source set: typescript-tmlanguage-baselines
+Repository: https://github.com/microsoft/TypeScript-TmLanguage
+Revision: eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81
+SHA-256: d21f968903c131f64eb8d21f7a3b37dbb709d465d0ec6005505c3154e154fb52
+License: typescript-mit
+
+tests/baselines/constTypeParameter.baseline.txt
+Source set: typescript-tmlanguage-baselines
+Repository: https://github.com/microsoft/TypeScript-TmLanguage
+Revision: eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81
+SHA-256: 0016a5d2caa77ce358baa59f278d30bcaefa2a858d2f78d387c2c6b63c1439c2
+License: typescript-mit
+
+===== typescript-mit (MIT), typescript-tmlanguage:LICENSE.txt@eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81 =====
+Copyright (c) Microsoft Corporation
+All rights reserved.
+
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
