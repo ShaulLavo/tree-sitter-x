@@ -1,3 +1,4 @@
+import type {} from '../scripts/profile-ci-probe.ts'
 import { execFileSync, spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
