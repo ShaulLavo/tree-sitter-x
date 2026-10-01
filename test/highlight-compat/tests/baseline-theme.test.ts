@@ -1,12 +1,20 @@
-import { expect, it } from 'vitest'
+import { expect, inject, it } from 'vitest'
 import { compareResults } from '../src/compare.ts'
 import { corpusInputs, readReference } from '../src/corpus.ts'
 import { paintScopes } from '../src/baselines/theme.ts'
 
+declare module 'vitest' {
+  export interface ProvidedContext {
+    referenceRoot: string | undefined
+  }
+}
+
+const referenceRoot = inject('referenceRoot', undefined)
+
 for (const reference of ['raw', 'product'] as const) {
   it(`${reference} scopes reproduce direct reference styles with the pinned matcher`, async () => {
     for (const input of corpusInputs()) {
-      const result = readReference(input, reference)
+      const result = readReference(input, reference, referenceRoot)
       expect(result.status).toBe('complete')
       if (result.status !== 'complete') continue
       const intervals = []

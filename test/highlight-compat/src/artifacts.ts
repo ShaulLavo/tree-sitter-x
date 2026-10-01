@@ -1,14 +1,17 @@
 import { createHash } from 'node:crypto'
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { existsSync, lstatSync, readFileSync, readdirSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
 export function artifactFiles(root: string): string[] {
-  if (!existsSync(root)) return []
+  const status = lstatSync(root, { throwIfNoEntry: false })
+  if (status === undefined) return []
+  if (!status.isDirectory()) throw new Error(`unsupported artifact entry: ${root}`)
   const files: string[] = []
   for (const entry of readdirSync(root, { withFileTypes: true })) {
     const path = join(root, entry.name)
     if (entry.isDirectory()) files.push(...artifactFiles(path))
     else if (entry.isFile()) files.push(path)
+    else throw new Error(`unsupported artifact entry: ${path}`)
   }
   return files.sort()
 }

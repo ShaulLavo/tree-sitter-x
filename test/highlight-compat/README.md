@@ -2,11 +2,11 @@
 
 Development harness that compares TextMate scope and style output between reference profiles (`<product|raw|shiki-api|vscode>[:variant]`) and candidates (`native`, `baseline:<name>`). The plan is `docs/plans/textmate-scope-compatibility.md`.
 
-Build this checkout's web binding before running the baseline tests. Rust, Node.js 24 and npm are required. The WASI build downloads its pinned SDK and Binaryen tools when the build cache is empty. Tests and regeneration use only local assets.
+Build this checkout's web binding before running the baseline tests. Rust 1.98.1, Node.js 24.21.0 and npm are required. The harness engines field, lock metadata and CI pin this same Node runtime; CI also pins the tested Rust release. The WASI build downloads its pinned SDK and Binaryen tools when the build cache is empty. Tests and regeneration use only local assets.
 
 ```sh
 # From the repository root:
-cargo xtask build-wasm
+cargo +1.98.1 xtask build-wasm
 (cd lib/binding_web && npm ci && npm run build:ts)
 cd test/highlight-compat
 npm ci
@@ -40,9 +40,11 @@ The tracked-import guard follows harness source dependencies. `generated-inputs.
 
 `goldens/<profileId>/<languageId>/<fixtureId>.json`, written by `golden:update` or `artifacts:update` from producers registered in `src/golden-producers.ts`. The update validates every case against its source and refuses non-reference profiles, failed reference work and fixture paths that collide as file and directory. It stages the new profile tree and swaps it in whole, so a failure writes nothing and stale files disappear. The read-only check (`tests/goldens.test.ts`) requires each registered producer to yield exactly the committed goldens of its own profile.
 
+`artifacts:update` creates its first fresh reference tree before mandatory self-tests. The scope/theme checks read that temporary tree, so missing or stale committed goldens can be regenerated. Publication copies and verifies both new directories in checkout-local staging before any rename, retains both old directories until installation succeeds, and restores them if a copy or rename fails. Artifact traversal rejects symlinks and unsupported filesystem entries.
+
 ## Reference oracles
 
-`src/oracles/` turns a source string into a `DocumentResult` for each implemented reference profile. Every call runs in a fresh worker (`src/oracles/run.ts`) under a hard deadline, and returns a validated result or `timeout`/`error` with a diagnostic, never partial spans. Nothing is shared between calls: each builds its own engine, registry or highlighter and loads its own themes.
+`src/oracles/` turns a source string into a `DocumentResult` for each implemented reference profile. Every call runs in a fresh worker (`src/oracles/run.ts`) under a hard deadline, and returns a validated result or `timeout`/`error` with a diagnostic, never partial spans. A reply waits for natural worker exit before releasing its concurrency slot. An answered worker that retains handles is terminated after a 1000 ms teardown grace period and returns an error diagnostic; the no-answer hard deadline remains 60000 ms. Nothing is shared between calls: each builds its own engine, registry or highlighter and loads its own themes.
 
 | Profile | What it runs |
 | --- | --- |

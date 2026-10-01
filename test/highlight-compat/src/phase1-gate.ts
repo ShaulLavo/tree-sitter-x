@@ -16,7 +16,7 @@ export function phase1GateReport(counts: readonly GateTestCount[], first: string
     '| Read-only test mode and explicit reference-only golden updates | tests/golden.test.ts; tests/goldens.test.ts; src/golden-producers.ts; scripts/regenerate.ts | Candidate profiles refused; npm test reads committed goldens; regeneration checks temp trees |',
     '| Diagnostic simple capture mapping and compatible VS Code query baselines | reports/baselines.md; tests/baselines.test.ts; tests/baseline-theme.test.ts | TypeScript and TSX run in both baselines; unsupported Markdown and excluded patterns accounted for |', '',
     '## Required self-test counts', '',
-    'Regeneration runs these tests against the checkout before hashing either pipeline. Counts below come from Vitest’s JSON results. Every test case must pass. The full npm test suite is a separate CI step.', '',
+    'Regeneration creates the first reference tree, then runs these tests before hashing either pipeline. Scope/theme checks read the fresh temporary goldens; ordinary npm test reads committed goldens. Counts below come from Vitest’s JSON results. Every test case must pass. The full npm test suite is a separate CI step.', '',
     '| Test file | Passed | Test cases |', '| --- | ---: | ---: |',
     ...counts.map(count => `| ${count.path} | ${count.passed} | ${count.total} |`),
     `| Total | ${counts.reduce((sum, count) => sum + count.passed, 0)} | ${counts.reduce((sum, count) => sum + count.total, 0)} |`, '',

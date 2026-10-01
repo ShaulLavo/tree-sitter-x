@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -13,6 +13,7 @@ import { buildHistoricalReport } from '../src/historical-report.ts'
 import { phase1GateReport } from '../src/phase1-gate.ts'
 import type { GateTestCount } from '../src/phase1-gate.ts'
 import { buildReferenceReport } from '../src/reference-report.ts'
+import { publishArtifacts, regenerationRuns } from '../src/regeneration.ts'
 import { isReferenceProfile } from '../src/schema.ts'
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url))
@@ -20,6 +21,7 @@ const SELF_TESTS = [
   'build', 'validate', 'serialize', 'compare', 'categorize', 'sweep', 'memory', 'streaming-source',
   'golden', 'sparse-goldens', 'oracle-core', 'oracle-conformance', 'product-document',
   'fixture-adapters', 'expectations', 'original-fixtures', 'baselines', 'baseline-theme', 'phase1-gate',
+  'artifacts', 'regeneration', 'runtime-pins',
 ].map(name => `tests/${name}.test.ts`)
 
 interface VitestResult {
@@ -30,9 +32,11 @@ interface VitestResult {
   }[]
 }
 
-function selfTestCounts(scratch: string): GateTestCount[] {
+function selfTestCounts(scratch: string, goldenRoot: string): GateTestCount[] {
   const output = join(scratch, 'tests.json')
-  execFileSync(process.execPath, [join(ROOT, 'node_modules/vitest/vitest.mjs'), 'run', ...SELF_TESTS, '--reporter=json', `--outputFile=${output}`], { cwd: ROOT, stdio: 'inherit' })
+  const config = join(scratch, 'self-tests.config.mts')
+  writeFileSync(config, `import config from ${JSON.stringify(join(ROOT, 'vitest.config.ts'))}\nexport default { ...config, test: { ...config.test, provide: { ...config.test?.provide, referenceRoot: ${JSON.stringify(goldenRoot)} } } }\n`)
+  execFileSync(process.execPath, [join(ROOT, 'node_modules/vitest/vitest.mjs'), 'run', ...SELF_TESTS, '--config', config, '--reporter=json', `--outputFile=${output}`], { cwd: ROOT, stdio: 'inherit' })
   const result = JSON.parse(readFileSync(output, 'utf8')) as VitestResult
   if (!result.success) throw new Error('mandatory Phase 1 self-tests failed')
   return SELF_TESTS.map(path => {
@@ -71,12 +75,10 @@ const mode = process.argv[2]
 if (!['--check', '--update'].includes(mode ?? '') || process.argv.length !== 3) throw new Error('usage: node scripts/regenerate.ts --check|--update')
 const scratch = mkdtempSync(join(tmpdir(), 'highlight-compat-regenerate-'))
 try {
-  const counts = selfTestCounts(scratch)
-  const first = join(scratch, 'first'), second = join(scratch, 'second')
-  await generateTree(first)
-  const firstHash = artifactHash(first)
-  await generateTree(second)
-  const secondHash = artifactHash(second)
+  const { first, second, firstHash, secondHash, counts } = await regenerationRuns(scratch, {
+    generate: generateTree,
+    selfTests: goldenRoot => selfTestCounts(scratch, goldenRoot),
+  })
   console.log(`pipeline content SHA-256 ${firstHash} ${secondHash}`)
   const gate = phase1GateReport(counts, firstHash, secondHash)
   write(first, 'reports/phase-1-gate.md', gate)
@@ -85,10 +87,7 @@ try {
   if (repeated.length > 0) throw new Error(`repeated generation differs:\n${repeated.join('\n')}`)
   console.log(`full artifact SHA-256 ${artifactHash(first)} ${artifactHash(second)}`)
   if (mode === '--update') {
-    for (const directory of ['goldens', 'reports']) {
-      rmSync(join(ROOT, directory), { recursive: true, force: true })
-      cpSync(join(first, directory), join(ROOT, directory), { recursive: true })
-    }
+    publishArtifacts(first, ROOT)
     console.log('updated reference goldens and reports from two identical runs')
   } else {
     const differences = committedDifferences(first)
