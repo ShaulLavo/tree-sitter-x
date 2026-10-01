@@ -72,7 +72,7 @@ Each file under `src/oracles/product/` that starts with `// Port of Platform <pa
 
 `vendor/baselines/NOTICE.md` records source identities and licenses. Tests check every pilot parser/query against `manifest/tree-sitter-languages.json`, and check the VS Code query against its pinned hash. Markdown stays at tree-sitter-md 0.1.1. That manifest uses native `MarkdownDocument.highlights` without an external query or inline parser, so ordinary-capture Markdown is unsupported. The JS/TS/TSX queries require local-variable analysis for two patterns. Those patterns are excluded with line numbers and reasons. Unknown predicates and directives fail.
 
-Composition orders active captures by start ascending, end descending, accepted query-pattern index, capture ordinal, then code-point capture name. The root scope is first; duplicates remain. Every LF/CRLF separator has empty scopes and styles. Styles use the pinned TextMate theme matcher with raw/product normalization, independently checked by repainting reference scope paths.
+Composition orders active captures by start ascending, end descending, accepted query-pattern index, declared capture-name ordinal, then code-point capture name. Match enumeration does not decide ties. The root scope is first; duplicates remain. Every LF/CRLF separator has empty scopes and styles. Styles use the pinned TextMate theme matcher with raw/product normalization, independently checked by repainting reference scope paths.
 
 `reports/baselines.md` separates real and original fixtures, gives UTF-16 and file-macro denominators, and lists each unsupported or failed comparison. `reports/historical-expectations.md` grades the historical annotations against raw/product goldens and never gates native acceptance.
 

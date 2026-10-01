@@ -10,7 +10,7 @@ Real and original corpora are scored separately so the long-line cap fixtures ca
 
 baseline:captures uses capture-map-1 in src/baselines/capture-map.ts. baseline:vscode-ts uses the capture names verbatim from VS Code f39c7109bf651845855cbef5af2e91b2c9bd0a74. Both parse with lib/binding_web built from this checkout, not an npm runtime. Vendored parser and query bytes are tested against manifest/tree-sitter-languages.json; the VS Code query hash is pinned separately.
 
-Composition sweeps capture endpoints. The root scope comes first. Active captures sort by start ascending, end descending (enclosing first), accepted query-pattern index ascending, capture ordinal ascending, then capture name. Coincident captures and duplicates are retained. Crossing intervals use the same order. Every LF or CRLF terminator has an empty path and empty style; a lone CR remains text. Transparent embedded captures add no scope. These baselines use the outer parser tree only. Injections and local-variable analysis are not implemented.
+Composition sweeps capture endpoints. The root scope comes first. Active captures sort by start ascending, end descending (enclosing first), accepted query-pattern index ascending, declared capture-name ordinal ascending, then code-point capture name. Query match enumeration never decides a tie. Coincident captures and duplicates are retained. Crossing intervals use the same order. Every LF or CRLF terminator has an empty path and empty style; a lone CR remains text. Transparent embedded captures add no scope. These baselines use the outer parser tree only. Injections and local-variable analysis are not implemented.
 
 ## Query compatibility and operation inventory
 
@@ -273,13 +273,13 @@ No excluded patterns.
 | baseline:vscode-ts | raw | real | typescript | leaf | 232 | 1343 |
 | baseline:vscode-ts | raw | real | typescript | missing-scope | 939 | 1792 |
 | baseline:vscode-ts | raw | real | typescript | extra-scope | 4 | 4 |
-| baseline:vscode-ts | raw | real | typescript | ancestor | 184 | 500 |
-| baseline:vscode-ts | raw | real | typescript | other | 782 | 1778 |
+| baseline:vscode-ts | raw | real | typescript | ancestor | 149 | 461 |
+| baseline:vscode-ts | raw | real | typescript | other | 817 | 1817 |
 | baseline:vscode-ts | product | real | typescript | leaf | 232 | 1343 |
 | baseline:vscode-ts | product | real | typescript | missing-scope | 939 | 1792 |
 | baseline:vscode-ts | product | real | typescript | extra-scope | 4 | 4 |
-| baseline:vscode-ts | product | real | typescript | ancestor | 184 | 500 |
-| baseline:vscode-ts | product | real | typescript | other | 782 | 1778 |
+| baseline:vscode-ts | product | real | typescript | ancestor | 149 | 461 |
+| baseline:vscode-ts | product | real | typescript | other | 817 | 1817 |
 | baseline:vscode-ts | raw | real | tsx | leaf | 3 | 20 |
 | baseline:vscode-ts | raw | real | tsx | missing-scope | 10 | 12 |
 | baseline:vscode-ts | raw | real | tsx | other | 26 | 100 |

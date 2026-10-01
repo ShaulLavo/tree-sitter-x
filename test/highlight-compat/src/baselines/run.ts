@@ -5,8 +5,8 @@ import type { DocumentResult } from '../schema.ts'
 import { languageRegistrations } from '../oracles/assets.ts'
 import { checkAssets, parserUrl, PILOT_LANGUAGES, querySource, sha256, VENDOR_ROOT, VSCODE_COMMIT, VSCODE_QUERY_SHA256 } from './assets.ts'
 import { CAPTURE_MAP_VERSION, captureScopes } from './capture-map.ts'
-import { composeCaptures } from './compose.ts'
-import type { CaptureInterval, ScopeInterval } from './compose.ts'
+import { captureIntervals, composeCaptures } from './compose.ts'
+import type { NamedCapture, ScopeInterval } from './compose.ts'
 import { queryPatterns, requireSupportedOperators } from './query.ts'
 import { paintScopes } from './theme.ts'
 import type { StyleReference } from './theme.ts'
@@ -16,10 +16,9 @@ export type BaselineId = 'baseline:captures' | 'baseline:vscode-ts'
 interface BindingNode { readonly startIndex: number; readonly endIndex: number }
 interface BindingTree { readonly rootNode: BindingNode; delete(): void }
 interface BindingLanguage { readonly abiVersion: number }
-interface BindingCapture { readonly name: string; readonly patternIndex: number; readonly node: BindingNode }
 interface BindingQuery {
   readonly captureNames: readonly string[]
-  captures(node: BindingNode): readonly BindingCapture[]
+  captures(node: BindingNode): readonly NamedCapture[]
   didExceedMatchLimit(): boolean
   delete(): void
 }
@@ -104,7 +103,7 @@ export async function baselineScopes(profileId: BaselineId, languageId: string, 
     parser.setLanguage(language)
     tree = parser.parse(source)
     if (tree === null) throw new Error('baseline parse returned no tree')
-    const captures: CaptureInterval[] = query.captures(tree.rootNode).map((capture, ordinal) => ({ from: capture.node.startIndex, to: capture.node.endIndex, name: capture.name, pattern: capture.patternIndex, ordinal }))
+    const captures = captureIntervals(query.captures(tree.rootNode), query.captureNames)
     if (query.didExceedMatchLimit()) throw new Error('baseline query exceeded its match limit')
     const registrations = await languageRegistrations(languageId)
     const root = registrations.find(registration => registration.name === languageId)?.scopeName
@@ -115,7 +114,7 @@ export async function baselineScopes(profileId: BaselineId, languageId: string, 
         binding: 'checkout lib/binding_web', parserABI: String(language.abiVersion),
         querySha256: sha256(queryText), captureMap: profileId === 'baseline:captures' ? CAPTURE_MAP_VERSION : 'identity TextMate capture names',
         querySource: profileId === 'baseline:captures' ? 'manifest/tree-sitter-languages.json' : `vscode ${VSCODE_COMMIT} typescript.scm ${VSCODE_QUERY_SHA256}`,
-        composition: 'start ascending, end descending, pattern ascending, capture ordinal ascending; duplicates retained; root first; physical terminators empty',
+        composition: 'start ascending, end descending, pattern ascending, declared capture ordinal ascending; duplicates retained; root first; physical terminators empty',
         injections: 'outer tree only; injection grammars and local analysis are outside these diagnostic baselines',
       },
     }

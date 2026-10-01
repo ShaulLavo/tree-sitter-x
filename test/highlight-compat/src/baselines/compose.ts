@@ -1,5 +1,11 @@
 import { sourceLines } from '../oracles/lines.ts'
 
+export interface NamedCapture {
+  readonly name: string
+  readonly patternIndex: number
+  readonly node: { readonly startIndex: number; readonly endIndex: number }
+}
+
 export interface CaptureInterval {
   readonly from: number
   readonly to: number
@@ -12,6 +18,14 @@ export interface ScopeInterval {
   readonly from: number
   readonly to: number
   readonly scopes: readonly string[]
+}
+
+export function captureIntervals(captures: readonly NamedCapture[], names: readonly string[]): CaptureInterval[] {
+  return captures.map(capture => {
+    const ordinal = names.indexOf(capture.name)
+    if (ordinal < 0) throw new Error(`undeclared query capture ${capture.name}`)
+    return { from: capture.node.startIndex, to: capture.node.endIndex, name: capture.name, pattern: capture.patternIndex, ordinal }
+  })
 }
 
 const compareNames = (a: string, b: string): number => a < b ? -1 : Number(a > b)

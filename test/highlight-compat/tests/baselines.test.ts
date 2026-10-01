@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { composeCaptures } from '../src/baselines/compose.ts'
+import { captureIntervals, composeCaptures } from '../src/baselines/compose.ts'
 import { queryPatterns, requireSupportedOperators } from '../src/baselines/query.ts'
 import { captureScopes, CAPTURE_MAP, CAPTURE_MAP_VERSION } from '../src/baselines/capture-map.ts'
 import { checkAssets, sha256, VENDOR_ROOT } from '../src/baselines/assets.ts'
@@ -31,6 +31,25 @@ describe('candidate baseline contracts', () => {
     ]
     expect(composeCaptures('abcdef', 'root', captures, name => [name])).toEqual(expected)
     expect(composeCaptures('abcdef', 'root', captures.toReversed(), name => [name])).toEqual(expected)
+    expect(composeCaptures('abcd', 'root', [capture(0, 2, 'leaf', 0), capture(0, 4, 'wrapper', 1)], name => [name])).toEqual([
+      { from: 0, to: 2, scopes: ['root', 'wrapper', 'leaf'] }, { from: 2, to: 4, scopes: ['root', 'wrapper'] },
+    ])
+    const duplicate = capture(0, 1, 'same', 0)
+    expect(composeCaptures('x', 'root', [duplicate, duplicate], name => [name])).toEqual([
+      { from: 0, to: 1, scopes: ['root', 'same', 'same'] },
+    ])
+  })
+
+  it('derives capture ties from query declaration order, independent of match enumeration', () => {
+    const captures = [
+      { node: { startIndex: 0, endIndex: 1 }, name: 'first', patternIndex: 0 },
+      { node: { startIndex: 0, endIndex: 1 }, name: 'second', patternIndex: 0 },
+    ]
+    const names = ['second', 'first']
+    const compose = (values: typeof captures) => composeCaptures('x', 'root', captureIntervals(values, names), name => [name])
+    expect(compose(captures)).toEqual([{ from: 0, to: 1, scopes: ['root', 'second', 'first'] }])
+    expect(compose(captures.toReversed())).toEqual(compose(captures))
+    expect(() => captureIntervals(captures, ['first'])).toThrow('undeclared query capture second')
   })
 
   it('uses code-point name ordering when all capture-position ties coincide', () => {
