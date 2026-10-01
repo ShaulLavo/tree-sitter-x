@@ -42,7 +42,7 @@ npm run report:references                  # rewrites reports/reference-differen
 
 Conventions shared by every profile, so a difference means the engines differ:
 
-- Lines split on LF and CRLF, as the product and Shiki split them. A lone CR stays in its line as text. Each terminator is its own span with an empty scope path and an empty style; the tokenizer's synthetic end-of-line unit is clipped.
+- Lines split on LF and CRLF, as the product and Shiki split them. A lone CR stays in its line as text. Each terminator is its own span with an empty scope path and an empty style; the tokenizer's synthetic end-of-line unit is clipped. The product's splitLines also strips a CR that ends the final line with no LF after it; that unit gets no product token, so the adapter tiles it like a terminator (the named difference `final-lone-cr-dropped`).
 - Colours are lowercase `#rrggbb[aa]` (shorthand expanded). An empty colour is an absent foreground. Font style 0 is absent, because no oracle theme sets a default font style (`themeModule` throws if one does). Background is not recorded: neither the product nor Shiki's token API applies it.
 - Themes: `github-dark`, `light-plus`, `dracula`, `vesper` (`ORACLE_THEMES`).
 
@@ -50,8 +50,8 @@ Each file under `src/oracles/product/` that starts with `// Port of Platform <pa
 
 ## Oracle conformance lane
 
-`vendor/vscode-textmate/` holds the first-mate, suite1 and while suites from vscode-textmate fbe49961, byte-exact and hash-checked against `manifest/fixture-sources.json` (see its NOTICE). `raw` and `raw:shiki-fork` run the 94 selected cases and must reproduce the suites' tokens, except the cases `src/oracles/conformance-expectations.ts` names with a cause. These grammars are artificial and never count toward a language's coverage.
+`vendor/vscode-textmate/` holds the first-mate, suite1 and while suites from vscode-textmate fbe49961, byte-exact and hash-checked against `manifest/fixture-sources.json` (see its NOTICE). `raw` and `raw:shiki-fork` run the 94 selected cases and must reproduce the suites' tokens, except the cases `src/oracles/conformance-expectations.ts` names with a cause; those must reproduce exactly the tokens pinned there for each differing line, and every other line must still match the suite. These grammars are artificial and never count toward a language's coverage.
 
 ## Original fixtures and the reference report
 
-`fixtures/original/<language>/` holds byte-exact adversarial inputs (empty lines in open constructs, the 20000-unit line cap, EOL variants, BOM, Unicode, Markdown fences); `tests/original-fixtures.test.ts` pins the property each one exists for. `npm run report:references` compares every pair of reference profiles over them and the conformance cases, and writes `reports/reference-differences.md`. Each observed difference must belong to exactly one named expectation in `src/oracles/reference-expectations.ts`, and each expectation must be observed; `npm test` fails otherwise, and when the committed report is stale.
+`fixtures/original/<language>/` holds byte-exact adversarial inputs (empty lines in open constructs, the 20000-unit line cap, EOL variants, BOM, Unicode, Markdown fences); `tests/original-fixtures.test.ts` pins the property each one exists for. `npm run report:references` compares every pair of reference profiles over them and the conformance cases, and writes `reports/reference-differences.md`. Each observed difference must belong to exactly one named expectation in `src/oracles/reference-expectations.ts`, which claims source lines per input and the values it accepts; a mismatch outside those lines, on a terminator, or with other values is unexplained. Each claim must be observed; `npm test` fails otherwise, and when the committed report is stale.

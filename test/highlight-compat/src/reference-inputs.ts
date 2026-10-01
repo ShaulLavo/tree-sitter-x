@@ -1,5 +1,6 @@
 import { isDeepStrictEqual } from 'node:util'
 import { caseLabel, type CaseRef, expectedTokens, loadCase, selectedCases } from './oracles/conformance.ts'
+import { conformanceDifference, conformanceProblems } from './oracles/conformance-expectations.ts'
 import { CONFORMANCE_PROFILES, type ConformanceProfileId, ORACLE_PROFILES, type OracleProfileId } from './oracles/request.ts'
 import { type ConformanceOutcome, runAll, runConformance } from './oracles/run.ts'
 import { originalFixtures } from './original-fixtures.ts'
@@ -18,6 +19,8 @@ export interface ConformanceInput extends ReferenceInput {
   readonly desc: string
   /** Per profile: does its output equal the suite's expected tokens? */
   readonly matchesSuite: ReadonlyMap<ConformanceProfileId, boolean>
+  /** Per profile: contract breaches, against the suite or a named difference's pinned tokens. */
+  readonly problems: ReadonlyMap<ConformanceProfileId, readonly string[]>
   readonly failures: ReadonlyMap<ConformanceProfileId, string>
 }
 
@@ -58,6 +61,14 @@ export async function conformanceInputs(): Promise<ConformanceInput[]> {
       results,
       failures,
       matchesSuite: new Map(outcomes.map(([profileId, outcome]) => [profileId, matches(ref, outcome)])),
+      problems: new Map(
+        outcomes.map(([profileId, outcome]) => [
+          profileId,
+          outcome.status === 'complete'
+            ? conformanceProblems(conformance, outcome.answer.lines, conformanceDifference(ref.suite, conformance.desc, profileId))
+            : [`${outcome.status}: ${outcome.diagnostic}`],
+        ]),
+      ),
     }
   })
 }

@@ -4,7 +4,7 @@ import { ORACLE_THEMES, PINS, pinLabel } from './oracles/pins.ts'
 import { CAUSE_TITLES, CAUSES, REFERENCE_EXPECTATIONS, type ReferenceExpectation } from './oracles/reference-expectations.ts'
 import { CONFORMANCE_PROFILES, ORACLE_PROFILES } from './oracles/request.ts'
 import { type ConformanceInput, conformanceInputs, fixtureInputs, type ReferenceInput } from './reference-inputs.ts'
-import { type Observation, observe, pairKey, profilePairs, type Track } from './reference-observations.ts'
+import { type MismatchRun, type Observation, observe, pairKey, profilePairs, type Track } from './reference-observations.ts'
 
 export const REPORT_PATH = fileURLToPath(new URL('../reports/reference-differences.md', import.meta.url))
 
@@ -18,15 +18,24 @@ export interface Attribution {
   readonly unobserved: readonly string[]
 }
 
-const claims = (expectation: ReferenceExpectation, observation: Observation): boolean =>
-  (expectation.inputs === 'every-fixture'
-    ? !observation.input.startsWith('conformance/')
-    : expectation.inputs.includes(observation.input)) &&
-  expectation.tracks.includes(observation.track) &&
-  expectation.pairs.some((pair) => pairKey(pair) === pairKey(observation.pair))
+function claimedLines(expectation: ReferenceExpectation, input: string): readonly [number, number] | undefined {
+  if (expectation.lines === 'every-fixture') return input.startsWith('conformance/') ? undefined : [0, Number.POSITIVE_INFINITY]
+  return Object.hasOwn(expectation.lines, input) ? expectation.lines[input] : undefined
+}
+
+/** A run is explained only inside one claimed line's content and with the values the expectation names. */
+const explains = (expectation: ReferenceExpectation, [first, last]: readonly [number, number], run: MismatchRun): boolean =>
+  run.line >= first && run.line <= last && run.to <= run.lineEnd && expectation.accepts(run)
+
+function claims(expectation: ReferenceExpectation, observation: Observation): boolean {
+  const lines = claimedLines(expectation, observation.input)
+  if (lines === undefined || !expectation.tracks.includes(observation.track)) return false
+  if (!expectation.pairs.some((pair) => pairKey(pair) === pairKey(observation.pair))) return false
+  return observation.runs.every((run) => explains(expectation, lines, run))
+}
 
 function requiredClaims(expectation: ReferenceExpectation): string[] {
-  const inputs = expectation.inputs === 'every-fixture' ? [expectation.minimalFixture] : expectation.inputs
+  const inputs = expectation.lines === 'every-fixture' ? [expectation.minimalFixture] : Object.keys(expectation.lines)
   return inputs.flatMap((input) =>
     expectation.pairs.flatMap((pair) => expectation.tracks.map((track) => `${input} ${pairKey(pair)} ${track}`)),
   )
@@ -50,11 +59,11 @@ export function attribute(observations: readonly Observation[], expectations: re
   return { claimed, unexplained, ambiguous, unobserved }
 }
 
-function observationsOf(inputs: readonly ReferenceInput[], profiles: typeof ORACLE_PROFILES): Observation[] {
+export function observationsOf(inputs: readonly ReferenceInput[], profiles: typeof ORACLE_PROFILES): Observation[] {
   return inputs.flatMap((input) =>
     profilePairs(profiles).flatMap((pair) => {
       const [a, b] = [input.results.get(pair[0]), input.results.get(pair[1])]
-      if (a === undefined || b === undefined) return [{ input: input.input, pair, track: 'incomplete' as const, units: 0 }]
+      if (a === undefined || b === undefined) return [{ input: input.input, pair, track: 'incomplete' as const, units: 0, runs: [] }]
       return observe(input.input, pair, a, b, input.source)
     }),
   )
@@ -100,21 +109,23 @@ function conformanceSection(inputs: readonly ConformanceInput[], observations: r
   const lines = [
     '## Conformance lane',
     '',
-    `The vendored vscode-textmate suites (fbe49961): ${inputs.length} selected cases. Each case's lines, joined with LF, are one input.`,
+    `The vendored vscode-textmate suites (fbe49961): ${inputs.length} selected cases. Each case's lines, joined with LF, are one input. A case meets the contract when every line equals the suite's tokens, or for a named difference, exactly the tokens pinned for that line.`,
     '',
-    row(['Profile', 'Cases matching the suite', 'Named differences', 'Failed runs']),
-    row(['---', '---:', '---:', '---:']),
+    row(['Profile', 'Cases matching the suite', 'Cases matching a pinned difference', 'Contract breaches', 'Failed runs']),
+    row(['---', '---:', '---:', '---:', '---:']),
   ]
   for (const profileId of CONFORMANCE_PROFILES) {
     const matching = inputs.filter((input) => input.matchesSuite.get(profileId) === true).length
-    const named = CONFORMANCE_DIFFERENCES.filter((difference) => difference.profiles.includes(profileId)).length
-    lines.push(row([code(profileId), `${matching}/${inputs.length}`, named, inputs.filter((input) => input.failures.has(profileId)).length]))
+    const breaching = inputs.filter((input) => (input.problems.get(profileId) ?? []).length > 0).length
+    const pinned = inputs.length - matching - breaching
+    lines.push(row([code(profileId), `${matching}/${inputs.length}`, pinned, breaching, inputs.filter((input) => input.failures.has(profileId)).length]))
   }
   const identical = inputs.filter((input) => !differing.has(input.input) && input.failures.size === 0).length
   lines.push('', `${code(raw ?? '')} and ${code(fork ?? '')} give identical scopes on ${identical}/${inputs.length} cases.`, '')
-  lines.push(row(['Case', 'Profiles', 'Cause']), row(['---', '---', '---']))
+  lines.push(row(['Case', 'Profiles', 'Pinned lines', 'Cause']), row(['---', '---', '---:', '---']))
   for (const difference of CONFORMANCE_DIFFERENCES) {
-    lines.push(row([`${difference.suite}: ${difference.desc}`, difference.profiles.map(code).join(', '), difference.because]))
+    const pinnedLines = Object.keys(difference.lines).join(', ')
+    lines.push(row([`${difference.suite}: ${difference.desc}`, difference.profiles.map(code).join(', '), pinnedLines, difference.because]))
   }
   lines.push('', 'The other reference profiles load only product grammar assets, so they do not run these artificial grammars.')
   return lines
@@ -127,7 +138,11 @@ function expectationSection(expectation: ReferenceExpectation, observed: readonl
     `${CAUSE_TITLES[expectation.cause]}. Minimal fixture ${code(expectation.minimalFixture)}. ${expectation.why}`,
     '',
   ]
-  if (expectation.inputs === 'every-fixture') {
+  if (expectation.lines !== 'every-fixture') {
+    const claimed = Object.entries(expectation.lines).map(([input, [first, last]]) => `${code(input)} line${first === last ? ` ${first}` : `s ${first}-${last}`}`)
+    lines.push(`Claims, 0-based: ${claimed.join(', ')}.`, '')
+  }
+  if (expectation.lines === 'every-fixture') {
     lines.push(row(['Profile pair', 'Inputs', 'Boundaries']), row(['---', '---:', '---:']))
     for (const pair of expectation.pairs) {
       const mine = observed.filter((observation) => pairKey(observation.pair) === pairKey(pair))
@@ -142,41 +157,68 @@ function expectationSection(expectation: ReferenceExpectation, observed: readonl
   return lines
 }
 
+export interface PairRow {
+  readonly pair: string
+  /** Inputs whose results were complete on both sides, with every theme. */
+  readonly compared: number
+  readonly incomplete: number
+  readonly differing: number
+  readonly scopeUnits: number
+  readonly styleUnits: number
+  /** Compared inputs where every unit agrees but raw token boundaries differ. */
+  readonly boundaryOnly: number
+}
+
+export function pairRows(inputs: readonly ReferenceInput[], observations: readonly Observation[], profiles: typeof ORACLE_PROFILES): PairRow[] {
+  return profilePairs(profiles).map((pair) => {
+    const mine = observations.filter((observation) => pairKey(observation.pair) === pairKey(pair))
+    const incomplete = new Set(mine.filter((observation) => observation.track === 'incomplete').map((observation) => observation.input))
+    const comparable = mine.filter((observation) => !incomplete.has(observation.input))
+    const assigned = new Set(comparable.filter((observation) => UNIT_TRACKS.includes(observation.track)).map((observation) => observation.input))
+    const boundaryOnly = comparable.filter((observation) => observation.track.endsWith('-boundaries') && !assigned.has(observation.input))
+    return {
+      pair: pairKey(pair),
+      compared: inputs.length - incomplete.size,
+      incomplete: incomplete.size,
+      differing: assigned.size,
+      scopeUnits: sum(comparable, ['scopes']),
+      styleUnits: sum(comparable, ['styles']),
+      boundaryOnly: distinct(boundaryOnly.map((observation) => observation.input)),
+    }
+  })
+}
+
 function pairMatrix(inputs: readonly ReferenceInput[], observations: readonly Observation[]): string[] {
   const lines = [
-    row(['Profile pair', 'Inputs compared', 'Inputs differing', 'Scope units', 'Style units', 'Boundary-only inputs']),
-    row(['---', '---:', '---:', '---:', '---:', '---:']),
+    row(['Profile pair', 'Inputs compared', 'Incomplete', 'Inputs differing', 'Scope units', 'Style units', 'Boundary-only inputs']),
+    row(['---', '---:', '---:', '---:', '---:', '---:', '---:']),
   ]
-  for (const pair of profilePairs(ORACLE_PROFILES)) {
-    const mine = observations.filter((observation) => pairKey(observation.pair) === pairKey(pair))
-    const assigned = mine.filter((observation) => UNIT_TRACKS.includes(observation.track))
-    const boundaryOnly = mine.filter((observation) => !assigned.some((other) => other.input === observation.input))
-    lines.push(
-      row([
-        code(pairKey(pair)),
-        inputs.length,
-        distinct(assigned.map((observation) => observation.input)),
-        sum(mine, ['scopes']),
-        sum(mine, ['styles']),
-        distinct(boundaryOnly.map((observation) => observation.input)),
-      ]),
-    )
+  for (const entry of pairRows(inputs, observations, ORACLE_PROFILES)) {
+    lines.push(row([code(entry.pair), entry.compared, entry.incomplete, entry.differing, entry.scopeUnits, entry.styleUnits, entry.boundaryOnly]))
   }
   return lines
+}
+
+function firstRun(observation: Observation): string {
+  const [run] = observation.runs
+  if (run === undefined) return '-'
+  const values = Object.entries(run.values).map(([profileId, value]) => `${profileId}: ${value === '' ? '(none)' : value}`)
+  return code(`[${run.from}, ${run.to}) line ${run.line}${run.theme === undefined ? '' : ` ${run.theme}`}; ${values.join('; ')}`.replaceAll('|', '/'))
 }
 
 function looseSection(attribution: Attribution): string[] {
   const loose = [...attribution.unexplained.map((o) => ['unexplained', o] as const), ...attribution.ambiguous.map((o) => ['ambiguous', o] as const)]
   const lines = ['## Unexplained differences', '']
   if (loose.length === 0 && attribution.unobserved.length === 0) return [...lines, 'None: every observed difference has exactly one named expectation, and every expectation is observed.']
-  lines.push(row(['Kind', 'Input', 'Profile pair', 'Track', 'Units']), row(['---', '---', '---', '---', '---:']))
-  for (const [kind, o] of loose) lines.push(row([kind, code(o.input), code(pairKey(o.pair)), o.track, o.units]))
-  for (const claim of attribution.unobserved) lines.push(row(['unobserved expectation', code(claim), '-', '-', '-']))
+  lines.push(row(['Kind', 'Input', 'Profile pair', 'Track', 'Units', 'First run']), row(['---', '---', '---', '---', '---:', '---']))
+  for (const [kind, o] of loose) lines.push(row([kind, code(o.input), code(pairKey(o.pair)), o.track, o.units, firstRun(o)]))
+  for (const claim of attribution.unobserved) lines.push(row(['unobserved expectation', code(claim), '-', '-', '-', '-']))
   return lines
 }
 
 export interface ReferenceReport {
   readonly markdown: string
+  readonly conformance: readonly ConformanceInput[]
   readonly observations: readonly Observation[]
   readonly attribution: Attribution
 }
@@ -212,7 +254,7 @@ export function formatReport(fixtures: readonly ReferenceInput[], conformance: r
     ...looseSection(attribution),
     '',
   ].join('\n')
-  return { markdown, observations, attribution }
+  return { markdown, conformance, observations, attribution }
 }
 
 export async function buildReferenceReport(): Promise<ReferenceReport> {
