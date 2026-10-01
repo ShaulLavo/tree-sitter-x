@@ -161,7 +161,7 @@ jobs:
         }
         fetch() {
           rm -f "$package"
-          if curl -fLSs --retry 5 --retry-all-errors -o "$package" "$2"; then
+          if curl -fLSs --connect-timeout 20 --max-time 300 --retry 5 --retry-all-errors -o "$package" "$2"; then
             verify "$1"
             return
           fi
