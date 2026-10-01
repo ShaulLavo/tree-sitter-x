@@ -12,7 +12,7 @@ Status: passed for the pinned Phase 1 inputs. Native classification and producti
 
 ## Required self-test counts
 
-Regeneration runs these tests against the checkout before hashing either pipeline. Counts below come from Vitest’s JSON results. Every test case must pass. The full npm test suite is a separate CI step.
+Regeneration creates the first reference tree, then runs these tests before hashing either pipeline. Scope/theme checks read the fresh temporary goldens; ordinary npm test reads committed goldens. Counts below come from Vitest’s JSON results. Every test case must pass. The full npm test suite is a separate CI step.
 
 | Test file | Passed | Test cases |
 | --- | ---: | ---: |
@@ -26,7 +26,7 @@ Regeneration runs these tests against the checkout before hashing either pipelin
 | tests/streaming-source.test.ts | 2 | 2 |
 | tests/golden.test.ts | 46 | 46 |
 | tests/sparse-goldens.test.ts | 4 | 4 |
-| tests/oracle-core.test.ts | 20 | 20 |
+| tests/oracle-core.test.ts | 24 | 24 |
 | tests/oracle-conformance.test.ts | 194 | 194 |
 | tests/product-document.test.ts | 6 | 6 |
 | tests/fixture-adapters.test.ts | 20 | 20 |
@@ -35,7 +35,10 @@ Regeneration runs these tests against the checkout before hashing either pipelin
 | tests/baselines.test.ts | 12 | 12 |
 | tests/baseline-theme.test.ts | 2 | 2 |
 | tests/phase1-gate.test.ts | 3 | 3 |
-| Total | 470 | 470 |
+| tests/artifacts.test.ts | 6 | 6 |
+| tests/regeneration.test.ts | 10 | 10 |
+| tests/runtime-pins.test.ts | 2 | 2 |
+| Total | 492 | 492 |
 
 ## Two full-pipeline runs
 
