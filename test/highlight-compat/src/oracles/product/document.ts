@@ -2,7 +2,7 @@ import type { ThemedToken } from 'shiki/core'
 import { ResultBuilder } from '../../build.ts'
 import type { CompleteResult, ReferenceProfileId } from '../../schema.ts'
 import { languageRegistrations, themeModule, warmLanguages } from '../assets.ts'
-import { type LineSpan, SEPARATOR_SCOPES, SEPARATOR_STYLE, sourceLines, writeTrack } from '../lines.ts'
+import { type LineSpan, SEPARATOR_SCOPES, SEPARATOR_STYLE, type SourceLine, sourceLines, writeTrack } from '../lines.ts'
 import { PINS, pinLabel, readProductProfile } from '../pins.ts'
 import { resolvedStyle } from '../resolved-style.ts'
 import { tokenScopes } from './scopedTokens.ts'
@@ -36,6 +36,21 @@ async function highlighterFor(request: ProductRequest, registration: Registratio
   return { highlighter, embedded }
 }
 
+/**
+ * The product's line texts at exact source offsets. Its splitLines also strips a CR that ends the
+ * final segment with no LF after it; that unit then has no token and is tiled like a terminator.
+ */
+function productLines(source: string, snapshot: readonly TokenLineSnapshot[]): SourceLine[] {
+  const lines = sourceLines(source)
+  if (snapshot.length !== lines.length) throw new Error(`the tokenizer split ${snapshot.length} lines, the source has ${lines.length}`)
+  return lines.map((line, index) => {
+    const text = snapshot[index]?.text ?? ''
+    if (text === line.text) return line
+    if (index === lines.length - 1 && line.text === `${text}\r`) return { ...line, text }
+    throw new Error(`tokenizer line ${index} diverges from the source`)
+  })
+}
+
 const tokenSpans = <V>(line: TokenLineSnapshot | undefined, value: (token: ThemedToken) => V): LineSpan<V>[] =>
   (line?.tokens ?? []).map((token) => ({ from: token.offset, to: token.offset + token.content.length, value: value(token) }))
 
@@ -50,10 +65,8 @@ export async function productDocument(request: ProductRequest, registration: Reg
     highlighter,
     maxLineLength,
   })
-  const lines = sourceLines(request.source)
   const snapshot = tokenizer.getSnapshot().lines
-  const drift = lines.findIndex((line, index) => snapshot[index]?.text !== line.text)
-  if (drift !== -1 || snapshot.length !== lines.length) throw new Error(`tokenizer lines diverge from the source at line ${drift}`)
+  const lines = productLines(request.source, snapshot)
   const engine = {
     adapter: `port of the Platform ${profile.platform.commit} shiki tokenizer`,
     shiki: pinLabel(PINS.shiki),
