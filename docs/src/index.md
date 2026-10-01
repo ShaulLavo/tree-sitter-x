@@ -104,5 +104,3 @@ The design of Tree-sitter was greatly influenced by the following research paper
 - [Incremental Analysis of Real Programming Languages](https://harmonia.cs.berkeley.edu/papers/twagner-glr.pdf)
 - [Error Detection and Recovery in LR Parsers](https://web.archive.org/web/20240302031213/https://what-when-how.com/compiler-writing/bottom-up-parsing-compiler-writing-part-13)
 - [Error Recovery for LR Parsers](https://apps.dtic.mil/sti/pdfs/ADA043470.pdf)
-
-<!-- CI path-filter proof: docs-only temporary change. -->

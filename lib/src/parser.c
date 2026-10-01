@@ -2310,3 +2310,5 @@ TSWasmStore *ts_parser_take_wasm_store(TSParser *self) {
 }
 
 #undef LOG
+
+/* CI path-filter proof: native library temporary change. */
