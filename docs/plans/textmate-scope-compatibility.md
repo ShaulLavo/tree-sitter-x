@@ -351,6 +351,16 @@ Each phase should become a separately reviewed implementation unit. The checkbox
 
 **Gate:** required oracle/conversion/comparator self-tests pass; repeated runs have identical content results. Expected oracle-profile differences are documented, not suppressed. Synthetic tokenizer-only grammars remain in the oracle lane.
 
+#### Harness runtime: Bun trial
+
+Status: Approved, runs after the Phase 1 gate.
+
+The harness runs on Node 26.7.0 under Vitest. Node 24.21.0 crashed during golden regeneration with a V8 Wasm JIT assertion ([nodejs/node#66366](https://github.com/nodejs/node/issues/66366), fixed upstream in [v8@9b8ca54d5a](https://github.com/v8/v8/commit/9b8ca54d5a)), triggered by the oracle workers' Wasm churn. Fregat already runs its app tests with `bun --bun vitest`.
+
+- [ ] Run the full harness under `bun --bun vitest`: typecheck, the full suite, `fixtures:check`, and ten complete `regenerate --check` passes, with goldens byte-identical to the Node results.
+- [ ] If it holds, move the harness and its CI to Bun with a pinned version, and drop the Node pin.
+- [ ] If it fails on a runtime bug (worker or Wasm behaviour), record the failing command, the error and any upstream issue here, keep Node 26.7.0, and move on. Do not add workarounds for a runtime bug.
+
 ### Phase 2: native full-pass pilot
 
 - [ ] Prove existing-tree/shared-source operation through the current extension seam.
