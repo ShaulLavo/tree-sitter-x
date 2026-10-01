@@ -2,7 +2,7 @@ name: Highlight compatibility
 
 on:
   pull_request:
-    branches: [master]
+    branches: [master, release-9999.9999]
     paths:
       - 'test/highlight-compat/**'
       - 'lib/**'
