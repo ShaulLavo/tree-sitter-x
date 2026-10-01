@@ -118,7 +118,10 @@ describe('candidate baseline contracts', () => {
         const numberAt = source.indexOf('42')
         expect(tokens.some(token => token.from === numberAt && token.to === numberAt + 2 && token.scopes.some(scope => scope.startsWith('constant.numeric')))).toBe(true)
         const stringAt = source.indexOf('"')
-        expect(tokens.some(token => token.from === stringAt && token.to === stringAt + 4 && token.scopes.some(scope => scope.startsWith('string.quoted')))).toBe(true)
+        const quoted = tokens.filter(token => token.scopes.some(scope => scope.startsWith('string.quoted')))
+        expect(quoted.at(0)?.from).toBe(stringAt)
+        expect(quoted.at(-1)?.to).toBe(stringAt + 4)
+        expect(quoted.reduce((length, token) => length + token.to - token.from, 0)).toBe(4)
       })
     }
   }
