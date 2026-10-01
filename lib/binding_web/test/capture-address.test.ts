@@ -1,11 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { heap, Language, Parser, Query, TextBuffer } from '../src';
-import { C } from '../src/constants';
+import { heap, Language, Parser, Query, TextBuffer, type Tree } from '../src';
+import { C, SIZE_OF_INT } from '../src/constants';
+import { TRANSFER_BUFFER } from '../src/parser';
 import helper, { type LanguageName } from './helper';
 
 const SIGNED_LIMIT = 2 ** 31;
 const SENTINEL_BYTES = 8 * 1024 * 1024;
 const SENTINEL_MARGIN = 1024 * 1024;
+const LINES = 500;
 
 const sentinelByte = (offset: number) => (offset * 31 + 7) & 0xff;
 // The native address a binding object holds, as an unsigned number.
@@ -17,9 +19,17 @@ describe('memory above the signed Wasm32 boundary', () => {
   let sentinel = 0;
   let high = 0;
   const allocations: number[] = [];
+  // Made below 2 GiB, so decoding their query results depends only on the results' addresses.
+  let lowParser: Parser;
+  let lowTree: Tree;
+  let lowQuery: Query;
 
   beforeAll(async () => {
     ({ JavaScript, languageURL } = await helper);
+    lowParser = new Parser();
+    lowParser.setLanguage(JavaScript);
+    lowTree = lowParser.parse('const value = 1;\n'.repeat(LINES))!;
+    lowQuery = new Query(JavaScript, '(identifier) @variable');
     sentinel = C._malloc(SENTINEL_BYTES) >>> 0;
     allocations.push(sentinel);
     const bytes = heap();
@@ -42,10 +52,13 @@ describe('memory above the signed Wasm32 boundary', () => {
     const firstStray = heap().length + end - 2 ** 32;
     expect(firstStray).toBeGreaterThanOrEqual(sentinel);
     expect(firstStray).toBeLessThan(sentinel + SENTINEL_BYTES / 2);
-  }, 120_000);
+  });
 
   afterAll(() => {
     for (const address of allocations) C._free(address);
+    lowQuery.delete();
+    lowTree.delete();
+    lowParser.delete();
   });
 
   it('reads and writes strings through signed and unsigned addresses', () => {
@@ -131,18 +144,12 @@ describe('memory above the signed Wasm32 boundary', () => {
   });
 
   it('decodes query results and accesses scalars', () => {
-    const parser = new Parser();
-    parser.setLanguage(JavaScript);
-    const tree = parser.parse('const value = 1;\n'.repeat(50_000))!;
-    const query = new Query(JavaScript, '(identifier) @variable');
-    try {
-      expect(query.captures(tree.rootNode)).toHaveLength(50_000);
-      expect(query.matches(tree.rootNode)).toHaveLength(50_000);
-    } finally {
-      query.delete();
-      tree.delete();
-      parser.delete();
-    }
+    // The address of the last result block, which the query reads its counts from.
+    const resultAddress = () => C.getValue(TRANSFER_BUFFER + SIZE_OF_INT, 'i32') >>> 0;
+    expect(lowQuery.captures(lowTree.rootNode)).toHaveLength(LINES);
+    expect(resultAddress()).toBeGreaterThanOrEqual(SIGNED_LIMIT);
+    expect(lowQuery.matches(lowTree.rootNode)).toHaveLength(LINES);
+    expect(resultAddress()).toBeGreaterThanOrEqual(SIGNED_LIMIT);
 
     for (const [type, value] of [
       ['i1', -1], ['i8', -12], ['i16', -1234], ['i32', -123456],
