@@ -357,13 +357,30 @@ Each phase should become a separately reviewed implementation unit. The checkbox
 
 #### Harness runtime: Bun trial
 
-Status: Approved, runs after the Phase 1 gate.
+Status: **Done 2026-10-01 — stayed on Node 26.7.0.** Bun 1.4.2 (`1.4.2+744846f84`) was the latest stable release when checked against the upstream release API. Its module-resolution incompatibility fails the tracked-import guard and its tests; no runtime workaround or migration was made.
 
 The harness runs on Node 26.7.0 under Vitest. Node 24.21.0 crashed during golden regeneration with a V8 Wasm JIT assertion ([nodejs/node#66366](https://github.com/nodejs/node/issues/66366), fixed upstream in [v8@9b8ca54d5a](https://github.com/v8/v8/commit/9b8ca54d5a)), triggered by the oracle workers' Wasm churn. Fregat already runs its app tests with `bun --bun vitest`.
 
-- [ ] Run the full harness under `bun --bun vitest`: typecheck, the full suite, `fixtures:check`, and ten complete `regenerate --check` passes, with goldens byte-identical to the Node results.
-- [ ] If it holds, move the harness and its CI to Bun with a pinned version, and drop the Node pin.
-- [ ] If it fails on a runtime bug (worker or Wasm behaviour), record the failing command, the error and any upstream issue here, keep Node 26.7.0, and move on. Do not add workarounds for a runtime bug.
+- [x] Trial the full harness under Bun. Typecheck and fixture regeneration passed; the full suite and tracked-import guard failed. The first of ten scheduled regeneration checks failed during mandatory self-tests, so the loop stopped: **0/10 completed checks**, with checks 2–10 unrun.
+- [x] Decide whether to move the harness and CI. Keep the exact Node 26.7.0 pin and npm's existing lockfile/install commands; the Bun acceptance gate failed.
+- [x] Record the runtime failure and upstream issue below. Oracle adapters, comparator/validator rules, goldens, reports, scripts and CI are unchanged.
+
+Trial evidence on Linux x64, checkout `1527585e7bdd922192aba4e02c62587518da007b`, Vitest 5.0.3:
+
+| Command | Outcome |
+| --- | --- |
+| `cargo +1.98.1 xtask build-wasm`, then `(cd lib/binding_web && npm ci && npm run build:ts)` | Passed before harness execution; harness dependencies installed with `npm ci` |
+| `bun --bun run typecheck` | Passed |
+| `bun scripts/fixtures.ts --check` | Passed: `Fixture registry and report match regeneration` |
+| `bun scripts/check-tracked-imports.mjs` | Exit 1; 128 dependency-resolution failures, including `test/highlight-compat/src/historical-report.ts imports "./golden.ts": cannot resolve a tracked file or installed dependency` |
+| `bun --bun vitest run` | Exit 1; 624/642 tests passed, 36/38 files passed; 17 tracked-import tests and one oracle-error diagnostic test failed |
+| `bun scripts/regenerate.ts --check` | First loop iteration exited 1 in `selfTestCounts`; no successful pipeline hash or byte-equality result under Bun |
+
+The guard passes a URL object as the parent to `import.meta.resolve(specifier, parent)`, which Node documents and supports. Bun silently ignores that parent, resolving from the calling module. A control using `new URL('./src/historical-report.ts', import.meta.url)` with `./golden.ts` resolved to `src/golden.ts` under Node 26.7.0, but to `golden.ts` at the harness root under Bun 1.4.2. The same Bun call with the parent's `.href` resolved to `src/golden.ts`, confirming the URL-object failure. This reproduces the open upstream issue [oven-sh/bun#41318](https://github.com/oven-sh/bun/issues/41318); changing the guard to bypass it would be a runtime workaround.
+
+The additional failure was `tests/oracle-core.test.ts > runDocument > returns error with the reason when the oracle throws`: expected the diagnostic to contain `no-such-language`, received `Cannot find package '@shikijs/langs' imported from /work/worktrees/tree-sitter-x/bun-trial/test/highlight-compat/src/oracles/assets.ts`. Regeneration's mandatory self-test subprocess also exited 1. No worker/Wasm crash was observed; failed acceptance prevents claiming ten-run stability.
+
+Node 26.7.0 controls passed on the same built checkout: the tracked-import guard checked 116 source files, `npm test` passed 642/642 tests in 38/38 files, and `npm run artifacts:check` completed both full regenerations with all 492 mandatory self-tests passing. Both pipeline SHA-256 hashes were `0bf797ef71be00486bf7348d7ae8d105918ffd81a2d4d855107b249983239197`; both full-artifact hashes were `ebe11a4a3f8ce03b588d549727a2733964c4cf694df58140b01ef7f8fa58e27d`, byte-identical to the committed Node artifacts. A sorted per-file SHA-256 manifest over all 165 tracked golden/report files remained byte-identical before and after both runtime trials (manifest SHA-256 `326fe93093a526dd83a7de58618701963f3405b7999755f387efce0ea0cfb503`). Heavy builds, suites and regeneration commands ran through `/work/tmp/wave-heavy/run.sh`; temporary regeneration trees used the trial's own scratch directory.
 
 ### Phase 2: native full-pass pilot
 
