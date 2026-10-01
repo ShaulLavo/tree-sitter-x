@@ -3,7 +3,7 @@ import { fixtures } from '../src/fixtures/registry.ts'
 import { loadFixture } from '../src/fixtures/load.ts'
 
 it('loads all local sources and preserves diagnostic family, grammar, and capture identity', () => {
-  const loaded = fixtures.map(loadFixture)
+  const loaded = fixtures.map(fixture => loadFixture(fixture))
   expect(loaded).toHaveLength(16)
   expect(loaded.every(fixture => fixture.source.length > 0)).toBe(true)
   expect(loaded.flatMap(fixture => fixture.textmate).reduce((count, set) => count + set.expectations.length, 0)).toBe(2148)

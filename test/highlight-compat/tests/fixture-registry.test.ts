@@ -1,10 +1,11 @@
 import { createHash } from 'node:crypto'
-import { readFileSync, readdirSync } from 'node:fs'
+import { readFileSync, readdirSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { expect, it } from 'vitest'
 import { fixtureArtifacts, fixtures } from '../src/fixtures/registry.ts'
 import { buildRegistry, registrySource, selectedArtifacts } from '../src/fixtures/generate.ts'
 import { harnessRoot, readManifest } from '../src/fixtures/manifest.ts'
+import { loadFixture } from '../src/fixtures/load.ts'
 import { fixtureReport } from '../src/fixtures/report.ts'
 
 const hash = (data: Uint8Array | string) => createHash('sha256').update(data).digest('hex')
@@ -109,7 +110,7 @@ it('uses stable path-safe IDs, deduplicates hashes, and keeps evaluation disjoin
   const canonical = crossRegistry.fixtures.find(fixture => fixture.sha256 === duplicate.sha256)!
   expect(crossRegistry.fixtures).toHaveLength(16)
   expect(canonical.provenance).toHaveLength(2)
-  expect(crossRegistry.artifacts.find(artifact => artifact.provenance[0].manifestFileId === linked.id)!.sourceFixtureId).toBe(canonical.id)
+  expect(crossRegistry.artifacts.find(artifact => artifact.provenance[0].manifestFileId === linked.id)!.associations[0].sourceFixtureId).toBe(canonical.id)
 })
 
 it('keeps historical generations unstamped and inspected/product grammar identities separate', () => {
@@ -128,4 +129,71 @@ it('regenerates the committed deterministic coverage report with all excluded ro
   expect(report).toBe(readFileSync(new URL('reports/fixtures.md', harnessRoot), 'utf8'))
   expect(report).toContain('242 catalog languages; 16 runnable source fixtures; 27 vendored primary artifacts')
   expect(report).toContain('1475 skipped primary artifacts')
+})
+
+it('preserves identical snapshot associations for distinct exact source hashes', () => {
+  const sourceSet = manifest.sources.find(source => source.id === 'vscode-colorize-fixtures')!
+  const resultSet = manifest.sources.find(source => source.id === 'vscode-colorize-results')!
+  const sourceTemplate = selectedArtifacts(manifest).find(({ source }) => source.id === sourceSet.id)!.file
+  const resultTemplate = selectedArtifacts(manifest).find(({ source }) => source.id === resultSet.id)!.file
+  const first = { ...sourceTemplate, id: 'review:x', path: 'review-x.js', sha256: hash('x') }
+  const second = { ...sourceTemplate, id: 'review:newline-x', path: 'review-newline-x.js', sha256: hash('\nx') }
+  const json = JSON.stringify([{ c: 'x', t: 'source.js' }])
+  const one = { ...resultTemplate, id: 'review:one', path: 'review-one.json', sha256: hash(json), sourceFileId: first.id }
+  const two = { ...one, id: 'review:two', path: 'review-two.json', sourceFileId: second.id }
+  const augmented = {
+    ...manifest, files: [...manifest.files, first, second, one, two],
+    sources: manifest.sources.map(source => {
+      if (source.id === sourceSet.id) return { ...source, fileIds: [...source.fileIds, first.id, second.id] }
+      if (source.id === resultSet.id) return { ...source, fileIds: [...source.fileIds, one.id, two.id] }
+      return source
+    }),
+  }
+  const registry = buildRegistry(augmented)
+  const snapshot = registry.artifacts.find(artifact => artifact.sha256 === hash(json))!
+  expect(snapshot.provenance).toHaveLength(2)
+  expect(snapshot.associations.map(association => association.sourceFixtureId).sort()).toEqual([
+    `vscode-colorize/${first.path}`, `vscode-colorize/${second.path}`,
+  ].sort())
+  const extra = new Map([
+    [`fixtures/vscode-colorize/${first.path}`, 'x'], [`fixtures/vscode-colorize/${second.path}`, '\nx'],
+    [`fixtures/vscode-colorize/${one.path}`, json], [`fixtures/vscode-colorize/${two.path}`, json],
+  ])
+  const report = fixtureReport(augmented, path => extra.get(path) ?? readFileSync(new URL(path, harnessRoot), 'utf8'))
+  expect(report).toContain('| vscode-colorize | 547 | 0 |')
+  expect(report).toContain('The manifest selects 34 primary artifacts.')
+})
+
+it('loads deduplicated diagnostics for every distinct source association', () => {
+  const directory = mkdtempSync(new URL('../../.fixture-test-', harnessRoot).pathname)
+  try {
+    const json = JSON.stringify([{ c: 'x', t: 'source.js' }])
+    const selected = fixtureArtifacts.find(artifact => artifact.format === 'vscode-colorize')!
+    const makeFixture = (source: string, name: string) => ({
+      ...fixtures.find(fixture => fixture.family === 'vscode-colorize')!,
+      id: name, path: join(directory, name + '.js'), sha256: hash(source),
+    })
+    const first = makeFixture('x', 'first'), second = makeFixture('\nx', 'second')
+    writeFileSync(first.path, 'x')
+    writeFileSync(second.path, '\nx')
+    const path = join(directory, 'snapshot.json')
+    writeFileSync(path, json)
+    const associations = [first, second].map(fixture => ({
+      sourceFixtureId: fixture.id, format: 'vscode-colorize' as const, provenance: selected.provenance[0],
+    }))
+    const artifact = { ...selected, path, sha256: hash(json), associations }
+    const loaded = [first, second].map(fixture => loadFixture(fixture, [artifact]))
+    expect(loaded.map(fixture => fixture.textmate[0].expectations.map(({ from, to }) => [from, to]))).toEqual([[[0, 1]], [[1, 2]]])
+    expect(loaded.map(fixture => fixture.textmate[0].association.sourceFixtureId)).toEqual(['first', 'second'])
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
+})
+
+it('derives report accounting when a source/baseline selection is removed', () => {
+  const pair = ['typescript-tmlanguage:tests/cases/autoAccessor.ts', 'typescript-tmlanguage:tests/baselines/autoAccessor.baseline.txt']
+  const changed = { ...manifest, sources: manifest.sources.map(source => ({ ...source, fileIds: source.fileIds.filter(id => !pair.includes(id)) })) }
+  const report = fixtureReport(changed)
+  expect(report).toContain('15 runnable source fixtures; 25 vendored primary artifacts')
+  expect(report).toContain('The 25 artifacts comprise 15 source inputs and 10 stored expectations.')
 })

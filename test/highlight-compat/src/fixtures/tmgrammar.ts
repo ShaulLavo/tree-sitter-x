@@ -11,28 +11,39 @@ export interface TmgrammarFixture {
   readonly strippedExpectations: readonly Expectation[]
 }
 
-function scopeList(text: string): { scopes: readonly string[]; not: readonly string[] } {
-  const words = text.trim().split(/\s+/)
-  const minus = words.indexOf('-')
-  const scopes = minus < 0 ? words : words.slice(0, minus)
-  const not = minus < 0 ? [] : words.slice(minus + 1)
-  if (scopes.length + not.length === 0 || [...scopes, ...not].some(scope => !/^[\w][\w.-]*$/.test(scope))) {
-    throw new Error(`invalid tmgrammar scope assertion ${JSON.stringify(text)}`)
-  }
+interface AssertionRange {
+  readonly from: number
+  readonly to: number
+  readonly column: number
+  readonly scopes: readonly string[]
+  readonly not: readonly string[]
+}
+
+function scopeList(positive: string, negative: string): { scopes: readonly string[]; not: readonly string[] } {
+  const scopes = positive.split(/\s+/).filter(Boolean)
+  const not = negative.split(/\s+/).filter(Boolean)
+  if (scopes.length + not.length === 0) throw new Error('tmgrammar assertion requires a scope or exclusion')
   return { scopes, not }
 }
 
-function assertionRanges(text: string, comment: string): readonly { from: number; to: number; scopes: readonly string[]; not: readonly string[] }[] | undefined {
+const leftArrow = /^(\s*)<([~]*)([-]+)((?:\s*\w[-\w.]*)*)(?:\s*-)?((?:\s*\w[-\w.]*)*)\s*$/
+const upArrow = /^\s*((?:(?:\^+)\s*)+)((?:\s*\w[-\w.]*)*)(?:\s*-)?((?:\s*\w[-\w.]*)*)\s*$/
+
+function assertionRanges(text: string, comment: string): readonly AssertionRange[] | undefined {
   if (!text.startsWith(comment)) return undefined
   const body = text.slice(comment.length)
   if (!/^\s*(?:\^|<~*-)/.test(body)) return undefined
-  const left = /^\s*<(~*)(-+)\s+(.+?)\s*$/.exec(body)
-  if (left) return [{ from: left[1].length, to: left[1].length + left[2].length, ...scopeList(left[3]) }]
-  const up = /^\s*(\^+(?:\s+\^+)*)\s+(.+?)\s*$/.exec(body)
+  const left = leftArrow.exec(body)
+  if (left) return [{
+    from: left[2].length, to: left[2].length + left[3].length,
+    column: text.indexOf('<') + 1, ...scopeList(left[4], left[5]),
+  }]
+  const up = upArrow.exec(body)
   if (!up) throw new Error(`invalid tmgrammar caret assertion ${JSON.stringify(text)}`)
   const start = text.indexOf('^')
   return [...up[1].matchAll(/\^+/g)].map(match => ({
-    from: start + match.index, to: start + match.index + match[0].length, ...scopeList(up[2]),
+    from: start + match.index, to: start + match.index + match[0].length,
+    column: start + match.index + 1, ...scopeList(up[2], up[3]),
   }))
 }
 
@@ -61,7 +72,7 @@ export function adaptTmgrammar(original: string, fixtureId: string, file: string
       strippedExpectations.push({
         fixtureId, from: previous.from + range.from, to: previous.from + range.to, scopes: range.scopes,
         ...(range.not.length > 0 ? { not: range.not } : {}),
-        origin: { family: 'tmgrammar', file, line: line.number, column: line.text.search(/\^|</) + 1 },
+        origin: { family: 'tmgrammar', file, line: line.number, column: range.column },
       })
     }
   }

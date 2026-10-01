@@ -12,7 +12,7 @@ The manifest selects 30 primary artifacts. This registry holds 27. The following
 - `vscode-textmate:test-cases/suite1/tests.json`. Deferred to the oracle-conformance vendor registry.
 - `vscode-textmate:test-cases/suite1/whileTests.json`. Deferred to the oracle-conformance vendor registry.
 
-The 27 artifacts comprise 16 source inputs and 11 stored expectations. Source fixtures are deduplicated by SHA-256. Stored expectation bytes are distinct artifacts linked to a source fixture.
+The 27 artifacts comprise 16 source inputs and 11 stored expectations. Source fixtures are deduplicated by SHA-256. Stored expectation bytes are distinct artifacts linked to every recorded source and provenance association.
 
 ## Lane and split denominators
 
@@ -41,6 +41,14 @@ tmgrammar has synthetic format tests only. No selected fixture uses that format.
 Historical VS Code captures and TypeScript baselines are diagnostic. Generated-against revisions are unstamped (null) in the inventory. Registry provenance separately records inspected checkout, upstream grammar metadata, grammar hash, product revision, and product grammar hash. No historical expectation is a product golden.
 
 The two stored VS Code Tree-sitter captures are byte-verified diagnostic artifacts. They lack source positions and omit uncaptured text, so this lane does not infer positions by searching token text. The five annotated Tree-sitter inputs supply the capture expectations. Capture names never count as TextMate scopes.
+
+## Comment-node provenance
+
+Selected capture fixtures use actual JavaScript comment nodes from grammar revision 44c892e0be055ac465d5eeddae6d3e194424e7de, parser-source SHA-256 67209ca7ef6e1a4f74e29e48b5928455f892fe1821a3960fbcd62f4e972f7384, extracted with tree-sitter 0.26.9. Each of the 5 entries records its source SHA-256; changed source bytes fail loading and regeneration.
+
+The capture adapter requires parser-supplied UTF-16 comment ranges. Assertion-looking string content supplies no comment node. Unsupported assertion comment shapes fail explicitly.
+
+fixtures:comments <parser-nodes.json> re-derives the committed metadata; append --check to compare without writing. Its input carries grammarRevision, parserSourceSha256, cliVersion, and entries with sourceSha256 and comments containing from/to UTF-16 offsets. L4 can emit those nodes from the web binding; the command invokes no native CLI or network.
 
 ## Runnable fixtures per catalog language
 

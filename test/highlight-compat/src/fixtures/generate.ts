@@ -64,23 +64,28 @@ export function buildRegistry(manifest: FixtureManifest): { fixtures: readonly F
     if (!sourceEntry) throw new Error(`unselected source for expectation ${file.id}`)
     const previous = artifacts.get(file.sha256)
     const origin = provenance(manifest, source, file)
+    const association = { sourceFixtureId: idFor(sourceEntry.source.family, sourceEntry.file), format: artifactFormat, provenance: origin }
     if (previous) {
-      artifacts.set(file.sha256, { ...previous, provenance: [...previous.provenance, origin] })
+      artifacts.set(file.sha256, { ...previous, provenance: [...previous.provenance, origin], associations: [...previous.associations, association] })
       continue
     }
     artifacts.set(file.sha256, {
       id: idFor(source.family, file), family: source.family as FixtureFamily, languageId: file.languageIds?.[0] ?? '',
       path: `fixtures/${source.family}/${file.path}`, sha256: file.sha256, lane: lane(artifactFormat, source.family),
-      provenance: [origin], split: 'development', format: artifactFormat, sourceFixtureId: idFor(sourceEntry.source.family, sourceEntry.file),
+      provenance: [origin], split: 'development', format: artifactFormat, associations: [association],
     })
   }
   const values = [...artifacts.values()]
-  const fixtures = values.filter(artifact => sourceFormats.has(artifact.format)).map(({ format: _format, sourceFixtureId: _source, ...fixture }) => fixture)
+  const fixtures = values.filter(artifact => artifact.associations.some(association => sourceFormats.has(association.format))).map(({ format: _format, associations: _associations, ...fixture }) => fixture)
   const canonicalIds = new Map(values.flatMap(artifact => artifact.provenance.map(origin => {
     const entry = byFile.get(origin.manifestFileId)!
     return [idFor(entry.source.family, entry.file), artifact.id] as const
   })))
-  return { fixtures, artifacts: values.map(artifact => ({ ...artifact, sourceFixtureId: canonicalIds.get(artifact.sourceFixtureId)! })) }
+  return { fixtures, artifacts: values.map(artifact => ({
+    ...artifact, associations: artifact.associations.map(association => ({
+      ...association, sourceFixtureId: canonicalIds.get(association.sourceFixtureId)!,
+    })),
+  })) }
 }
 
 export function registrySource(manifest: FixtureManifest): string {

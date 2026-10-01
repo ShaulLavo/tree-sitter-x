@@ -532,7 +532,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "source",
-    "sourceFixtureId": "textmate-grammars-themes/samples/javascript.sample"
+    "associations": [
+      {
+        "sourceFixtureId": "textmate-grammars-themes/samples/javascript.sample",
+        "format": "source",
+        "provenance": {
+          "sourceSetId": "catalog-samples",
+          "repositoryId": "catalog",
+          "revision": "37edd1b26f18838050661d912334aba0ca7f4931",
+          "upstreamPath": "samples/javascript.sample",
+          "manifestFileId": "catalog:samples/javascript.sample",
+          "licenses": [
+            "catalog-mit"
+          ],
+          "grammar": {
+            "id": "catalog-javascript",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": null,
+            "inspectedUpstreamRevision": null,
+            "inspectedGrammarSha256": null,
+            "productGrammarSha256": "a2108c805865c3a1d4941b30c97bdb68b23bebd6fd22c7656d2925527cc463fb",
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "textmate-grammars-themes/samples/typescript.sample",
@@ -565,7 +590,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "source",
-    "sourceFixtureId": "textmate-grammars-themes/samples/typescript.sample"
+    "associations": [
+      {
+        "sourceFixtureId": "textmate-grammars-themes/samples/typescript.sample",
+        "format": "source",
+        "provenance": {
+          "sourceSetId": "catalog-samples",
+          "repositoryId": "catalog",
+          "revision": "37edd1b26f18838050661d912334aba0ca7f4931",
+          "upstreamPath": "samples/typescript.sample",
+          "manifestFileId": "catalog:samples/typescript.sample",
+          "licenses": [
+            "catalog-mit"
+          ],
+          "grammar": {
+            "id": "catalog-typescript",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": null,
+            "inspectedUpstreamRevision": null,
+            "inspectedGrammarSha256": null,
+            "productGrammarSha256": "c131a59a924cda308e7110ca829803fa2bfd04688f6bc1c809285c4a583e25cc",
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "tree-sitter-highlight/test/highlight/functions.js",
@@ -598,7 +648,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "tree-sitter-highlight",
-    "sourceFixtureId": "tree-sitter-highlight/test/highlight/functions.js"
+    "associations": [
+      {
+        "sourceFixtureId": "tree-sitter-highlight/test/highlight/functions.js",
+        "format": "tree-sitter-highlight",
+        "provenance": {
+          "sourceSetId": "tree-sitter-highlight",
+          "repositoryId": "tree-sitter-javascript",
+          "revision": "44c892e0be055ac465d5eeddae6d3e194424e7de",
+          "upstreamPath": "test/highlight/functions.js",
+          "manifestFileId": "tree-sitter-javascript:test/highlight/functions.js",
+          "licenses": [
+            "tree-sitter-javascript-mit"
+          ],
+          "grammar": {
+            "id": "tree-sitter-javascript-annotated",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "44c892e0be055ac465d5eeddae6d3e194424e7de",
+            "inspectedUpstreamRevision": null,
+            "inspectedGrammarSha256": null,
+            "productGrammarSha256": null,
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "tree-sitter-highlight/test/highlight/imports.js",
@@ -631,7 +706,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "tree-sitter-highlight",
-    "sourceFixtureId": "tree-sitter-highlight/test/highlight/imports.js"
+    "associations": [
+      {
+        "sourceFixtureId": "tree-sitter-highlight/test/highlight/imports.js",
+        "format": "tree-sitter-highlight",
+        "provenance": {
+          "sourceSetId": "tree-sitter-highlight",
+          "repositoryId": "tree-sitter-javascript",
+          "revision": "44c892e0be055ac465d5eeddae6d3e194424e7de",
+          "upstreamPath": "test/highlight/imports.js",
+          "manifestFileId": "tree-sitter-javascript:test/highlight/imports.js",
+          "licenses": [
+            "tree-sitter-javascript-mit"
+          ],
+          "grammar": {
+            "id": "tree-sitter-javascript-annotated",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "44c892e0be055ac465d5eeddae6d3e194424e7de",
+            "inspectedUpstreamRevision": null,
+            "inspectedGrammarSha256": null,
+            "productGrammarSha256": null,
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "tree-sitter-highlight/test/highlight/injection.js",
@@ -664,7 +764,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "tree-sitter-highlight",
-    "sourceFixtureId": "tree-sitter-highlight/test/highlight/injection.js"
+    "associations": [
+      {
+        "sourceFixtureId": "tree-sitter-highlight/test/highlight/injection.js",
+        "format": "tree-sitter-highlight",
+        "provenance": {
+          "sourceSetId": "tree-sitter-highlight",
+          "repositoryId": "tree-sitter-javascript",
+          "revision": "44c892e0be055ac465d5eeddae6d3e194424e7de",
+          "upstreamPath": "test/highlight/injection.js",
+          "manifestFileId": "tree-sitter-javascript:test/highlight/injection.js",
+          "licenses": [
+            "tree-sitter-javascript-mit"
+          ],
+          "grammar": {
+            "id": "tree-sitter-javascript-annotated",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "44c892e0be055ac465d5eeddae6d3e194424e7de",
+            "inspectedUpstreamRevision": null,
+            "inspectedGrammarSha256": null,
+            "productGrammarSha256": null,
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "tree-sitter-highlight/test/highlight/keywords.js",
@@ -697,7 +822,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "tree-sitter-highlight",
-    "sourceFixtureId": "tree-sitter-highlight/test/highlight/keywords.js"
+    "associations": [
+      {
+        "sourceFixtureId": "tree-sitter-highlight/test/highlight/keywords.js",
+        "format": "tree-sitter-highlight",
+        "provenance": {
+          "sourceSetId": "tree-sitter-highlight",
+          "repositoryId": "tree-sitter-javascript",
+          "revision": "44c892e0be055ac465d5eeddae6d3e194424e7de",
+          "upstreamPath": "test/highlight/keywords.js",
+          "manifestFileId": "tree-sitter-javascript:test/highlight/keywords.js",
+          "licenses": [
+            "tree-sitter-javascript-mit"
+          ],
+          "grammar": {
+            "id": "tree-sitter-javascript-annotated",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "44c892e0be055ac465d5eeddae6d3e194424e7de",
+            "inspectedUpstreamRevision": null,
+            "inspectedGrammarSha256": null,
+            "productGrammarSha256": null,
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "tree-sitter-highlight/test/highlight/variables.js",
@@ -730,7 +880,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "tree-sitter-highlight",
-    "sourceFixtureId": "tree-sitter-highlight/test/highlight/variables.js"
+    "associations": [
+      {
+        "sourceFixtureId": "tree-sitter-highlight/test/highlight/variables.js",
+        "format": "tree-sitter-highlight",
+        "provenance": {
+          "sourceSetId": "tree-sitter-highlight",
+          "repositoryId": "tree-sitter-javascript",
+          "revision": "44c892e0be055ac465d5eeddae6d3e194424e7de",
+          "upstreamPath": "test/highlight/variables.js",
+          "manifestFileId": "tree-sitter-javascript:test/highlight/variables.js",
+          "licenses": [
+            "tree-sitter-javascript-mit"
+          ],
+          "grammar": {
+            "id": "tree-sitter-javascript-annotated",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "44c892e0be055ac465d5eeddae6d3e194424e7de",
+            "inspectedUpstreamRevision": null,
+            "inspectedGrammarSha256": null,
+            "productGrammarSha256": null,
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "typescript-tmlanguage/tests/baselines/AsConstSatisfies.baseline.txt",
@@ -763,7 +938,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "typescript-baseline",
-    "sourceFixtureId": "typescript-tmlanguage/tests/cases/AsConstSatisfies.ts"
+    "associations": [
+      {
+        "sourceFixtureId": "typescript-tmlanguage/tests/cases/AsConstSatisfies.ts",
+        "format": "typescript-baseline",
+        "provenance": {
+          "sourceSetId": "typescript-tmlanguage-baselines",
+          "repositoryId": "typescript-tmlanguage",
+          "revision": "eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81",
+          "upstreamPath": "tests/baselines/AsConstSatisfies.baseline.txt",
+          "manifestFileId": "typescript-tmlanguage:tests/baselines/AsConstSatisfies.baseline.txt",
+          "licenses": [
+            "typescript-mit"
+          ],
+          "grammar": {
+            "id": "typescript-maintainer-ts",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81",
+            "inspectedUpstreamRevision": null,
+            "inspectedGrammarSha256": "5112e8f1a32325575e32d371cd4f1b8c4831f4b416147fd80e174b0fa7467566",
+            "productGrammarSha256": "c131a59a924cda308e7110ca829803fa2bfd04688f6bc1c809285c4a583e25cc",
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "typescript-tmlanguage/tests/baselines/autoAccessor.baseline.txt",
@@ -796,7 +996,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "typescript-baseline",
-    "sourceFixtureId": "typescript-tmlanguage/tests/cases/autoAccessor.ts"
+    "associations": [
+      {
+        "sourceFixtureId": "typescript-tmlanguage/tests/cases/autoAccessor.ts",
+        "format": "typescript-baseline",
+        "provenance": {
+          "sourceSetId": "typescript-tmlanguage-baselines",
+          "repositoryId": "typescript-tmlanguage",
+          "revision": "eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81",
+          "upstreamPath": "tests/baselines/autoAccessor.baseline.txt",
+          "manifestFileId": "typescript-tmlanguage:tests/baselines/autoAccessor.baseline.txt",
+          "licenses": [
+            "typescript-mit"
+          ],
+          "grammar": {
+            "id": "typescript-maintainer-ts",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81",
+            "inspectedUpstreamRevision": null,
+            "inspectedGrammarSha256": "5112e8f1a32325575e32d371cd4f1b8c4831f4b416147fd80e174b0fa7467566",
+            "productGrammarSha256": "c131a59a924cda308e7110ca829803fa2bfd04688f6bc1c809285c4a583e25cc",
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "typescript-tmlanguage/tests/baselines/awaitUsing.baseline.txt",
@@ -829,7 +1054,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "typescript-baseline",
-    "sourceFixtureId": "typescript-tmlanguage/tests/cases/awaitUsing.ts"
+    "associations": [
+      {
+        "sourceFixtureId": "typescript-tmlanguage/tests/cases/awaitUsing.ts",
+        "format": "typescript-baseline",
+        "provenance": {
+          "sourceSetId": "typescript-tmlanguage-baselines",
+          "repositoryId": "typescript-tmlanguage",
+          "revision": "eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81",
+          "upstreamPath": "tests/baselines/awaitUsing.baseline.txt",
+          "manifestFileId": "typescript-tmlanguage:tests/baselines/awaitUsing.baseline.txt",
+          "licenses": [
+            "typescript-mit"
+          ],
+          "grammar": {
+            "id": "typescript-maintainer-ts",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81",
+            "inspectedUpstreamRevision": null,
+            "inspectedGrammarSha256": "5112e8f1a32325575e32d371cd4f1b8c4831f4b416147fd80e174b0fa7467566",
+            "productGrammarSha256": "c131a59a924cda308e7110ca829803fa2bfd04688f6bc1c809285c4a583e25cc",
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "typescript-tmlanguage/tests/baselines/constTypeParameter.baseline.txt",
@@ -862,7 +1112,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "typescript-baseline",
-    "sourceFixtureId": "typescript-tmlanguage/tests/cases/constTypeParameter.ts"
+    "associations": [
+      {
+        "sourceFixtureId": "typescript-tmlanguage/tests/cases/constTypeParameter.ts",
+        "format": "typescript-baseline",
+        "provenance": {
+          "sourceSetId": "typescript-tmlanguage-baselines",
+          "repositoryId": "typescript-tmlanguage",
+          "revision": "eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81",
+          "upstreamPath": "tests/baselines/constTypeParameter.baseline.txt",
+          "manifestFileId": "typescript-tmlanguage:tests/baselines/constTypeParameter.baseline.txt",
+          "licenses": [
+            "typescript-mit"
+          ],
+          "grammar": {
+            "id": "typescript-maintainer-ts",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81",
+            "inspectedUpstreamRevision": null,
+            "inspectedGrammarSha256": "5112e8f1a32325575e32d371cd4f1b8c4831f4b416147fd80e174b0fa7467566",
+            "productGrammarSha256": "c131a59a924cda308e7110ca829803fa2bfd04688f6bc1c809285c4a583e25cc",
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "typescript-tmlanguage/tests/cases/AsConstSatisfies.ts",
@@ -895,7 +1170,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "source",
-    "sourceFixtureId": "typescript-tmlanguage/tests/cases/AsConstSatisfies.ts"
+    "associations": [
+      {
+        "sourceFixtureId": "typescript-tmlanguage/tests/cases/AsConstSatisfies.ts",
+        "format": "source",
+        "provenance": {
+          "sourceSetId": "typescript-tmlanguage-cases",
+          "repositoryId": "typescript-tmlanguage",
+          "revision": "eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81",
+          "upstreamPath": "tests/cases/AsConstSatisfies.ts",
+          "manifestFileId": "typescript-tmlanguage:tests/cases/AsConstSatisfies.ts",
+          "licenses": [
+            "typescript-mit"
+          ],
+          "grammar": {
+            "id": "typescript-maintainer-ts",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81",
+            "inspectedUpstreamRevision": null,
+            "inspectedGrammarSha256": "5112e8f1a32325575e32d371cd4f1b8c4831f4b416147fd80e174b0fa7467566",
+            "productGrammarSha256": "c131a59a924cda308e7110ca829803fa2bfd04688f6bc1c809285c4a583e25cc",
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "typescript-tmlanguage/tests/cases/autoAccessor.ts",
@@ -928,7 +1228,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "source",
-    "sourceFixtureId": "typescript-tmlanguage/tests/cases/autoAccessor.ts"
+    "associations": [
+      {
+        "sourceFixtureId": "typescript-tmlanguage/tests/cases/autoAccessor.ts",
+        "format": "source",
+        "provenance": {
+          "sourceSetId": "typescript-tmlanguage-cases",
+          "repositoryId": "typescript-tmlanguage",
+          "revision": "eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81",
+          "upstreamPath": "tests/cases/autoAccessor.ts",
+          "manifestFileId": "typescript-tmlanguage:tests/cases/autoAccessor.ts",
+          "licenses": [
+            "typescript-mit"
+          ],
+          "grammar": {
+            "id": "typescript-maintainer-ts",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81",
+            "inspectedUpstreamRevision": null,
+            "inspectedGrammarSha256": "5112e8f1a32325575e32d371cd4f1b8c4831f4b416147fd80e174b0fa7467566",
+            "productGrammarSha256": "c131a59a924cda308e7110ca829803fa2bfd04688f6bc1c809285c4a583e25cc",
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "typescript-tmlanguage/tests/cases/awaitUsing.ts",
@@ -961,7 +1286,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "source",
-    "sourceFixtureId": "typescript-tmlanguage/tests/cases/awaitUsing.ts"
+    "associations": [
+      {
+        "sourceFixtureId": "typescript-tmlanguage/tests/cases/awaitUsing.ts",
+        "format": "source",
+        "provenance": {
+          "sourceSetId": "typescript-tmlanguage-cases",
+          "repositoryId": "typescript-tmlanguage",
+          "revision": "eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81",
+          "upstreamPath": "tests/cases/awaitUsing.ts",
+          "manifestFileId": "typescript-tmlanguage:tests/cases/awaitUsing.ts",
+          "licenses": [
+            "typescript-mit"
+          ],
+          "grammar": {
+            "id": "typescript-maintainer-ts",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81",
+            "inspectedUpstreamRevision": null,
+            "inspectedGrammarSha256": "5112e8f1a32325575e32d371cd4f1b8c4831f4b416147fd80e174b0fa7467566",
+            "productGrammarSha256": "c131a59a924cda308e7110ca829803fa2bfd04688f6bc1c809285c4a583e25cc",
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "typescript-tmlanguage/tests/cases/constTypeParameter.ts",
@@ -994,7 +1344,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "source",
-    "sourceFixtureId": "typescript-tmlanguage/tests/cases/constTypeParameter.ts"
+    "associations": [
+      {
+        "sourceFixtureId": "typescript-tmlanguage/tests/cases/constTypeParameter.ts",
+        "format": "source",
+        "provenance": {
+          "sourceSetId": "typescript-tmlanguage-cases",
+          "repositoryId": "typescript-tmlanguage",
+          "revision": "eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81",
+          "upstreamPath": "tests/cases/constTypeParameter.ts",
+          "manifestFileId": "typescript-tmlanguage:tests/cases/constTypeParameter.ts",
+          "licenses": [
+            "typescript-mit"
+          ],
+          "grammar": {
+            "id": "typescript-maintainer-ts",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "eeeb0dc4daa8793b8227bb3b34ddfc267c85fd81",
+            "inspectedUpstreamRevision": null,
+            "inspectedGrammarSha256": "5112e8f1a32325575e32d371cd4f1b8c4831f4b416147fd80e174b0fa7467566",
+            "productGrammarSha256": "c131a59a924cda308e7110ca829803fa2bfd04688f6bc1c809285c4a583e25cc",
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-brackets.tsx",
@@ -1027,7 +1402,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "source",
-    "sourceFixtureId": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-brackets.tsx"
+    "associations": [
+      {
+        "sourceFixtureId": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-brackets.tsx",
+        "format": "source",
+        "provenance": {
+          "sourceSetId": "vscode-colorize-fixtures",
+          "repositoryId": "vscode",
+          "revision": "5470377e71f72089f2bbd5eb8aeb862892f78b31",
+          "upstreamPath": "extensions/vscode-colorize-tests/test/colorize-fixtures/test-brackets.tsx",
+          "manifestFileId": "vscode:extensions/vscode-colorize-tests/test/colorize-fixtures/test-brackets.tsx",
+          "licenses": [
+            "vscode-mit"
+          ],
+          "grammar": {
+            "id": "vscode-source.tsx",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "5470377e71f72089f2bbd5eb8aeb862892f78b31",
+            "inspectedUpstreamRevision": "48f608692aa6d6ad7bd65b478187906c798234a8",
+            "inspectedGrammarSha256": "532fb887df3117e9f4eaf5d3ea1e850114fb6899fe3d3ddabedb153bec08b32a",
+            "productGrammarSha256": "e04ffdb50f237b70ab8c27653681a72004617ece8a6d5ff6aba58eaae6082eae",
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-keywords.ts",
@@ -1060,7 +1460,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "source",
-    "sourceFixtureId": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-keywords.ts"
+    "associations": [
+      {
+        "sourceFixtureId": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-keywords.ts",
+        "format": "source",
+        "provenance": {
+          "sourceSetId": "vscode-colorize-fixtures",
+          "repositoryId": "vscode",
+          "revision": "5470377e71f72089f2bbd5eb8aeb862892f78b31",
+          "upstreamPath": "extensions/vscode-colorize-tests/test/colorize-fixtures/test-keywords.ts",
+          "manifestFileId": "vscode:extensions/vscode-colorize-tests/test/colorize-fixtures/test-keywords.ts",
+          "licenses": [
+            "vscode-mit"
+          ],
+          "grammar": {
+            "id": "vscode-source.ts",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "5470377e71f72089f2bbd5eb8aeb862892f78b31",
+            "inspectedUpstreamRevision": "48f608692aa6d6ad7bd65b478187906c798234a8",
+            "inspectedGrammarSha256": "4e92e0d7de560217d6c8d3236d85e6e17a5d77825b15729a230c761743122661",
+            "productGrammarSha256": "c131a59a924cda308e7110ca829803fa2bfd04688f6bc1c809285c4a583e25cc",
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-object-literals.ts",
@@ -1093,7 +1518,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "source",
-    "sourceFixtureId": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-object-literals.ts"
+    "associations": [
+      {
+        "sourceFixtureId": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-object-literals.ts",
+        "format": "source",
+        "provenance": {
+          "sourceSetId": "vscode-colorize-fixtures",
+          "repositoryId": "vscode",
+          "revision": "5470377e71f72089f2bbd5eb8aeb862892f78b31",
+          "upstreamPath": "extensions/vscode-colorize-tests/test/colorize-fixtures/test-object-literals.ts",
+          "manifestFileId": "vscode:extensions/vscode-colorize-tests/test/colorize-fixtures/test-object-literals.ts",
+          "licenses": [
+            "vscode-mit"
+          ],
+          "grammar": {
+            "id": "vscode-source.ts",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "5470377e71f72089f2bbd5eb8aeb862892f78b31",
+            "inspectedUpstreamRevision": "48f608692aa6d6ad7bd65b478187906c798234a8",
+            "inspectedGrammarSha256": "4e92e0d7de560217d6c8d3236d85e6e17a5d77825b15729a230c761743122661",
+            "productGrammarSha256": "c131a59a924cda308e7110ca829803fa2bfd04688f6bc1c809285c4a583e25cc",
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test.js",
@@ -1126,7 +1576,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "source",
-    "sourceFixtureId": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test.js"
+    "associations": [
+      {
+        "sourceFixtureId": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test.js",
+        "format": "source",
+        "provenance": {
+          "sourceSetId": "vscode-colorize-fixtures",
+          "repositoryId": "vscode",
+          "revision": "5470377e71f72089f2bbd5eb8aeb862892f78b31",
+          "upstreamPath": "extensions/vscode-colorize-tests/test/colorize-fixtures/test.js",
+          "manifestFileId": "vscode:extensions/vscode-colorize-tests/test/colorize-fixtures/test.js",
+          "licenses": [
+            "vscode-mit"
+          ],
+          "grammar": {
+            "id": "vscode-source.js",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "5470377e71f72089f2bbd5eb8aeb862892f78b31",
+            "inspectedUpstreamRevision": "48f608692aa6d6ad7bd65b478187906c798234a8",
+            "inspectedGrammarSha256": "db6f17f15bc4f5e860a3b8fa6055a69720a53df845c8d5121cdc4f128c16291f",
+            "productGrammarSha256": "a2108c805865c3a1d4941b30c97bdb68b23bebd6fd22c7656d2925527cc463fb",
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test.json",
@@ -1159,7 +1634,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "source",
-    "sourceFixtureId": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test.json"
+    "associations": [
+      {
+        "sourceFixtureId": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test.json",
+        "format": "source",
+        "provenance": {
+          "sourceSetId": "vscode-colorize-fixtures",
+          "repositoryId": "vscode",
+          "revision": "5470377e71f72089f2bbd5eb8aeb862892f78b31",
+          "upstreamPath": "extensions/vscode-colorize-tests/test/colorize-fixtures/test.json",
+          "manifestFileId": "vscode:extensions/vscode-colorize-tests/test/colorize-fixtures/test.json",
+          "licenses": [
+            "vscode-mit"
+          ],
+          "grammar": {
+            "id": "vscode-source.json",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "5470377e71f72089f2bbd5eb8aeb862892f78b31",
+            "inspectedUpstreamRevision": "9bd83f1c252b375e957203f21793316203f61f70",
+            "inspectedGrammarSha256": "d7238f1cc9033993b9816b0945cab4bb8ea108de0399663c551f28f913e94c70",
+            "productGrammarSha256": "9381fc3b1fd0bf3aad0dde03ca4a610fe4026b42173d33d4ae7b420ff24b5989",
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-results/test_js.json",
@@ -1192,7 +1692,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "vscode-colorize",
-    "sourceFixtureId": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test.js"
+    "associations": [
+      {
+        "sourceFixtureId": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test.js",
+        "format": "vscode-colorize",
+        "provenance": {
+          "sourceSetId": "vscode-colorize-results",
+          "repositoryId": "vscode",
+          "revision": "5470377e71f72089f2bbd5eb8aeb862892f78b31",
+          "upstreamPath": "extensions/vscode-colorize-tests/test/colorize-results/test_js.json",
+          "manifestFileId": "vscode:extensions/vscode-colorize-tests/test/colorize-results/test_js.json",
+          "licenses": [
+            "vscode-mit"
+          ],
+          "grammar": {
+            "id": "vscode-source.js",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "5470377e71f72089f2bbd5eb8aeb862892f78b31",
+            "inspectedUpstreamRevision": "48f608692aa6d6ad7bd65b478187906c798234a8",
+            "inspectedGrammarSha256": "db6f17f15bc4f5e860a3b8fa6055a69720a53df845c8d5121cdc4f128c16291f",
+            "productGrammarSha256": "a2108c805865c3a1d4941b30c97bdb68b23bebd6fd22c7656d2925527cc463fb",
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-results/test_json.json",
@@ -1225,7 +1750,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "vscode-colorize",
-    "sourceFixtureId": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test.json"
+    "associations": [
+      {
+        "sourceFixtureId": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test.json",
+        "format": "vscode-colorize",
+        "provenance": {
+          "sourceSetId": "vscode-colorize-results",
+          "repositoryId": "vscode",
+          "revision": "5470377e71f72089f2bbd5eb8aeb862892f78b31",
+          "upstreamPath": "extensions/vscode-colorize-tests/test/colorize-results/test_json.json",
+          "manifestFileId": "vscode:extensions/vscode-colorize-tests/test/colorize-results/test_json.json",
+          "licenses": [
+            "vscode-mit"
+          ],
+          "grammar": {
+            "id": "vscode-source.json",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "5470377e71f72089f2bbd5eb8aeb862892f78b31",
+            "inspectedUpstreamRevision": "9bd83f1c252b375e957203f21793316203f61f70",
+            "inspectedGrammarSha256": "d7238f1cc9033993b9816b0945cab4bb8ea108de0399663c551f28f913e94c70",
+            "productGrammarSha256": "9381fc3b1fd0bf3aad0dde03ca4a610fe4026b42173d33d4ae7b420ff24b5989",
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-results/test-brackets_tsx.json",
@@ -1258,7 +1808,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "vscode-colorize",
-    "sourceFixtureId": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-brackets.tsx"
+    "associations": [
+      {
+        "sourceFixtureId": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-brackets.tsx",
+        "format": "vscode-colorize",
+        "provenance": {
+          "sourceSetId": "vscode-colorize-results",
+          "repositoryId": "vscode",
+          "revision": "5470377e71f72089f2bbd5eb8aeb862892f78b31",
+          "upstreamPath": "extensions/vscode-colorize-tests/test/colorize-results/test-brackets_tsx.json",
+          "manifestFileId": "vscode:extensions/vscode-colorize-tests/test/colorize-results/test-brackets_tsx.json",
+          "licenses": [
+            "vscode-mit"
+          ],
+          "grammar": {
+            "id": "vscode-source.tsx",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "5470377e71f72089f2bbd5eb8aeb862892f78b31",
+            "inspectedUpstreamRevision": "48f608692aa6d6ad7bd65b478187906c798234a8",
+            "inspectedGrammarSha256": "532fb887df3117e9f4eaf5d3ea1e850114fb6899fe3d3ddabedb153bec08b32a",
+            "productGrammarSha256": "e04ffdb50f237b70ab8c27653681a72004617ece8a6d5ff6aba58eaae6082eae",
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-results/test-keywords_ts.json",
@@ -1291,7 +1866,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "vscode-colorize",
-    "sourceFixtureId": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-keywords.ts"
+    "associations": [
+      {
+        "sourceFixtureId": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-keywords.ts",
+        "format": "vscode-colorize",
+        "provenance": {
+          "sourceSetId": "vscode-colorize-results",
+          "repositoryId": "vscode",
+          "revision": "5470377e71f72089f2bbd5eb8aeb862892f78b31",
+          "upstreamPath": "extensions/vscode-colorize-tests/test/colorize-results/test-keywords_ts.json",
+          "manifestFileId": "vscode:extensions/vscode-colorize-tests/test/colorize-results/test-keywords_ts.json",
+          "licenses": [
+            "vscode-mit"
+          ],
+          "grammar": {
+            "id": "vscode-source.ts",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "5470377e71f72089f2bbd5eb8aeb862892f78b31",
+            "inspectedUpstreamRevision": "48f608692aa6d6ad7bd65b478187906c798234a8",
+            "inspectedGrammarSha256": "4e92e0d7de560217d6c8d3236d85e6e17a5d77825b15729a230c761743122661",
+            "productGrammarSha256": "c131a59a924cda308e7110ca829803fa2bfd04688f6bc1c809285c4a583e25cc",
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-results/test-object-literals_ts.json",
@@ -1324,7 +1924,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "vscode-colorize",
-    "sourceFixtureId": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-object-literals.ts"
+    "associations": [
+      {
+        "sourceFixtureId": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-object-literals.ts",
+        "format": "vscode-colorize",
+        "provenance": {
+          "sourceSetId": "vscode-colorize-results",
+          "repositoryId": "vscode",
+          "revision": "5470377e71f72089f2bbd5eb8aeb862892f78b31",
+          "upstreamPath": "extensions/vscode-colorize-tests/test/colorize-results/test-object-literals_ts.json",
+          "manifestFileId": "vscode:extensions/vscode-colorize-tests/test/colorize-results/test-object-literals_ts.json",
+          "licenses": [
+            "vscode-mit"
+          ],
+          "grammar": {
+            "id": "vscode-source.ts",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "5470377e71f72089f2bbd5eb8aeb862892f78b31",
+            "inspectedUpstreamRevision": "48f608692aa6d6ad7bd65b478187906c798234a8",
+            "inspectedGrammarSha256": "4e92e0d7de560217d6c8d3236d85e6e17a5d77825b15729a230c761743122661",
+            "productGrammarSha256": "c131a59a924cda308e7110ca829803fa2bfd04688f6bc1c809285c4a583e25cc",
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-tree-sitter-results/test-keywords_ts.json",
@@ -1357,7 +1982,32 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "vscode-tree-sitter-capture",
-    "sourceFixtureId": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-keywords.ts"
+    "associations": [
+      {
+        "sourceFixtureId": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-keywords.ts",
+        "format": "vscode-tree-sitter-capture",
+        "provenance": {
+          "sourceSetId": "vscode-colorize-tree-sitter-results",
+          "repositoryId": "vscode",
+          "revision": "5470377e71f72089f2bbd5eb8aeb862892f78b31",
+          "upstreamPath": "extensions/vscode-colorize-tests/test/colorize-tree-sitter-results/test-keywords_ts.json",
+          "manifestFileId": "vscode:extensions/vscode-colorize-tests/test/colorize-tree-sitter-results/test-keywords_ts.json",
+          "licenses": [
+            "vscode-mit"
+          ],
+          "grammar": {
+            "id": "vscode-source.ts",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "5470377e71f72089f2bbd5eb8aeb862892f78b31",
+            "inspectedUpstreamRevision": "48f608692aa6d6ad7bd65b478187906c798234a8",
+            "inspectedGrammarSha256": "4e92e0d7de560217d6c8d3236d85e6e17a5d77825b15729a230c761743122661",
+            "productGrammarSha256": "c131a59a924cda308e7110ca829803fa2bfd04688f6bc1c809285c4a583e25cc",
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   },
   {
     "id": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-tree-sitter-results/test-object-literals_ts.json",
@@ -1390,6 +2040,31 @@ export const fixtureArtifacts: readonly FixtureArtifact[] = [
     ],
     "split": "development",
     "format": "vscode-tree-sitter-capture",
-    "sourceFixtureId": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-object-literals.ts"
+    "associations": [
+      {
+        "sourceFixtureId": "vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-object-literals.ts",
+        "format": "vscode-tree-sitter-capture",
+        "provenance": {
+          "sourceSetId": "vscode-colorize-tree-sitter-results",
+          "repositoryId": "vscode",
+          "revision": "5470377e71f72089f2bbd5eb8aeb862892f78b31",
+          "upstreamPath": "extensions/vscode-colorize-tests/test/colorize-tree-sitter-results/test-object-literals_ts.json",
+          "manifestFileId": "vscode:extensions/vscode-colorize-tests/test/colorize-tree-sitter-results/test-object-literals_ts.json",
+          "licenses": [
+            "vscode-mit"
+          ],
+          "grammar": {
+            "id": "vscode-source.ts",
+            "generatedAgainstRevision": null,
+            "inspectedCheckoutRevision": "5470377e71f72089f2bbd5eb8aeb862892f78b31",
+            "inspectedUpstreamRevision": "48f608692aa6d6ad7bd65b478187906c798234a8",
+            "inspectedGrammarSha256": "4e92e0d7de560217d6c8d3236d85e6e17a5d77825b15729a230c761743122661",
+            "productGrammarSha256": "c131a59a924cda308e7110ca829803fa2bfd04688f6bc1c809285c4a583e25cc",
+            "productRevision": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
+            "productPackage": "@shikijs/langs@4.4.3"
+          }
+        }
+      }
+    ]
   }
 ]

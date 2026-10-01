@@ -35,7 +35,13 @@ export interface Fixture {
   readonly split: FixtureSplit
 }
 
+export interface FixtureAssociation {
+  readonly sourceFixtureId: string
+  readonly format: ArtifactFormat
+  readonly provenance: FixtureProvenance
+}
+
 export interface FixtureArtifact extends Fixture {
   readonly format: ArtifactFormat
-  readonly sourceFixtureId: string
+  readonly associations: readonly FixtureAssociation[]
 }

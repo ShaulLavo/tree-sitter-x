@@ -4,12 +4,14 @@ import { fixtureArtifacts } from './registry.ts'
 import { harnessRoot } from './manifest.ts'
 import { adaptVscode } from './vscode.ts'
 import { adaptTypescript } from './typescript.ts'
+import { fixtureComments } from './comments.ts'
 import { adaptTreeSitter } from './tree-sitter.ts'
 import type { CaptureExpectation } from './tree-sitter.ts'
-import type { Fixture, FixtureArtifact } from './types.ts'
+import type { Fixture, FixtureArtifact, FixtureAssociation } from './types.ts'
 
 export interface DiagnosticScopeSet {
   readonly artifact: FixtureArtifact
+  readonly association: FixtureAssociation
   readonly grammar: string
   readonly expectations: readonly Expectation[]
 }
@@ -22,23 +24,24 @@ export interface LoadedFixture {
   readonly unconvertedArtifacts: readonly FixtureArtifact[]
 }
 
-export function loadFixture(fixture: Fixture): LoadedFixture {
+export function loadFixture(fixture: Fixture, artifacts: readonly FixtureArtifact[] = fixtureArtifacts): LoadedFixture {
   const source = readFileSync(new URL(fixture.path, harnessRoot), 'utf8')
   const textmate: DiagnosticScopeSet[] = []
   const unconvertedArtifacts: FixtureArtifact[] = []
-  for (const artifact of fixtureArtifacts.filter(artifact => artifact.sourceFixtureId === fixture.id)) {
-    if (artifact.format === 'vscode-colorize') {
+  const linked = artifacts.flatMap(artifact => artifact.associations.filter(association => association.sourceFixtureId === fixture.id).map(association => ({ artifact, association })))
+  for (const { artifact, association } of linked) {
+    if (association.format === 'vscode-colorize') {
       const json = readFileSync(new URL(artifact.path, harnessRoot), 'utf8')
-      textmate.push({ artifact, grammar: artifact.provenance[0].grammar.id, expectations: adaptVscode(source, json, fixture.id, artifact.path) })
+      textmate.push({ artifact, association, grammar: association.provenance.grammar.id, expectations: adaptVscode(source, json, fixture.id, artifact.path) })
       continue
     }
-    if (artifact.format === 'typescript-baseline') {
+    if (association.format === 'typescript-baseline') {
       const baseline = readFileSync(new URL(artifact.path, harnessRoot), 'utf8')
-      for (const section of adaptTypescript(source, baseline, fixture.id, artifact.path)) textmate.push({ artifact, ...section })
+      for (const section of adaptTypescript(source, baseline, fixture.id, artifact.path)) textmate.push({ artifact, association, ...section })
       continue
     }
-    if (artifact.format === 'vscode-tree-sitter-capture') unconvertedArtifacts.push(artifact)
+    if (association.format === 'vscode-tree-sitter-capture') unconvertedArtifacts.push(artifact)
   }
-  const captures = fixture.family === 'tree-sitter-highlight' ? adaptTreeSitter(source, fixture.id, fixture.path) : []
+  const captures = fixture.family === 'tree-sitter-highlight' ? adaptTreeSitter(source, fixture.id, fixture.path, fixtureComments(fixture, source)) : []
   return { fixture, source, textmate, captures, unconvertedArtifacts }
 }

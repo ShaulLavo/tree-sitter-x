@@ -26,9 +26,20 @@ export function physicalLines(source: string): readonly PhysicalLine[] {
 }
 
 export function originalRange(segments: readonly SourceMapSegment[], from: number, to: number): { from: number; to: number } {
-  const segment = segments.find(segment => from >= segment.from && from < segment.to && to <= segment.to)
-  if (!segment || to <= from) throw new RangeError(`range [${from}, ${to}) crosses removed source or is empty`)
-  return { from: segment.originalFrom + from - segment.from, to: segment.originalFrom + to - segment.from }
+  if (!Number.isSafeInteger(from) || !Number.isSafeInteger(to) || to <= from) throw new RangeError('source range must be nonempty integer offsets')
+  const index = segments.findIndex(segment => from >= segment.from && from < segment.to)
+  const first = segments[index]
+  if (!first) throw new RangeError(`range [${from}, ${to}) crosses removed source`)
+  let current = first
+  let next = index + 1
+  while (to > current.to) {
+    const following = segments[next++]
+    if (!following || following.from !== current.to || following.originalFrom !== current.originalFrom + current.to - current.from) {
+      throw new RangeError(`range [${from}, ${to}) crosses removed source`)
+    }
+    current = following
+  }
+  return { from: first.originalFrom + from - first.from, to: current.originalFrom + to - current.from }
 }
 
 export function offsetPosition(source: string, offset: number): { line: number; column: number } {

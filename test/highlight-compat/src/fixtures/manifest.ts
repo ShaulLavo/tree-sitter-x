@@ -26,6 +26,7 @@ export interface ManifestSource {
   readonly id: string
   readonly family: string
   readonly fileIds: readonly string[]
+  readonly dependencyFileIds?: readonly string[]
   readonly counts: { readonly selectedCandidateFiles: number; readonly inventoryFiles: number }
 }
 
