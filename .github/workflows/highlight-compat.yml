@@ -1,0 +1,52 @@
+name: Highlight compatibility
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'test/highlight-compat/**'
+      - '.github/workflows/highlight-compat.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'test/highlight-compat/**'
+      - '.github/workflows/highlight-compat.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  harness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PLATFORM_ROOT: /nonexistent/highlight-compat-platform
+    defaults:
+      run:
+        working-directory: test/highlight-compat
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: test/highlight-compat/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check tracked imports
+        run: node scripts/check-tracked-imports.mjs
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npx vitest run
+
+      - name: Check tests left the checkout unchanged
+        if: always()
+        run: node scripts/check-tracked-imports.mjs --check-clean
