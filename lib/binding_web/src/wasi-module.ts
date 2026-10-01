@@ -139,9 +139,11 @@ export default async function createModule(options: ModuleOptions = {}): Promise
   // addresses, and these calls are the hot path of query and node unmarshaling.
   const getValue = (ptr: number, type = 'i8'): number => {
     refresh();
+    // Wasm32 pointers can arrive as signed i32 values when memory exceeds 2 GiB.
+    ptr >>>= 0;
     switch (type) {
-      case 'i32': case '*': return heap32[ptr >> 2];
-      case 'i16': return heap16[ptr >> 1];
+      case 'i32': case '*': return heap32[ptr >>> 2];
+      case 'i16': return heap16[ptr >>> 1];
       case 'i1':
       case 'i8': return heap8[ptr];
       case 'i64': return Number(heap.getBigInt64(ptr, true));
@@ -152,9 +154,10 @@ export default async function createModule(options: ModuleOptions = {}): Promise
   };
   const setValue = (ptr: number, value: number, type = 'i8'): void => {
     refresh();
+    ptr >>>= 0;
     switch (type) {
-      case 'i32': case '*': heap32[ptr >> 2] = value; return;
-      case 'i16': heap16[ptr >> 1] = value; return;
+      case 'i32': case '*': heap32[ptr >>> 2] = value; return;
+      case 'i16': heap16[ptr >>> 1] = value; return;
       case 'i1':
       case 'i8': heap8[ptr] = value; return;
       case 'i64': heap.setBigInt64(ptr, BigInt(value), true); return;
