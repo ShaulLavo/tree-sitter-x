@@ -110,18 +110,23 @@ describe('candidate baseline contracts', () => {
         expect(result.status).toBe('complete')
         expect(result.engine.binding).toBe('checkout lib/binding_web')
         expect(result.scopeNames).toContain('string.quoted' + (profileId === 'baseline:vscode-ts' ? '.double.ts' : ''))
-        const tokens = []
+        const tokens: { from: number; to: number; scopes: string[] }[] = []
         for (let index = 0; index < result.spans.length; index += 3) {
           const scopes = result.paths[result.spans[index + 2] as number]?.map(name => result.scopeNames[name] as string) ?? []
           tokens.push({ from: result.spans[index] as number, to: result.spans[index + 1] as number, scopes })
         }
+        const assignments = Array.from({ length: source.length }, (_, offset) => tokens.find(token => token.from <= offset && offset < token.to))
+        expect(assignments.every(token => token !== undefined)).toBe(true)
         const numberAt = source.indexOf('42')
-        expect(tokens.some(token => token.from === numberAt && token.to === numberAt + 2 && token.scopes.some(scope => scope.startsWith('constant.numeric')))).toBe(true)
+        const numberScope = 'constant.numeric' + (profileId === 'baseline:vscode-ts' ? '.ts' : '')
+        expect(assignments.map(token => token?.scopes.includes(numberScope) ?? false)).toEqual(
+          Array.from({ length: source.length }, (_, offset) => numberAt <= offset && offset < numberAt + 2),
+        )
         const stringAt = source.indexOf('"')
-        const quoted = tokens.filter(token => token.scopes.some(scope => scope.startsWith('string.quoted')))
-        expect(quoted.at(0)?.from).toBe(stringAt)
-        expect(quoted.at(-1)?.to).toBe(stringAt + 4)
-        expect(quoted.reduce((length, token) => length + token.to - token.from, 0)).toBe(4)
+        const stringScope = 'string.quoted' + (profileId === 'baseline:vscode-ts' ? '.double.ts' : '')
+        expect(assignments.map(token => token?.scopes.includes(stringScope) ?? false)).toEqual(
+          Array.from({ length: source.length }, (_, offset) => stringAt <= offset && offset < stringAt + 4),
+        )
       })
     }
   }

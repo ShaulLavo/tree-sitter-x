@@ -327,15 +327,17 @@ describe('tracked import check', () => {
     if (state === 'untracked-source') expect(result.stderr).toContain('generated input source is not tracked')
   })
 
-  it('checks dependencies imported by an allowed generated module', () => {
-    write('test/highlight-compat/generated-inputs.json', JSON.stringify({ inputs: [{ path: 'vendor/profile-main.mjs', command: 'npm run build:fixture', sources: ['src'] }] }))
-    write('test/highlight-compat/src/main.mjs', "import '../vendor/profile-main.mjs'\n")
-    write('test/highlight-compat/vendor/profile-main.mjs', "import './profile-hidden.mjs'\n")
-    write('test/highlight-compat/vendor/profile-hidden.mjs', 'export {}\n')
-    track('test/highlight-compat/generated-inputs.json', 'test/highlight-compat/src/main.mjs')
+  it.each(['listed', 'unlisted'])('treats a %s generated bundle with a relocated unresolved URL according to its contract', (state) => {
+    if (state === 'listed') {
+      write('test/highlight-compat/generated-inputs.json', JSON.stringify({ inputs: [{ path: 'vendor/profile-main.mjs', command: 'npm run build:fixture', sources: ['src'] }] }))
+      track('test/highlight-compat/generated-inputs.json')
+    }
+    write('test/highlight-compat/src/main.mjs', "new URL('../vendor/profile-main.mjs', import.meta.url)\n")
+    write('test/highlight-compat/vendor/profile-main.mjs', "new URL('./missing.wasm', import.meta.url)\n")
+    track('test/highlight-compat/src/main.mjs')
     const result = check()
-    expect(result.status).toBe(1)
-    expect(result.stderr).toContain('profile-hidden.mjs is not tracked by git')
+    expect(result.status, String(result.stderr)).toBe(state === 'listed' ? 0 : 1)
+    if (state === 'unlisted') expect(result.stderr).toContain('vendor/profile-main.mjs is not tracked by git')
   })
 
   it('rejects an unlisted ignored artifact loaded from a data directory', () => {

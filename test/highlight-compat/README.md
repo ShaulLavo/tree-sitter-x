@@ -22,6 +22,8 @@ npm run artifacts:check                    # two temp regenerations, no checkout
 npm run artifacts:update                   # replaces generated goldens and reports
 ```
 
+The tracked-import guard follows harness source dependencies. `generated-inputs.json` declares build outputs with a build command and tracked sources. Once a declared artifact is present, gitignored and untracked, it is an opaque leaf; its internal references are the build’s responsibility. Unlisted ignored outputs fail the guard.
+
 ## Result contract
 
 `src/schema.ts` defines `DocumentResult`. `src/validate.ts` is the JSON boundary; everything past it trusts the type.

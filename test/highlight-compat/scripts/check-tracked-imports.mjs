@@ -204,7 +204,7 @@ function checkDependency(dependency, importer) {
     return
   }
   reached.add(relative(packageRoot, target).split(sep)[0])
-  if (isSource(target)) queue.push(target)
+  if (isSource(target) && !declared) queue.push(target)
 }
 
 while (queue.length > 0) {
