@@ -403,7 +403,10 @@ declare module 'web-tree-sitter' {
 	 * Call {@link Parser.init} first.
 	 */
 	export function loadExtension(binary: Uint8Array | WebAssembly.Module): Promise<ExtensionExports>;
-	/** The parser's memory, for exchanging data with extensions. Growth replaces the view. */
+	/**
+	 * The parser's memory, for exchanging data with extensions. Growth replaces the view.
+	 * Addresses above 2 GiB arrive as negative numbers; index with `address >>> 0`.
+	 */
 	export function heap(): Uint8Array;
 	/** A single node within a syntax {@link Tree}. */
 	export class Node {

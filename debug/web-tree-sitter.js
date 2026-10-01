@@ -1679,12 +1679,13 @@ async function createModule(options = {}) {
   }, "bytes");
   const getValue = /* @__PURE__ */ __name((ptr, type = "i8") => {
     refresh();
+    ptr >>>= 0;
     switch (type) {
       case "i32":
       case "*":
-        return heap32[ptr >> 2];
+        return heap32[ptr >>> 2];
       case "i16":
-        return heap16[ptr >> 1];
+        return heap16[ptr >>> 1];
       case "i1":
       case "i8":
         return heap8[ptr];
@@ -1700,13 +1701,14 @@ async function createModule(options = {}) {
   }, "getValue");
   const setValue = /* @__PURE__ */ __name((ptr, value, type = "i8") => {
     refresh();
+    ptr >>>= 0;
     switch (type) {
       case "i32":
       case "*":
-        heap32[ptr >> 2] = value;
+        heap32[ptr >>> 2] = value;
         return;
       case "i16":
-        heap16[ptr >> 1] = value;
+        heap16[ptr >>> 1] = value;
         return;
       case "i1":
       case "i8":
@@ -1727,6 +1729,7 @@ async function createModule(options = {}) {
   }, "setValue");
   const UTF8ToString = /* @__PURE__ */ __name((ptr, maxBytesToRead, ignoreNul) => {
     if (!ptr) return "";
+    ptr >>>= 0;
     const heapU82 = bytes();
     const limit = maxBytesToRead === void 0 ? heapU82.length : Math.min(heapU82.length, ptr + maxBytesToRead);
     let end = ptr;
@@ -1735,6 +1738,7 @@ async function createModule(options = {}) {
     return utf8Decoder.decode(heapU82.subarray(ptr, end));
   }, "UTF8ToString");
   const AsciiToString = /* @__PURE__ */ __name((ptr) => {
+    ptr >>>= 0;
     const heapU82 = bytes();
     let result = "";
     for (let at = ptr; heapU82[at]; at++) result += String.fromCharCode(heapU82[at]);
@@ -1743,6 +1747,7 @@ async function createModule(options = {}) {
   const lengthBytesUTF8 = /* @__PURE__ */ __name((str) => utf8Encoder.encode(str).length, "lengthBytesUTF8");
   const stringToUTF8 = /* @__PURE__ */ __name((str, outPtr, maxBytesToWrite) => {
     if (maxBytesToWrite <= 0) return 0;
+    outPtr >>>= 0;
     const target = bytes().subarray(outPtr, outPtr + maxBytesToWrite - 1);
     const { written } = utf8Encoder.encodeInto(str, target);
     bytes()[outPtr + written] = 0;
@@ -1750,6 +1755,7 @@ async function createModule(options = {}) {
   }, "stringToUTF8");
   const stringToUTF16 = /* @__PURE__ */ __name((str, outPtr, maxBytesToWrite = 2147483647) => {
     if (maxBytesToWrite < 2) return 0;
+    outPtr >>>= 0;
     const length = Math.min(str.length, maxBytesToWrite - 2 >> 1);
     const units = new Uint16Array(bytes().buffer, outPtr, length + 1);
     for (let i = 0; i < length; i++) units[i] = str.charCodeAt(i);
@@ -1790,7 +1796,7 @@ async function createModule(options = {}) {
   function link(wasmModule) {
     const info = dylinkInfo(wasmModule);
     const align = Math.max(2 ** info.memoryAlign, 16);
-    const memoryBase = info.memorySize ? Math.ceil(exports.malloc(info.memorySize + align) / align) * align : 0;
+    const memoryBase = info.memorySize ? Math.ceil((exports.malloc(info.memorySize + align) >>> 0) / align) * align : 0;
     if (info.memorySize) bytes().fill(0, memoryBase, memoryBase + info.memorySize);
     const table = exports.__indirect_function_table;
     const tableBase = table.grow(info.tableSize);
@@ -1965,7 +1971,7 @@ var TextBuffer = class {
     const address = C._realloc(this[0], capacity * 2);
     if (!address) throw new Error(`Failed to allocate a text buffer of ${capacity} code units`);
     finalizer4?.unregister(this);
-    this[0] = address;
+    this[0] = address >>> 0;
     this.capacity = capacity;
     finalizer4?.register(this, address, this);
   }
