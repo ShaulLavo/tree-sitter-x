@@ -1,7 +1,7 @@
 import { execFileSync, spawnSync } from 'node:child_process'
-import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs'
+import { existsSync, globSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs'
 import { createRequire, isBuiltin } from 'node:module'
-import { extname, relative, resolve, sep } from 'node:path'
+import { dirname, extname, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
@@ -40,9 +40,70 @@ const failures = []
 const visited = new Set()
 const isSource = (file) => /\.(?:[cm]?[jt]s|[jt]sx)$/.test(file)
 const isDeclaration = (file) => /\.d\.[cm]?ts$/.test(file)
-const queue = [...tracked]
-  .filter((path) => path.startsWith(`${packagePath}/`) && isSource(path))
-  .map((path) => resolve(repoRoot, path))
+const queue = []
+const reached = new Set(['package.json', 'tsconfig.json'])
+const dataEntries = new Set(['fixtures', 'vendor', 'goldens', 'reports', 'node_modules', 'README.md', 'package-lock.json'])
+const entries = readdirSync(packageRoot)
+const configFiles = entries.filter((file) => /^(?:[^/]+\.)?config\.[cm]?[jt]s$/.test(file))
+const vitestConfigs = new Set(configFiles.filter((file) => /^vitest(?:\.[^/]+)?\.config\./.test(file)))
+const manifest = JSON.parse(readFileSync(resolve(packageRoot, 'package.json'), 'utf8'))
+const generatedInputs = new Map()
+const generatedManifest = resolve(packageRoot, 'generated-inputs.json')
+if (existsSync(generatedManifest)) {
+  reached.add('generated-inputs.json')
+  if (!tracked.has(repoPath(generatedManifest))) failures.push('generated-inputs.json must be tracked by git')
+  const { inputs } = JSON.parse(readFileSync(generatedManifest, 'utf8'))
+  for (const input of inputs) {
+    const file = resolve(packageRoot, input.path)
+    if (!input.command || !input.sources?.length) failures.push(`${input.path}: generated input requires a build command and tracked sources`)
+    if (tracked.has(repoPath(file))) failures.push(`${input.path}: generated input must be gitignored and untracked`)
+    for (const source of input.sources ?? []) {
+      const path = repoPath(resolve(packageRoot, source))
+      if (!tracked.has(path) && ![...tracked].some((file) => file.startsWith(`${path}/`))) failures.push(`${source}: generated input source is not tracked`)
+    }
+    generatedInputs.set(file, input)
+  }
+}
+
+function addRoot(path) {
+  const file = resolve(packageRoot, path)
+  if (!existsSync(file) || !tracked.has(repoPath(realpathSync(file)))) {
+    failures.push(`${repoPath(file)}: executable entry point is missing or is not tracked by git`)
+    return
+  }
+  queue.push(realpathSync(file))
+}
+
+for (const source of Object.values(manifest.scripts ?? {})) {
+  // Source-file arguments include Node entries, loaders, and explicit tool configurations.
+  const tokens = (source.match(/(?:[^\s"';&|]+|"[^"]*"|'[^']*')+/g) ?? []).map((token) => token.replace(/["']/g, ''))
+  for (let index = 0; index < tokens.length; index++) {
+    const path = tokens[index].replace(/^--[^=]+=/, '')
+    if (isSource(path)) addRoot(path)
+    if (!tokens.includes('vitest')) continue
+    if (tokens[index] === '--config' || tokens[index] === '-c') vitestConfigs.add(tokens[index + 1])
+    if (tokens[index].startsWith('--config=')) vitestConfigs.add(path)
+  }
+}
+for (const file of configFiles) addRoot(file)
+const self = fileURLToPath(import.meta.url)
+if (self.startsWith(`${packageRoot}${sep}`)) addRoot(self)
+
+for (const path of vitestConfigs) {
+  addRoot(path)
+  try {
+    const { loadConfigFromFile } = await import('vite')
+    const { configDefaults } = await import('vitest/config')
+    const loaded = await loadConfigFromFile({ command: 'serve', mode: 'test' }, resolve(packageRoot, path), packageRoot)
+    const test = loaded.config.test ?? {}
+    const root = resolve(packageRoot, loaded.config.root ?? '.', test.dir ?? '.')
+    for (const file of globSync(test.include ?? configDefaults.include, { cwd: root, exclude: test.exclude ?? configDefaults.exclude })) {
+      addRoot(resolve(root, file))
+    }
+  } catch (error) {
+    failures.push(`${path}: cannot load executable test configuration: ${error.message}`)
+  }
+}
 
 function repoPath(file) {
   return relative(repoRoot, file).split(sep).join('/')
@@ -112,6 +173,13 @@ function resolveDependency(dependency, importer) {
 function checkDependency(dependency, importer) {
   if (isBuiltin(dependency.specifier)) return
   const label = `${repoPath(importer)} ${dependency.kind === 'import' ? 'imports' : 'loads'} ${JSON.stringify(dependency.specifier)}`
+  const base = dependency.kind === 'worker-path' ? packageRoot : dirname(importer)
+  const expected = dependency.specifier.startsWith('file:') ? fileURLToPath(dependency.specifier) : resolve(base, dependency.specifier)
+  const generated = generatedInputs.get(expected)
+  if (generated && !existsSync(expected)) {
+    failures.push(`${label}: generated input is missing; run ${generated.command} from the repository root`)
+    return
+  }
   let file
   try {
     file = resolveDependency(dependency, importer)
@@ -126,10 +194,16 @@ function checkDependency(dependency, importer) {
   }
   const target = realpathSync(file)
   if (target.split(sep).includes('node_modules')) return
-  if (!tracked.has(repoPath(target))) {
+  const declared = generatedInputs.get(file)
+  if (declared && (tracked.has(repoPath(target)) || spawnSync('git', ['-C', repoRoot, 'check-ignore', '-q', '--', repoPath(target)]).status !== 0)) {
+    failures.push(`${label}: generated input must be gitignored and untracked`)
+    return
+  }
+  if (!tracked.has(repoPath(target)) && !declared) {
     failures.push(`${label}: ${repoPath(target)} is not tracked by git`)
     return
   }
+  reached.add(relative(packageRoot, target).split(sep)[0])
   if (isSource(target)) queue.push(target)
 }
 
@@ -137,7 +211,12 @@ while (queue.length > 0) {
   const file = queue.pop()
   if (visited.has(file)) continue
   visited.add(file)
+  reached.add(relative(packageRoot, file).split(sep)[0])
   for (const dependency of dependenciesIn(file)) checkDependency(dependency, file)
+}
+
+for (const entry of entries) {
+  if (!reached.has(entry) && !dataEntries.has(entry)) failures.push(`unclassified package entry: ${entry}`)
 }
 
 if (failures.length > 0) {
