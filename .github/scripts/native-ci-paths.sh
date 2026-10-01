@@ -5,9 +5,13 @@ set -euo pipefail
 native=false
 while IFS= read -r -d '' path; do
   case "$path" in
+    # Taplo checks every TOML file, including otherwise exempt directories.
+    *.toml)
+      native=true
+      ;;
     test/highlight-compat/*|.github/workflows/highlight-compat.yml)
       ;;
-    docs/src/assets/js/playground.js|docs/*.toml)
+    docs/src/assets/js/playground.js)
       native=true
       ;;
     docs/*|README.md|CONTRIBUTING.md|CHANGELOG.md|LICENSE|FUNDING.json|.github/FUNDING.yml|.github/ISSUE_TEMPLATE/*|.github/pull_request_template.md)

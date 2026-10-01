@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - 'master'
@@ -21,7 +22,7 @@ jobs:
       native: ${{ steps.paths.outputs.native }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -36,7 +37,7 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          if [[ "$EVENT_NAME" == push ]]; then
+          if [[ "$EVENT_NAME" == push || "$EVENT_NAME" == workflow_dispatch ]]; then
             echo 'native=true' >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -52,10 +53,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up stable Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v2
+        uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2
         with:
           toolchain: stable
           components: clippy, rustfmt
@@ -64,7 +65,7 @@ jobs:
         run: make lint
 
       - name: Install Taplo
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2
         with:
           tool: taplo@0.10.0
 
@@ -104,8 +105,11 @@ jobs:
           WASM_STDLIB: ${{ needs.check-wasm-stdlib.result }}
         run: |
           [[ "$CHANGES" == success ]] || exit 1
-          expected=success
-          [[ "$NATIVE" == true ]] || expected=skipped
+          case "$NATIVE" in
+            true) expected=success ;;
+            false) expected=skipped ;;
+            *) echo '::error::Native CI filter output must be true or false'; exit 1 ;;
+          esac
           for result in "$CHECKS" "$SANITIZE" "$BUILD" "$WASM_STDLIB"; do
             [[ "$result" == "$expected" ]] || exit 1
           done
