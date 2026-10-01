@@ -15,7 +15,10 @@ export async function loadExtension(binary: Uint8Array | WebAssembly.Module): Pr
   return C.loadWebAssemblyModule(binary, { loadAsync: true });
 }
 
-/** The parser's memory, for exchanging data with extensions. Growth replaces the view. */
+/**
+ * The parser's memory, for exchanging data with extensions. Growth replaces the view.
+ * Addresses above 2 GiB arrive as negative numbers; index with `address >>> 0`.
+ */
 export function heap(): Uint8Array {
   return C.HEAPU8;
 }

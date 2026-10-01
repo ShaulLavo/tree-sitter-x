@@ -100,7 +100,8 @@ export class TextBuffer {
     const address = C._realloc(this[0], capacity * 2);
     if (!address) throw new Error(`Failed to allocate a text buffer of ${capacity} code units`);
     finalizer?.unregister(this);
-    this[0] = address;
+    // Unsigned: a signed address above 2 GiB is not a valid Uint16Array offset.
+    this[0] = address >>> 0;
     this.capacity = capacity;
     finalizer?.register(this, address, this);
   }
