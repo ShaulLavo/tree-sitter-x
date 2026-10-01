@@ -384,3 +384,5 @@ Non-complete case count is 32. The table below accounts for each fixture and ref
 Markdown identities stay at the manifest’s tree-sitter-md 0.1.1 (ff455a7d). Platform has since moved to 0.1.2. The manifest configures a native MarkdownDocument extension and no highlights.scm or markdown_inline parser. Both grammar and resolver Wasm are vendored byte-exact with their upstream notices; ordinary-capture Markdown is explicitly unsupported.
 
 Regenerate with `npm run report:baselines`. No candidate result is ever passed to golden:update.
+
+Intentional report staleness probe for CI.
