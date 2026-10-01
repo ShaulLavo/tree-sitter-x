@@ -31,12 +31,32 @@ export function sameContent(a: DocumentResult, b: DocumentResult): boolean {
   return serializeResult({ ...a, profileId: b.profileId, engine: b.engine }) === serializeResult(b)
 }
 
-/** `variant` cases only where its result differs from `base`'s on the same fixture. */
-export async function* differingCases(variant: OracleProfileId, base: OracleProfileId): AsyncIterable<GoldenCase> {
-  const fixtures = originalFixtures()
-  const [variants, bases] = await Promise.all([originalResults(variant, fixtures), originalResults(base, fixtures)])
+/**
+ * `variant` cases only where its result differs from `base`'s on the same fixture. Both sides must
+ * be complete on every fixture: equal failures are not equal content, and a failed base proves no
+ * difference. Throwing before the first case makes golden:update write and delete nothing.
+ */
+export function* sparseCases(
+  fixtures: readonly OriginalFixture[],
+  variants: readonly DocumentResult[],
+  bases: readonly DocumentResult[],
+): Iterable<GoldenCase> {
+  const failed = fixtures.flatMap((fixture, index) =>
+    [variants[index], bases[index]].flatMap((result) =>
+      result === undefined || result.status !== 'complete'
+        ? [`${fixture.languageId}/${fixture.fixtureId}: ${result?.profileId ?? 'missing'} ${result?.status ?? 'result'} ${result?.diagnostics.join('; ') ?? ''}`.trim()]
+        : [],
+    ),
+  )
+  if (failed.length > 0) throw new Error(`sparse goldens need complete results on both sides:\n  ${failed.join('\n  ')}`)
   for (const [index, fixture] of fixtures.entries()) {
     const result = variants[index] as DocumentResult
     if (!sameContent(result, bases[index] as DocumentResult)) yield goldenCase(fixture, result)
   }
+}
+
+export async function* differingCases(variant: OracleProfileId, base: OracleProfileId): AsyncIterable<GoldenCase> {
+  const fixtures = originalFixtures()
+  const [variants, bases] = await Promise.all([originalResults(variant, fixtures), originalResults(base, fixtures)])
+  yield* sparseCases(fixtures, variants, bases)
 }
