@@ -20,10 +20,7 @@ same as upstream.
 
 ## What we fixed
 
-- Finding "the first child at this position" failed when the position was inside invisible
-  trailing content, like the blank lines between markdown paragraphs. Both `Node` and
-  `TreeCursor` versions now find the next child.
-
+- Fixed ts_node_first_child_for_byte, ts_node_first_named_child_for_byte, and ts_tree_cursor_goto_first_child_for_byte—bro, these could incorrectly report no child when the byte offset landed in hidden trailing content, such as blank lines between Markdown paragraphs. They now continue past exhausted hidden nodes and find the next visible child, including through nested hidden nodes.
 ## Install
 
 Install the WASI JavaScript runtime from npm:
