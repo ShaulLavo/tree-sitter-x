@@ -20,7 +20,7 @@ same as upstream.
 
 ## What we fixed
 
-- Fixed `ts_node_first_child_for_byte`, `ts_node_first_named_child_for_byte`, and `ts_tree_cursor_goto_first_child_for_byte—bro`, these could incorrectly report no child when the byte offset landed in hidden trailing content, such as blank lines between Markdown paragraphs. They now continue past exhausted hidden nodes and find the next visible child, including through nested hidden nodes.
+- Fixed `ts_node_first_child_for_byte`, `ts_node_first_named_child_for_byte`, and `ts_tree_cursor_goto_first_child_for_byte`, these could incorrectly report no child when the byte offset landed in hidden trailing content, such as blank lines between Markdown paragraphs. They now continue past exhausted hidden nodes and find the next visible child, including through nested hidden nodes.
 ## Install
 
 Install the WASI JavaScript runtime from npm:
