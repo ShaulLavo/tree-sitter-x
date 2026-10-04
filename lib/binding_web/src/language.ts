@@ -2,6 +2,7 @@ import { C, INTERNAL, Internal, assertInternal, SIZE_OF_INT, SIZE_OF_SHORT } fro
 import { LookaheadIterator } from './lookahead_iterator';
 import { unmarshalLanguageMetadata } from './marshal';
 import { TRANSFER_BUFFER } from './parser';
+import { isFileInput } from './wasi-module';
 
 const LANGUAGE_FUNCTION_REGEX = /^tree_sitter_\w+$/;
 
@@ -236,7 +237,7 @@ export class Language {
     if (input instanceof Uint8Array) {
       binary = input;
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    } else if (globalThis.process?.versions.node) {
+    } else if (globalThis.process?.versions.node && isFileInput(input)) {
       const fs: typeof import('fs/promises') = await import('fs/promises');
       binary = await fs.readFile(input);
     } else {
