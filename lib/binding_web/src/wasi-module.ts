@@ -75,13 +75,17 @@ function dylinkInfo(module: WebAssembly.Module) {
   return info;
 }
 
+export function isFileInput(input: string | URL): boolean {
+  if (typeof input !== 'string') return input.protocol === 'file:';
+  return /^[a-z]:/i.test(input) || !/^[a-z][a-z\d+.-]*:/i.test(input);
+}
+
 async function runtimeBytes(options: ModuleOptions): Promise<ArrayBufferView | ArrayBuffer | WebAssembly.Module> {
   if (options.wasmBinary) return options.wasmBinary;
   const base = new URL('.', import.meta.url).href;
   const location = options.locateFile?.('web-tree-sitter.wasm', base) ?? new URL('web-tree-sitter.wasm', import.meta.url).href;
   // Native paths preserve URL punctuation and resolve relative to Node's working directory.
-  const isPath = /^[a-z]:/i.test(location) || !/^[a-z][a-z\d+.-]*:/i.test(location);
-  if (typeof process !== 'undefined' && process.versions.node && isPath) {
+  if (typeof process !== 'undefined' && process.versions.node && isFileInput(location)) {
     const { readFile } = await import('fs/promises');
     return readFile(location);
   }
