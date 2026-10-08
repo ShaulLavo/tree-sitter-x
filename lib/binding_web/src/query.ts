@@ -197,7 +197,18 @@ const isStringStep = (step: PredicateStep): step is Extract<PredicateStep, { typ
  * condition. This is used in the built-in `eq?`, `match?`, and `any-of?`
  * predicates.
  */
-export type TextPredicate = (captures: QueryCapture[]) => boolean;
+export type TextPredicate = (captures: QueryCapture[], readText: (node: Node) => string) => boolean;
+
+function createQueryTextReader(): (node: Node) => string {
+  const texts = new Map<number, string>();
+  return (node) => {
+    const cached = texts.get(node.id);
+    if (cached !== undefined) return cached;
+    const text = node.text;
+    texts.set(node.id, text);
+    return text;
+  };
+}
 
 /** Error codes returned from tree-sitter query parsing */
 export const QueryErrorKind = {
@@ -276,15 +287,15 @@ function parseAnyPredicate(
   if (isCaptureStep(steps[2])) {
     const captureName1 = steps[1].name;
     const captureName2 = steps[2].name;
-    textPredicates[index].push((captures) => {
+    textPredicates[index].push((captures, readText) => {
       const nodes1: Node[] = [];
       const nodes2: Node[] = [];
       for (const c of captures) {
         if (c.name === captureName1) nodes1.push(c.node);
         if (c.name === captureName2) nodes2.push(c.node);
       }
-      const compare = (n1: { text: string }, n2: { text: string }, positive: boolean) => {
-        return positive ? n1.text === n2.text : n1.text !== n2.text;
+      const compare = (n1: Node, n2: Node, positive: boolean) => {
+        return positive ? readText(n1) === readText(n2) : readText(n1) !== readText(n2);
       };
       return matchAll
         ? nodes1.every((n1) => nodes2.some((n2) => compare(n1, n2, isPositive)))
@@ -293,9 +304,9 @@ function parseAnyPredicate(
   } else {
     const captureName = steps[1].name;
     const stringValue = steps[2].value;
-    const matches = (n: Node) => n.text === stringValue;
-    const doesNotMatch = (n: Node) => n.text !== stringValue;
-    textPredicates[index].push((captures) => {
+    textPredicates[index].push((captures, readText) => {
+      const matches = (n: Node) => readText(n) === stringValue;
+      const doesNotMatch = (n: Node) => readText(n) !== stringValue;
       const nodes = [];
       for (const c of captures) {
         if (c.name === captureName) nodes.push(c.node);
@@ -337,10 +348,10 @@ function parseMatchPredicate(
   const matchAll = !operator.startsWith('any-');
   const captureName = steps[1].name;
   const regex = new RegExp(steps[2].value);
-  textPredicates[index].push((captures) => {
+  textPredicates[index].push((captures, readText) => {
     const nodes = [];
     for (const c of captures) {
-      if (c.name === captureName) nodes.push(c.node.text);
+      if (c.name === captureName) nodes.push(readText(c.node));
     }
     const test = (text: string, positive: boolean) => {
       return positive ?
@@ -386,10 +397,10 @@ function parseAnyOfPredicate(
   }
   const values = stringSteps.map((s) => s.value);
 
-  textPredicates[index].push((captures) => {
+  textPredicates[index].push((captures, readText) => {
     const nodes = [];
     for (const c of captures) {
-      if (c.name === captureName) nodes.push(c.node.text);
+      if (c.name === captureName) nodes.push(readText(c.node));
     }
     if (nodes.length === 0) return !isPositive;
     return nodes.every((text) => values.includes(text)) === isPositive;
@@ -789,6 +800,7 @@ export class Query {
     const result = new Array<QueryMatch>(rawCount);
     this.exceededMatchLimit = Boolean(didExceedMatchLimit);
 
+    const readText = createQueryTextReader();
     let filteredCount = 0;
     let address = startAddress;
     for (let i = 0; i < rawCount; i++) {
@@ -800,7 +812,7 @@ export class Query {
       const captures = new Array<QueryCapture>(captureCount);
       address = unmarshalCaptures(this, node.tree, address, patternIndex, captures);
 
-      if (this.textPredicates[patternIndex].every((p) => p(captures))) {
+      if (this.textPredicates[patternIndex].every((p) => p(captures, readText))) {
         result[filteredCount] = { patternIndex, captures };
         const setProperties = this.setProperties[patternIndex];
         result[filteredCount].setProperties = setProperties;
@@ -904,6 +916,7 @@ export class Query {
     const result = new Array<QueryCapture>();
     this.exceededMatchLimit = Boolean(didExceedMatchLimit);
 
+    const readText = createQueryTextReader();
     const captures = new Array<QueryCapture>();
     let address = startAddress;
     for (let i = 0; i < count; i++) {
@@ -917,7 +930,7 @@ export class Query {
       captures.length = captureCount;
       address = unmarshalCaptures(this, node.tree, address, patternIndex, captures);
 
-      if (this.textPredicates[patternIndex].every(p => p(captures))) {
+      if (this.textPredicates[patternIndex].every(p => p(captures, readText))) {
         const capture = captures[captureIndex];
         const setProperties = this.setProperties[patternIndex];
         capture.setProperties = setProperties;

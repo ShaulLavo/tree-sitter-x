@@ -55,9 +55,10 @@ export const SIZE_OF_RANGE = 2 * SIZE_OF_INT + 2 * SIZE_OF_POINT;
 export const ZERO_POINT: Point = { row: 0, column: 0 };
 
 /**
- * A callback for parsing that takes an index and point, and should return a string.
+ * Returns source text from the given index. Node text reads also supply an
+ * exclusive end index so the callback can return only the requested range.
  */
-export type ParseCallback = (index: number, position: Point) => string | undefined;
+export type ParseCallback = (index: number, position: Point, endIndex?: number) => string | undefined;
 
 /**
  * A callback that receives the parse state during parsing.
