@@ -232,11 +232,11 @@ var LookaheadIterator = class {
 // src/tree.ts
 function getText(tree, startIndex, endIndex, startPosition) {
   const length = endIndex - startIndex;
-  let result = tree.textCallback(startIndex, startPosition);
+  let result = tree.textCallback(startIndex, startPosition, endIndex);
   if (result) {
     startIndex += result.length;
     while (startIndex < endIndex) {
-      const string = tree.textCallback(startIndex, startPosition);
+      const string = tree.textCallback(startIndex, startPosition, endIndex);
       if (string && string.length > 0) {
         startIndex += string.length;
         result += string;
@@ -2215,6 +2215,17 @@ var CaptureQuantifier = {
 };
 var isCaptureStep = /* @__PURE__ */ __name((step) => step.type === "capture", "isCaptureStep");
 var isStringStep = /* @__PURE__ */ __name((step) => step.type === "string", "isStringStep");
+function createQueryTextReader() {
+  const texts = /* @__PURE__ */ new Map();
+  return (node) => {
+    const cached = texts.get(node.id);
+    if (cached !== void 0) return cached;
+    const text = node.text;
+    texts.set(node.id, text);
+    return text;
+  };
+}
+__name(createQueryTextReader, "createQueryTextReader");
 var QueryErrorKind = {
   Syntax: 1,
   NodeName: 2,
@@ -2270,7 +2281,7 @@ function parseAnyPredicate(steps, index, operator, textPredicates) {
   if (isCaptureStep(steps[2])) {
     const captureName1 = steps[1].name;
     const captureName2 = steps[2].name;
-    textPredicates[index].push((captures) => {
+    textPredicates[index].push((captures, readText) => {
       const nodes1 = [];
       const nodes2 = [];
       for (const c of captures) {
@@ -2278,16 +2289,16 @@ function parseAnyPredicate(steps, index, operator, textPredicates) {
         if (c.name === captureName2) nodes2.push(c.node);
       }
       const compare = /* @__PURE__ */ __name((n1, n2, positive) => {
-        return positive ? n1.text === n2.text : n1.text !== n2.text;
+        return positive ? readText(n1) === readText(n2) : readText(n1) !== readText(n2);
       }, "compare");
       return matchAll ? nodes1.every((n1) => nodes2.some((n2) => compare(n1, n2, isPositive))) : nodes1.some((n1) => nodes2.some((n2) => compare(n1, n2, isPositive)));
     });
   } else {
     const captureName = steps[1].name;
     const stringValue = steps[2].value;
-    const matches = /* @__PURE__ */ __name((n) => n.text === stringValue, "matches");
-    const doesNotMatch = /* @__PURE__ */ __name((n) => n.text !== stringValue, "doesNotMatch");
-    textPredicates[index].push((captures) => {
+    textPredicates[index].push((captures, readText) => {
+      const matches = /* @__PURE__ */ __name((n) => readText(n) === stringValue, "matches");
+      const doesNotMatch = /* @__PURE__ */ __name((n) => readText(n) !== stringValue, "doesNotMatch");
       const nodes = [];
       for (const c of captures) {
         if (c.name === captureName) nodes.push(c.node);
@@ -2318,10 +2329,10 @@ function parseMatchPredicate(steps, index, operator, textPredicates) {
   const matchAll = !operator.startsWith("any-");
   const captureName = steps[1].name;
   const regex = new RegExp(steps[2].value);
-  textPredicates[index].push((captures) => {
+  textPredicates[index].push((captures, readText) => {
     const nodes = [];
     for (const c of captures) {
-      if (c.name === captureName) nodes.push(c.node.text);
+      if (c.name === captureName) nodes.push(readText(c.node));
     }
     const test = /* @__PURE__ */ __name((text, positive) => {
       return positive ? regex.test(text) : !regex.test(text);
@@ -2351,10 +2362,10 @@ function parseAnyOfPredicate(steps, index, operator, textPredicates) {
     );
   }
   const values = stringSteps.map((s) => s.value);
-  textPredicates[index].push((captures) => {
+  textPredicates[index].push((captures, readText) => {
     const nodes = [];
     for (const c of captures) {
-      if (c.name === captureName) nodes.push(c.node.text);
+      if (c.name === captureName) nodes.push(readText(c.node));
     }
     if (nodes.length === 0) return !isPositive;
     return nodes.every((text) => values.includes(text)) === isPositive;
@@ -2662,6 +2673,7 @@ var Query = class {
     const didExceedMatchLimit = C.getValue(TRANSFER_BUFFER + 2 * SIZE_OF_INT, "i32");
     const result = new Array(rawCount);
     this.exceededMatchLimit = Boolean(didExceedMatchLimit);
+    const readText = createQueryTextReader();
     let filteredCount = 0;
     let address = startAddress;
     for (let i = 0; i < rawCount; i++) {
@@ -2671,7 +2683,7 @@ var Query = class {
       address += SIZE_OF_INT;
       const captures = new Array(captureCount);
       address = unmarshalCaptures(this, node.tree, address, patternIndex, captures);
-      if (this.textPredicates[patternIndex].every((p) => p(captures))) {
+      if (this.textPredicates[patternIndex].every((p) => p(captures, readText))) {
         result[filteredCount] = { patternIndex, captures };
         const setProperties = this.setProperties[patternIndex];
         result[filteredCount].setProperties = setProperties;
@@ -2753,6 +2765,7 @@ var Query = class {
     const didExceedMatchLimit = C.getValue(TRANSFER_BUFFER + 2 * SIZE_OF_INT, "i32");
     const result = new Array();
     this.exceededMatchLimit = Boolean(didExceedMatchLimit);
+    const readText = createQueryTextReader();
     const captures = new Array();
     let address = startAddress;
     for (let i = 0; i < count; i++) {
@@ -2764,7 +2777,7 @@ var Query = class {
       address += SIZE_OF_INT;
       captures.length = captureCount;
       address = unmarshalCaptures(this, node.tree, address, patternIndex, captures);
-      if (this.textPredicates[patternIndex].every((p) => p(captures))) {
+      if (this.textPredicates[patternIndex].every((p) => p(captures, readText))) {
         const capture = captures[captureIndex];
         const setProperties = this.setProperties[patternIndex];
         capture.setProperties = setProperties;
