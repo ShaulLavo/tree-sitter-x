@@ -10,11 +10,11 @@ import { newFinalizer } from './finalization_registry';
 /** @internal */
 export function getText(tree: Tree, startIndex: number, endIndex: number, startPosition: Point): string {
   const length = endIndex - startIndex;
-  let result = tree.textCallback(startIndex, startPosition);
+  let result = tree.textCallback(startIndex, startPosition, endIndex);
   if (result) {
     startIndex += result.length;
     while (startIndex < endIndex) {
-      const string = tree.textCallback(startIndex, startPosition);
+      const string = tree.textCallback(startIndex, startPosition, endIndex);
       if (string && string.length > 0) {
         startIndex += string.length;
         result += string;
