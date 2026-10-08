@@ -73,7 +73,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v7.0.1
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
     - name: Set up cross-compilation
       if: matrix.cross
@@ -84,14 +84,10 @@ jobs:
           printf 'AR_%s=%s\n' "$camel_target" "${target_cc/v7/}-ar"
           printf 'CARGO_TARGET_%s_LINKER=%s\n' "${camel_target^^}" "${target_cc/v7/}-gcc"
         done >> $GITHUB_ENV
-        {
-          printf 'CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_RUNNER=qemu-arm -L /usr/arm-linux-gnueabihf\n'
-          printf 'CARGO_TARGET_POWERPC64_UNKNOWN_LINUX_GNU_RUNNER=qemu-ppc64 -L /usr/powerpc64-linux-gnu\n'
-        } >> $GITHUB_ENV
 
     - name: Set up Node.js
       if: contains(matrix.features, 'wasm') && (matrix.run-wasm-test || !inputs.run-test)
-      uses: actions/setup-node@v7.0.0
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
       with:
         node-version: 24
         cache: npm
@@ -99,7 +95,7 @@ jobs:
 
     - name: Set up Rust
       if: ${{ !matrix.vm }}
-      uses: actions-rust-lang/setup-rust-toolchain@v2
+      uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2
       with:
         target: ${{ matrix.target }}
 
@@ -112,18 +108,103 @@ jobs:
       run: |
         sudo apt-get update -qy
         if [[ $PLATFORM == linux-arm ]]; then
-          sudo apt-get install -qy {binutils,gcc}-arm-linux-gnueabihf qemu-user
+          sudo apt-get install -qy {binutils,gcc}-arm-linux-gnueabihf
         elif [[ $PLATFORM == linux-x86 ]]; then
           sudo apt-get install -qy {binutils,gcc}-i686-linux-gnu
         elif [[ $PLATFORM == linux-powerpc64 ]]; then
-          sudo apt-get install -qy {binutils,gcc}-powerpc64-linux-gnu qemu-user
+          sudo apt-get install -qy {binutils,gcc}-powerpc64-linux-gnu
         fi
       env:
         PLATFORM: ${{ matrix.platform }}
 
+    - name: Select QEMU package
+      id: qemu-package
+      if: inputs.run-test && (matrix.platform == 'linux-arm' || matrix.platform == 'linux-powerpc64')
+      run: |
+        # QEMU 8.2 snapshots /proc/self/maps outside mmap_lock while other threads change mappings.
+        # Fixed by qemu/qemu@bbd5630a75e70a0f1bcf04de74c94aa94a145628.
+        arch=$(dpkg --print-architecture)
+        case $arch in
+          amd64) sha256=4f2837268b556263fa5c9d3bd21d4ba7661e7b1a92007e2d793c42909f8050f0 ;;
+          arm64) sha256=32c3fb5491322417d568ed272fe2d0561f0168e478f45fc59bb3d6c906ca473f ;;
+          *) echo "::error::No pinned qemu-user package for runner architecture $arch"; exit 1 ;;
+        esac
+        printf 'deb=qemu-user_9.2.1+ds-1ubuntu5_%s.deb\nsha256=%s\n' "$arch" "$sha256" >> $GITHUB_OUTPUT
+
+    - name: Restore QEMU package
+      id: qemu-cache
+      if: inputs.run-test && (matrix.platform == 'linux-arm' || matrix.platform == 'linux-powerpc64')
+      uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+      with:
+        path: ${{ runner.temp }}/qemu-user.deb
+        key: qemu-user-${{ steps.qemu-package.outputs.sha256 }}
+
+    - name: Install QEMU
+      if: inputs.run-test && (matrix.platform == 'linux-arm' || matrix.platform == 'linux-powerpc64')
+      run: |
+        case $PLATFORM in
+          linux-arm) emulator=qemu-arm sysroot=/usr/arm-linux-gnueabihf ;;
+          linux-powerpc64) emulator=qemu-ppc64 sysroot=/usr/powerpc64-linux-gnu ;;
+        esac
+        package="$RUNNER_TEMP/qemu-user.deb"
+        # The release mirrors the snapshot bytes so CI does not depend on snapshot.ubuntu.com being up.
+        release="https://github.com/ShaulLavo/tree-sitter-x/releases/download/ci-qemu-user-9.2.1-ubuntu5/$DEB"
+        snapshot="https://snapshot.ubuntu.com/ubuntu/20250501T000000Z/pool/universe/q/qemu/$DEB"
+        verify() {
+          if echo "$SHA256  $package" | sha256sum --check --strict; then
+            echo "qemu-user source: $1"
+            return 0
+          fi
+          echo "::error::qemu-user from $1 does not match pinned SHA-256 $SHA256"
+          rm -f "$package"
+          return 1
+        }
+        fetch() {
+          rm -f "$package"
+          if curl -fLSs --connect-timeout 20 --max-time 300 --retry 5 --retry-max-time 330 --retry-all-errors -o "$package" "$2"; then
+            verify "$1"
+            return
+          fi
+          echo "::warning::qemu-user download from $1 failed: $2"
+          return 1
+        }
+        [[ -f $package ]] && verify cache ||
+          fetch release "$release" ||
+          fetch snapshot "$snapshot" || {
+            echo "::error::No source served $DEB with SHA-256 $SHA256"
+            exit 1
+          }
+        mkdir -p "$RUNNER_TEMP/qemu"
+        dpkg-deb --fsys-tarfile "$package" | tar -xf - -C "$RUNNER_TEMP/qemu" "./usr/bin/$emulator"
+        emulator="$RUNNER_TEMP/qemu/usr/bin/$emulator"
+        "$emulator" --version
+        target=${TARGET//-/_}
+        printf 'QEMU_RUNNER=%s -L %s\n' "$emulator" "$sysroot" >> $GITHUB_ENV
+        printf 'CARGO_TARGET_%s_RUNNER=%s -L %s\n' "${target^^}" "$emulator" "$sysroot" >> $GITHUB_ENV
+      env:
+        PLATFORM: ${{ matrix.platform }}
+        TARGET: ${{ matrix.target }}
+        DEB: ${{ steps.qemu-package.outputs.deb }}
+        SHA256: ${{ steps.qemu-package.outputs.sha256 }}
+
+    - name: Save QEMU package
+      if: inputs.run-test && (matrix.platform == 'linux-arm' || matrix.platform == 'linux-powerpc64') && steps.qemu-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+      with:
+        path: ${{ runner.temp }}/qemu-user.deb
+        key: ${{ steps.qemu-cache.outputs.cache-primary-key }}
+
+    - name: Check QEMU mapping concurrency
+      if: inputs.run-test && (matrix.platform == 'linux-arm' || matrix.platform == 'linux-powerpc64')
+      run: |
+        "$CC" -std=c11 -O2 -Wall -Wextra -Werror -pthread .github/scripts/qemu-maps.c -o "$RUNNER_TEMP/qemu-maps"
+        $QEMU_RUNNER "$RUNNER_TEMP/qemu-maps"
+      env:
+        CC: ${{ matrix.platform == 'linux-arm' && 'arm-linux-gnueabihf-gcc' || 'powerpc64-linux-gnu-gcc' }}
+
     - name: Install MinGW and Clang (Windows x64 MSYS2)
       if: matrix.platform == 'windows-x64'
-      uses: msys2/setup-msys2@v2
+      uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e # v2
       with:
         install: |
           mingw-w64-x86_64-toolchain
@@ -214,7 +295,7 @@ jobs:
 
     - name: Build C library and Rust crate (illumos gmake)
       if: matrix.platform == 'illumos-x64'
-      uses: vmactions/omnios-vm@v1.3.6
+      uses: vmactions/omnios-vm@317e4f8069dad8a65e1520808f1a68ef3fd20565 # v1.3.6
       with:
         release: r151056-build
         copyback: false
@@ -280,7 +361,7 @@ jobs:
 
     - name: Upload CLI artifact
       if: "!inputs.run-test && !matrix.no-run"
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
       with:
         name: tree-sitter.${{ matrix.platform }}
         path: target/${{ matrix.target }}/release/tree-sitter${{ contains(matrix.target, 'windows') && '.exe' || '' }}
@@ -289,7 +370,7 @@ jobs:
 
     - name: Upload Wasm artifacts
       if: "!inputs.run-test && matrix.platform == 'linux-x64'"
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
       with:
         name: tree-sitter.wasm
         path: |

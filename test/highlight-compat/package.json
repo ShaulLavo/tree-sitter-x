@@ -1,0 +1,41 @@
+{
+  "name": "@tree-sitter-x/highlight-compat",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Differential harness comparing TextMate scope and style output across reference and candidate engines",
+  "type": "module",
+  "engines": {
+    "node": "26.7.0"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "compare": "node src/cli/compare.ts",
+    "golden:update": "node src/cli/golden-update.ts",
+    "report:references": "node src/cli/report-references.ts",
+    "report:historical": "node src/cli/report-historical.ts",
+    "report:baselines": "node src/cli/report-baselines.ts",
+    "artifacts:check": "node scripts/regenerate.ts --check",
+    "artifacts:update": "node scripts/regenerate.ts --update",
+    "test:platform": "vitest run --config vitest.platform.config.ts",
+    "fixtures:comments": "node scripts/fixtures.ts --comments",
+    "fixtures:check": "node scripts/fixtures.ts --check",
+    "fixtures:update": "node scripts/fixtures.ts --update",
+    "fixtures:report": "node scripts/fixtures.ts --report"
+  },
+  "dependencies": {
+    "@shikijs/engine-oniguruma": "4.4.3",
+    "@shikijs/langs": "4.4.3",
+    "@shikijs/themes": "4.4.3",
+    "@shikijs/vscode-textmate": "10.0.2",
+    "shiki": "4.4.3",
+    "vscode-oniguruma": "2.0.1",
+    "vscode-textmate": "9.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.1",
+    "typescript": "5.9.3",
+    "vite": "8.3.1",
+    "vitest": "5.0.3"
+  }
+}

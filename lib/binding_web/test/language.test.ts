@@ -5,6 +5,8 @@ import { Parser } from '../src';
 import { C } from '../src/constants';
 import { readFile } from 'fs/promises';
 import { pathToFileURL } from 'url';
+import { createServer } from 'node:http';
+import { once } from 'node:events';
 
 let JavaScript: Language;
 let Rust: Language;
@@ -54,6 +56,50 @@ describe('Language', () => {
   });
 
   describe('.load', () => {
+    it('loads a Blob grammar URL while Node globals exist', async () => {
+      const wasm = await readFile(languageURL('javascript'));
+      const url = URL.createObjectURL(new Blob([wasm], { type: 'application/wasm' }));
+      try {
+        const lang = await Language.load(url);
+        expect(lang.name).toBe('javascript');
+        expect(lang.nodeTypeCount).toBeGreaterThan(0);
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    });
+
+    it.each(['string', 'URL'])('loads an HTTP grammar from a %s while Node globals exist', async (kind) => {
+      const wasm = await readFile(languageURL('javascript'));
+      const server = createServer((_request, response) => {
+        response.writeHead(200, { 'content-type': 'application/wasm' });
+        response.end(wasm);
+      });
+      server.listen(0, '127.0.0.1');
+      await once(server, 'listening');
+      try {
+        const address = server.address();
+        if (!address || typeof address === 'string') return expect.fail('HTTP grammar server has no TCP address');
+        const url = new URL(`http://127.0.0.1:${address.port}/javascript.wasm`);
+        const lang = await Language.load(kind === 'URL' ? url : url.href);
+        const parser = new Parser();
+        try {
+          parser.setLanguage(lang);
+          const tree = parser.parse('const answer = 42;');
+          expect(tree?.rootNode.firstChild?.type).toBe('lexical_declaration');
+          tree?.delete();
+        } finally {
+          parser.delete();
+        }
+      } finally {
+        server.closeAllConnections();
+        await new Promise<void>((resolve) => {
+          server.close(() => {
+            resolve();
+          });
+        });
+      }
+    });
+
     it('loads a language from a file URL', async () => {
       const wasmURL = pathToFileURL(languageURL('javascript'));
       expect(wasmURL).toBeInstanceOf(URL);

@@ -647,7 +647,7 @@ mod tests {
             ]
         );
 
-        assert!(prepared.syntax_grammar.extra_symbols.is_empty());
+        assert_eq!(prepared.syntax_grammar.extra_symbols, Vec::<Symbol>::new());
     }
 
     #[test]

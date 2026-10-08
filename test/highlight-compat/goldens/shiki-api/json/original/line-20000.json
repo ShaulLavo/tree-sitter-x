@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "profileId": "shiki-api",
+  "languageId": "json",
+  "sourceSha256": "57b06399412a884f99069c7bb4b31d33f114744ac802c8fa13644cf6450e05bf",
+  "sourceLength": 20001,
+  "documentRevision": 0,
+  "status": "complete",
+  "diagnostics": [
+    "1 line(s) of 20000 units or more stay one plain token"
+  ],
+  "engine": {
+    "api": "codeToTokensBase",
+    "grammars": "@shikijs/langs@4.4.3",
+    "oniguruma": "@shikijs/engine-oniguruma@4.4.3",
+    "options": "includeExplanation=scopeName tokenizeMaxLineLength=20000 tokenizeTimeLimit=0",
+    "shiki": "shiki@4.4.3",
+    "textmate": "@shikijs/vscode-textmate@10.0.2",
+    "themes": "@shikijs/themes@4.4.3"
+  },
+  "scopeNames": [],
+  "paths": [
+    []
+  ],
+  "spans": [
+    0, 20000, 0,
+    20000, 20001, 0
+  ],
+  "styles": {
+    "dracula": {
+      "styles": [
+        {}
+      ],
+      "spans": [
+        0, 20000, 0,
+        20000, 20001, 0
+      ]
+    },
+    "github-dark": {
+      "styles": [
+        {}
+      ],
+      "spans": [
+        0, 20000, 0,
+        20000, 20001, 0
+      ]
+    },
+    "light-plus": {
+      "styles": [
+        {}
+      ],
+      "spans": [
+        0, 20000, 0,
+        20000, 20001, 0
+      ]
+    },
+    "vesper": {
+      "styles": [
+        {}
+      ],
+      "spans": [
+        0, 20000, 0,
+        20000, 20001, 0
+      ]
+    }
+  }
+}

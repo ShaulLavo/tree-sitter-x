@@ -1,0 +1,60 @@
+Selected tree-sitter-highlight fixtures. Original bytes preserved.
+
+test/highlight/functions.js
+Source set: tree-sitter-highlight
+Repository: https://github.com/tree-sitter/tree-sitter-javascript
+Revision: 44c892e0be055ac465d5eeddae6d3e194424e7de
+SHA-256: 06a53d5fd7265258e58d489b016d3766caf3c4e2fbf3b9891c7f3428f486dcc6
+License: tree-sitter-javascript-mit
+
+test/highlight/imports.js
+Source set: tree-sitter-highlight
+Repository: https://github.com/tree-sitter/tree-sitter-javascript
+Revision: 44c892e0be055ac465d5eeddae6d3e194424e7de
+SHA-256: 04108b8647ec48d87719c52df9795d861229983ad8a6def40821e50ed1d29f6e
+License: tree-sitter-javascript-mit
+
+test/highlight/injection.js
+Source set: tree-sitter-highlight
+Repository: https://github.com/tree-sitter/tree-sitter-javascript
+Revision: 44c892e0be055ac465d5eeddae6d3e194424e7de
+SHA-256: d52bc9ad2005e16422027a5c3ff81130cff1ce6ea8427cbba12e92e151044ae1
+License: tree-sitter-javascript-mit
+
+test/highlight/keywords.js
+Source set: tree-sitter-highlight
+Repository: https://github.com/tree-sitter/tree-sitter-javascript
+Revision: 44c892e0be055ac465d5eeddae6d3e194424e7de
+SHA-256: 9a66c7a248abc299463167ace12e99ad0e3e1cab94cda4b1a9604d08ec42c451
+License: tree-sitter-javascript-mit
+
+test/highlight/variables.js
+Source set: tree-sitter-highlight
+Repository: https://github.com/tree-sitter/tree-sitter-javascript
+Revision: 44c892e0be055ac465d5eeddae6d3e194424e7de
+SHA-256: 4808ef48df87bb8b929a52d91bcc87c125aaa117535612efa90ea94116cf01ec
+License: tree-sitter-javascript-mit
+
+===== tree-sitter-javascript-mit (MIT), tree-sitter-javascript:LICENSE@44c892e0be055ac465d5eeddae6d3e194424e7de =====
+The MIT License (MIT)
+
+Copyright (c) 2014 Max Brunsfeld
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+

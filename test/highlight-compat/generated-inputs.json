@@ -1,0 +1,24 @@
+{
+  "inputs": [
+    {
+      "path": "../../lib/binding_web/web-tree-sitter.js",
+      "command": "npm --prefix lib/binding_web run build",
+      "sources": [
+        "../../lib/binding_web/src",
+        "../../lib/binding_web/script",
+        "../../lib/binding_web/tsconfig.json",
+        "../../lib/binding_web/package.json"
+      ]
+    },
+    {
+      "path": "../../lib/binding_web/web-tree-sitter.wasm",
+      "command": "npm --prefix lib/binding_web run build",
+      "sources": [
+        "../../lib/src",
+        "../../lib/include",
+        "../../lib/binding_web/lib",
+        "../../crates/xtask/src"
+      ]
+    }
+  ]
+}

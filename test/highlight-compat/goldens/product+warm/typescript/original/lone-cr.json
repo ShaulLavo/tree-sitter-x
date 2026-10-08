@@ -1,0 +1,169 @@
+{
+  "schema": 1,
+  "profileId": "product:warm",
+  "languageId": "typescript",
+  "sourceSha256": "d32ad6891306f8b77269903e861d4410ff3ca1b89c5401fbc1e9592622d4be50",
+  "sourceLength": 22,
+  "documentRevision": 0,
+  "status": "complete",
+  "diagnostics": [],
+  "engine": {
+    "adapter": "port of the Platform 7f0dfc9e29fa9e3ee90c981147f77f6fcb656481 shiki tokenizer",
+    "grammars": "@shikijs/langs@4.4.3",
+    "maxLineLength": "20000",
+    "oniguruma": "@shikijs/engine-oniguruma@4.4.3",
+    "onigurumaWasmSha256": "fd885c2d12e5951e59d761ebd4a006e06254b1491fd6f530c92b69fb4d8d77d9",
+    "preregistered": "",
+    "registration": "warm",
+    "shiki": "shiki@4.4.3",
+    "textmate": "@shikijs/vscode-textmate@10.0.2",
+    "themes": "@shikijs/themes@4.4.3"
+  },
+  "scopeNames": [
+    "source.ts",
+    "meta.var.expr.ts",
+    "storage.type.ts",
+    "meta.var-single-variable.expr.ts",
+    "meta.definition.variable.ts",
+    "variable.other.constant.ts",
+    "keyword.operator.assignment.ts",
+    "constant.numeric.decimal.ts",
+    "variable.other.readwrite.ts"
+  ],
+  "paths": [
+    [0, 1, 2],
+    [0, 1],
+    [0, 1, 3, 4, 5],
+    [0, 1, 3],
+    [0, 1, 6],
+    [0, 1, 7],
+    [0, 1, 8],
+    []
+  ],
+  "spans": [
+    0, 5, 0,
+    5, 6, 1,
+    6, 7, 2,
+    7, 8, 3,
+    8, 9, 4,
+    9, 10, 1,
+    10, 11, 5,
+    11, 12, 1,
+    12, 15, 6,
+    15, 16, 1,
+    16, 17, 6,
+    17, 18, 1,
+    18, 19, 4,
+    19, 20, 1,
+    20, 21, 5,
+    21, 22, 7
+  ],
+  "styles": {
+    "dracula": {
+      "styles": [
+        {"foreground": "#ff79c6"},
+        {"foreground": "#f8f8f2"},
+        {"foreground": "#bd93f9"},
+        {}
+      ],
+      "spans": [
+        0, 5, 0,
+        5, 6, 1,
+        6, 7, 1,
+        7, 8, 1,
+        8, 9, 0,
+        9, 10, 1,
+        10, 11, 2,
+        11, 12, 1,
+        12, 15, 1,
+        15, 16, 1,
+        16, 17, 1,
+        17, 18, 1,
+        18, 19, 0,
+        19, 20, 1,
+        20, 21, 2,
+        21, 22, 3
+      ]
+    },
+    "github-dark": {
+      "styles": [
+        {"foreground": "#f97583"},
+        {"foreground": "#e1e4e8"},
+        {"foreground": "#79b8ff"},
+        {}
+      ],
+      "spans": [
+        0, 5, 0,
+        5, 6, 1,
+        6, 7, 2,
+        7, 8, 1,
+        8, 9, 0,
+        9, 10, 1,
+        10, 11, 2,
+        11, 12, 1,
+        12, 15, 1,
+        15, 16, 1,
+        16, 17, 1,
+        17, 18, 1,
+        18, 19, 0,
+        19, 20, 1,
+        20, 21, 2,
+        21, 22, 3
+      ]
+    },
+    "light-plus": {
+      "styles": [
+        {"foreground": "#0000ff"},
+        {"foreground": "#000000"},
+        {"foreground": "#0070c1"},
+        {"foreground": "#098658"},
+        {"foreground": "#001080"},
+        {}
+      ],
+      "spans": [
+        0, 5, 0,
+        5, 6, 1,
+        6, 7, 2,
+        7, 8, 1,
+        8, 9, 1,
+        9, 10, 1,
+        10, 11, 3,
+        11, 12, 1,
+        12, 15, 4,
+        15, 16, 1,
+        16, 17, 4,
+        17, 18, 1,
+        18, 19, 1,
+        19, 20, 1,
+        20, 21, 3,
+        21, 22, 5
+      ]
+    },
+    "vesper": {
+      "styles": [
+        {"foreground": "#a0a0a0"},
+        {"foreground": "#ffffff"},
+        {"foreground": "#ffc799"},
+        {}
+      ],
+      "spans": [
+        0, 5, 0,
+        5, 6, 1,
+        6, 7, 1,
+        7, 8, 1,
+        8, 9, 0,
+        9, 10, 1,
+        10, 11, 2,
+        11, 12, 1,
+        12, 15, 1,
+        15, 16, 1,
+        16, 17, 1,
+        17, 18, 1,
+        18, 19, 0,
+        19, 20, 1,
+        20, 21, 2,
+        21, 22, 3
+      ]
+    }
+  }
+}

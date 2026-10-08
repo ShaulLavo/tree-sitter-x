@@ -1,0 +1,165 @@
+{
+  "schema": 1,
+  "profileId": "product",
+  "languageId": "typescript",
+  "sourceSha256": "81929b4532afd536ac1d3b09724334e00a89078d42d98c88eb2b96885ddf917e",
+  "sourceLength": 21,
+  "documentRevision": 0,
+  "status": "complete",
+  "diagnostics": [],
+  "engine": {
+    "adapter": "port of the Platform 7f0dfc9e29fa9e3ee90c981147f77f6fcb656481 shiki tokenizer",
+    "grammars": "@shikijs/langs@4.4.3",
+    "maxLineLength": "20000",
+    "oniguruma": "@shikijs/engine-oniguruma@4.4.3",
+    "onigurumaWasmSha256": "fd885c2d12e5951e59d761ebd4a006e06254b1491fd6f530c92b69fb4d8d77d9",
+    "registration": "cold",
+    "shiki": "shiki@4.4.3",
+    "textmate": "@shikijs/vscode-textmate@10.0.2",
+    "themes": "@shikijs/themes@4.4.3"
+  },
+  "scopeNames": [
+    "source.ts",
+    "meta.var.expr.ts",
+    "storage.type.ts",
+    "meta.var-single-variable.expr.ts",
+    "meta.definition.variable.ts",
+    "variable.other.readwrite.ts",
+    "keyword.operator.assignment.ts",
+    "constant.numeric.decimal.ts"
+  ],
+  "paths": [
+    [0, 1, 2],
+    [0, 1],
+    [0, 1, 3, 4, 5],
+    [0, 1, 3],
+    [0, 1, 6],
+    [0, 1, 7],
+    []
+  ],
+  "spans": [
+    0, 3, 0,
+    3, 4, 1,
+    4, 5, 2,
+    5, 6, 3,
+    6, 7, 4,
+    7, 8, 1,
+    8, 9, 5,
+    9, 11, 6,
+    11, 14, 0,
+    14, 15, 1,
+    15, 16, 2,
+    16, 17, 3,
+    17, 18, 4,
+    18, 19, 1,
+    19, 20, 5,
+    20, 21, 6
+  ],
+  "styles": {
+    "dracula": {
+      "styles": [
+        {"foreground": "#ff79c6"},
+        {"foreground": "#f8f8f2"},
+        {"foreground": "#bd93f9"},
+        {}
+      ],
+      "spans": [
+        0, 3, 0,
+        3, 4, 1,
+        4, 5, 1,
+        5, 6, 1,
+        6, 7, 0,
+        7, 8, 1,
+        8, 9, 2,
+        9, 11, 3,
+        11, 14, 0,
+        14, 15, 1,
+        15, 16, 1,
+        16, 17, 1,
+        17, 18, 0,
+        18, 19, 1,
+        19, 20, 2,
+        20, 21, 3
+      ]
+    },
+    "github-dark": {
+      "styles": [
+        {"foreground": "#f97583"},
+        {"foreground": "#e1e4e8"},
+        {"foreground": "#79b8ff"},
+        {}
+      ],
+      "spans": [
+        0, 3, 0,
+        3, 4, 1,
+        4, 5, 1,
+        5, 6, 1,
+        6, 7, 0,
+        7, 8, 1,
+        8, 9, 2,
+        9, 11, 3,
+        11, 14, 0,
+        14, 15, 1,
+        15, 16, 1,
+        16, 17, 1,
+        17, 18, 0,
+        18, 19, 1,
+        19, 20, 2,
+        20, 21, 3
+      ]
+    },
+    "light-plus": {
+      "styles": [
+        {"foreground": "#0000ff"},
+        {"foreground": "#000000"},
+        {"foreground": "#001080"},
+        {"foreground": "#098658"},
+        {}
+      ],
+      "spans": [
+        0, 3, 0,
+        3, 4, 1,
+        4, 5, 2,
+        5, 6, 1,
+        6, 7, 1,
+        7, 8, 1,
+        8, 9, 3,
+        9, 11, 4,
+        11, 14, 0,
+        14, 15, 1,
+        15, 16, 2,
+        16, 17, 1,
+        17, 18, 1,
+        18, 19, 1,
+        19, 20, 3,
+        20, 21, 4
+      ]
+    },
+    "vesper": {
+      "styles": [
+        {"foreground": "#a0a0a0"},
+        {"foreground": "#ffffff"},
+        {"foreground": "#ffc799"},
+        {}
+      ],
+      "spans": [
+        0, 3, 0,
+        3, 4, 1,
+        4, 5, 1,
+        5, 6, 1,
+        6, 7, 0,
+        7, 8, 1,
+        8, 9, 2,
+        9, 11, 3,
+        11, 14, 0,
+        14, 15, 1,
+        15, 16, 1,
+        16, 17, 1,
+        17, 18, 0,
+        18, 19, 1,
+        19, 20, 2,
+        20, 21, 3
+      ]
+    }
+  }
+}

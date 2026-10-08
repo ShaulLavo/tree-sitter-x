@@ -20,20 +20,27 @@ same as upstream.
 
 ## What we fixed
 
-- Finding "the first child at this position" failed when the position was inside invisible
-  trailing content, like the blank lines between markdown paragraphs. Both `Node` and
-  `TreeCursor` versions now find the next child.
-
+- Fixed `ts_node_first_child_for_byte`, `ts_node_first_named_child_for_byte`, and `ts_tree_cursor_goto_first_child_for_byte`, these could incorrectly report no child when the byte offset landed in hidden trailing content, such as blank lines between Markdown paragraphs. They now continue past exhausted hidden nodes and find the next visible child, including through nested hidden nodes.
 ## Install
 
-The built package lives on the `web-tree-sitter` branch. Pin a commit from it:
+Install the WASI JavaScript runtime from npm:
 
-```json
-"web-tree-sitter": "github:ShaulLavo/tree-sitter-x#c5049e2"
+```sh
+npm install @singapore-editor/tree-sitter-x
 ```
 
-To update that branch, build (below), run `npm run build:dts` and `npm pack` in
-`lib/binding_web`, and commit the unpacked package without `scripts` and `devDependencies`.
+```js
+import { Parser, Language, TextBuffer } from '@singapore-editor/tree-sitter-x'
+```
+
+Projects that import `web-tree-sitter` can install the runtime under that dependency name:
+
+```json
+"web-tree-sitter": "npm:@singapore-editor/tree-sitter-x@0.28.0"
+```
+
+CI also publishes built artifacts on the `web-tree-sitter` Git branch after source checks pass.
+Run `sh lib/binding_web/script/package-branch.sh --push` to refresh that branch manually.
 
 ## Build and test
 

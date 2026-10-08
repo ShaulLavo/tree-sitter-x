@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "profileId": "product:warm",
+  "languageId": "typescript",
+  "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "sourceLength": 0,
+  "documentRevision": 0,
+  "status": "complete",
+  "diagnostics": [],
+  "engine": {
+    "adapter": "port of the Platform 7f0dfc9e29fa9e3ee90c981147f77f6fcb656481 shiki tokenizer",
+    "grammars": "@shikijs/langs@4.4.3",
+    "maxLineLength": "20000",
+    "oniguruma": "@shikijs/engine-oniguruma@4.4.3",
+    "onigurumaWasmSha256": "fd885c2d12e5951e59d761ebd4a006e06254b1491fd6f530c92b69fb4d8d77d9",
+    "preregistered": "",
+    "registration": "warm",
+    "shiki": "shiki@4.4.3",
+    "textmate": "@shikijs/vscode-textmate@10.0.2",
+    "themes": "@shikijs/themes@4.4.3"
+  },
+  "scopeNames": [],
+  "paths": [],
+  "spans": []
+}

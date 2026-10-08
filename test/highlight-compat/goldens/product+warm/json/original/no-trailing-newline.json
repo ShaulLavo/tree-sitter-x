@@ -1,0 +1,103 @@
+{
+  "schema": 1,
+  "profileId": "product:warm",
+  "languageId": "json",
+  "sourceSha256": "3a316d6d3226f84c1e46e4447fa8d5fd800bff4a1bc6498152523cd4a602b69b",
+  "sourceLength": 6,
+  "documentRevision": 0,
+  "status": "complete",
+  "diagnostics": [],
+  "engine": {
+    "adapter": "port of the Platform 7f0dfc9e29fa9e3ee90c981147f77f6fcb656481 shiki tokenizer",
+    "grammars": "@shikijs/langs@4.4.3",
+    "maxLineLength": "20000",
+    "oniguruma": "@shikijs/engine-oniguruma@4.4.3",
+    "onigurumaWasmSha256": "fd885c2d12e5951e59d761ebd4a006e06254b1491fd6f530c92b69fb4d8d77d9",
+    "preregistered": "",
+    "registration": "warm",
+    "shiki": "shiki@4.4.3",
+    "textmate": "@shikijs/vscode-textmate@10.0.2",
+    "themes": "@shikijs/themes@4.4.3"
+  },
+  "scopeNames": [
+    "source.json",
+    "meta.structure.array.json",
+    "punctuation.definition.array.begin.json",
+    "constant.numeric.json",
+    "punctuation.separator.array.json",
+    "punctuation.definition.array.end.json"
+  ],
+  "paths": [
+    [0, 1, 2],
+    [0, 1, 3],
+    [0, 1, 4],
+    [0, 1],
+    [0, 1, 5]
+  ],
+  "spans": [
+    0, 1, 0,
+    1, 2, 1,
+    2, 3, 2,
+    3, 4, 3,
+    4, 5, 1,
+    5, 6, 4
+  ],
+  "styles": {
+    "dracula": {
+      "styles": [
+        {"foreground": "#f8f8f2"},
+        {"foreground": "#bd93f9"}
+      ],
+      "spans": [
+        0, 1, 0,
+        1, 2, 1,
+        2, 3, 0,
+        3, 4, 0,
+        4, 5, 1,
+        5, 6, 0
+      ]
+    },
+    "github-dark": {
+      "styles": [
+        {"foreground": "#e1e4e8"},
+        {"foreground": "#79b8ff"}
+      ],
+      "spans": [
+        0, 1, 0,
+        1, 2, 1,
+        2, 3, 0,
+        3, 4, 0,
+        4, 5, 1,
+        5, 6, 0
+      ]
+    },
+    "light-plus": {
+      "styles": [
+        {"foreground": "#000000"},
+        {"foreground": "#098658"}
+      ],
+      "spans": [
+        0, 1, 0,
+        1, 2, 1,
+        2, 3, 0,
+        3, 4, 0,
+        4, 5, 1,
+        5, 6, 0
+      ]
+    },
+    "vesper": {
+      "styles": [
+        {"foreground": "#ffffff"},
+        {"foreground": "#ffc799"}
+      ],
+      "spans": [
+        0, 1, 0,
+        1, 2, 1,
+        2, 3, 0,
+        3, 4, 0,
+        4, 5, 1,
+        5, 6, 0
+      ]
+    }
+  }
+}
