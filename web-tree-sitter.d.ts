@@ -885,6 +885,11 @@ declare module 'web-tree-sitter' {
 		/** The properties for predicates declared with the operator `is-not?`. */
 		refutedProperties?: QueryProperties;
 	}
+	/** A capture's UTF-16 range, in flattened match order, without a syntax node. */
+	export interface QueryCaptureRange extends Omit<QueryCapture, 'node'> {
+		startIndex: number;
+		endIndex: number;
+	}
 	/** A match of a {@link Query} to a particular set of {@link Node}s. */
 	export interface QueryMatch {
 		/** The index of the pattern that matched. */
@@ -988,6 +993,13 @@ declare module 'web-tree-sitter' {
 		 * @param options - Options for query execution.
 		 */
 		matches(node: Node, options?: QueryOptions): QueryMatch[];
+		/**
+		 * Return accepted captures in flattened `matches` order as UTF-16 ranges.
+		 * Text predicates see every capture in their match. Query properties and
+		 * execution options have the same meaning as in `matches`.
+		 */
+		captureRanges(node: Node, options?: QueryOptions): QueryCaptureRange[];
+		private executeMatches;
 		/**
 		 * Iterate over all of the individual captures in the order that they
 		 * appear.
