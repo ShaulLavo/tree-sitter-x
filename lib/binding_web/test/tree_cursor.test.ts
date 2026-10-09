@@ -22,6 +22,25 @@ describe('TreeCursor', () => {
     parser.delete();
   });
 
+  it('reads UTF-16 offsets after jumping to a descendant', () => {
+    tree = parser.parse('"😀";\né;')!;
+    const descendantIndex = tree.rootNode.firstChild!.descendantCount + 2;
+    const cursor = tree.walk();
+    try {
+      cursor.gotoDescendant(descendantIndex);
+      expect(cursor.currentNode.id).toBe(tree.rootNode.child(1)!.firstChild!.id);
+      expect(cursor.currentDescendantIndex).toBe(descendantIndex);
+      expect(cursor.currentDepth).toBe(2);
+      expect(cursor.startIndex).toBe(6);
+      expect(cursor.endIndex).toBe(7);
+      expect(cursor.startPosition).toEqual({ row: 1, column: 0 });
+      expect(cursor.endPosition).toEqual({ row: 1, column: 1 });
+      expect(cursor.nodeText).toBe('é');
+    } finally {
+      cursor.delete();
+    }
+  });
+
   it('walks sibling declarations without a goal', () => {
     tree = parser.parse('a;b;')!;
     const cursor = tree.walk();
