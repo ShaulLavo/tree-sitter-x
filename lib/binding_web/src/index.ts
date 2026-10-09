@@ -25,6 +25,7 @@ export {
   type QueryProperties,
   type QueryPredicate,
   type QueryCapture,
+  type QueryCaptureRange,
   type QueryMatch,
   CaptureQuantifier,
   type PredicateStep,

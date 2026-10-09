@@ -72,6 +72,22 @@ console.log(callExpression);
 //   endIndex: 30 }
 ```
 
+### Query capture ranges
+
+Use `Query.captureRanges(node, options)` when you need capture names and text ranges for highlighting. Each `QueryCaptureRange` has `patternIndex`, `name`, `startIndex`, `endIndex` and the pattern's query properties. Indices count UTF-16 code units, as JavaScript string indices do.
+
+```js
+import { Query } from '@singapore-editor/tree-sitter-x';
+
+const query = new Query(JavaScript, '(identifier) @variable');
+for (const capture of query.captureRanges(tree.rootNode)) {
+  console.log(capture.name, sourceCode.slice(capture.startIndex, capture.endIndex));
+}
+query.delete();
+```
+
+Captures follow the order of `query.matches(node, options).flatMap(match => match.captures)`. Text predicates evaluate the complete match before it is flattened. The method accepts the same `QueryOptions` as `matches`, and `didExceedMatchLimit()` reports its match limit status. Predicate-free patterns produce ranges directly from native records. Use `matches` when you need grouped captures and syntax nodes, or `captures` when you need individual captures in capture order.
+
 ### Editing
 
 If your source code *changes*, you can update the syntax tree. This will take less time than the first parse.

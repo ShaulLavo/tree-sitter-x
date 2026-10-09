@@ -1,4 +1,4 @@
-import { Point, ZERO_POINT, SIZE_OF_INT, C } from './constants';
+import { Point, ZERO_POINT, SIZE_OF_INT, SIZE_OF_NODE, C } from './constants';
 import { Node } from './node';
 import { marshalNode, unmarshalCaptures } from './marshal';
 import { TRANSFER_BUFFER } from './parser';
@@ -125,6 +125,12 @@ export interface QueryCapture {
 
   /** The properties for predicates declared with the operator `is-not?`. */
   refutedProperties?: QueryProperties;
+}
+
+/** A capture's UTF-16 range, in flattened match order, without a syntax node. */
+export interface QueryCaptureRange extends Omit<QueryCapture, 'node'> {
+  startIndex: number;
+  endIndex: number;
 }
 
 /** A match of a {@link Query} to a particular set of {@link Node}s. */
@@ -729,6 +735,92 @@ export class Query {
     node: Node,
     options: QueryOptions = {}
   ): QueryMatch[] {
+    const [rawCount, startAddress] = this.executeMatches(node, options);
+    const result = new Array<QueryMatch>(rawCount);
+
+    try {
+      const readText = createQueryTextReader();
+      let filteredCount = 0;
+      let address = startAddress;
+      for (let i = 0; i < rawCount; i++) {
+        const patternIndex = C.getValue(address, 'i32');
+        address += SIZE_OF_INT;
+        const captureCount = C.getValue(address, 'i32');
+        address += SIZE_OF_INT;
+
+        const captures = new Array<QueryCapture>(captureCount);
+        address = unmarshalCaptures(this, node.tree, address, patternIndex, captures);
+
+        if (this.textPredicates[patternIndex].every((p) => p(captures, readText))) {
+          result[filteredCount] = { patternIndex, captures };
+          const setProperties = this.setProperties[patternIndex];
+          result[filteredCount].setProperties = setProperties;
+          const assertedProperties = this.assertedProperties[patternIndex];
+          result[filteredCount].assertedProperties = assertedProperties;
+          const refutedProperties = this.refutedProperties[patternIndex];
+          result[filteredCount].refutedProperties = refutedProperties;
+          filteredCount++;
+        }
+      }
+      result.length = filteredCount;
+
+      return result;
+    } finally {
+      C._free(startAddress);
+    }
+  }
+
+  /**
+   * Return accepted captures in flattened `matches` order as UTF-16 ranges.
+   * Text predicates see every capture in their match. Query properties and
+   * execution options have the same meaning as in `matches`.
+   */
+  captureRanges(node: Node, options: QueryOptions = {}): QueryCaptureRange[] {
+    const [rawCount, startAddress] = this.executeMatches(node, options);
+    const result: QueryCaptureRange[] = [];
+    const scratch: QueryCapture[] = [];
+    const readText = createQueryTextReader();
+    let address = startAddress;
+    try {
+      for (let i = 0; i < rawCount; i++) {
+        const patternIndex = C.getValue(address, 'i32');
+        const captureCount = C.getValue(address + SIZE_OF_INT, 'i32');
+        address += 2 * SIZE_OF_INT;
+        const capturesAddress = address;
+        address += captureCount * (SIZE_OF_INT + SIZE_OF_NODE);
+        const predicates = this.textPredicates[patternIndex];
+        if (predicates.length) {
+          scratch.length = captureCount;
+          unmarshalCaptures(this, node.tree, capturesAddress, patternIndex, scratch);
+          if (!predicates.every(predicate => predicate(scratch, readText))) continue;
+        }
+        let captureAddress = capturesAddress;
+        for (let j = 0; j < captureCount; j++) {
+          const captureIndex = C.getValue(captureAddress, 'i32');
+          const nodeAddress = (captureAddress + SIZE_OF_INT) >>> 0;
+          const startIndex = C.getValue(nodeAddress + SIZE_OF_INT, 'i32');
+          // Use the native node record directly; public Node and Point objects are unnecessary.
+          C.HEAPU8.copyWithin(TRANSFER_BUFFER, nodeAddress, nodeAddress + SIZE_OF_NODE);
+          const endIndex = C._ts_node_end_index_wasm(node.tree[0]);
+          result.push({
+            patternIndex,
+            name: this.captureNames[captureIndex],
+            startIndex,
+            endIndex,
+            setProperties: this.setProperties[patternIndex],
+            assertedProperties: this.assertedProperties[patternIndex],
+            refutedProperties: this.refutedProperties[patternIndex],
+          });
+          captureAddress += SIZE_OF_INT + SIZE_OF_NODE;
+        }
+      }
+      return result;
+    } finally {
+      C._free(startAddress);
+    }
+  }
+
+  private executeMatches(node: Node, options: QueryOptions): [number, number] {
     const startPosition = options.startPosition ?? ZERO_POINT;
     const endPosition = options.endPosition ?? ZERO_POINT;
     const startIndex = options.startIndex ?? 0;
@@ -769,66 +861,40 @@ export class Query {
       throw new Error('`startContainingPosition` cannot be greater than `endContainingPosition`');
     }
 
-    if (progressCallback) {
-      C.currentQueryProgressCallback = progressCallback;
-    }
+    C.currentQueryProgressCallback = progressCallback ?? null;
 
     marshalNode(node);
 
-    C._ts_query_matches_wasm(
-      this[0],
-      node.tree[0],
-      startPosition.row,
-      startPosition.column,
-      endPosition.row,
-      endPosition.column,
-      startIndex,
-      endIndex,
-      startContainingPosition.row,
-      startContainingPosition.column,
-      endContainingPosition.row,
-      endContainingPosition.column,
-      startContainingIndex,
-      endContainingIndex,
-      matchLimit,
-      maxStartDepth,
-    );
+    try {
+      C._ts_query_matches_wasm(
+        this[0],
+        node.tree[0],
+        startPosition.row,
+        startPosition.column,
+        endPosition.row,
+        endPosition.column,
+        startIndex,
+        endIndex,
+        startContainingPosition.row,
+        startContainingPosition.column,
+        endContainingPosition.row,
+        endContainingPosition.column,
+        startContainingIndex,
+        endContainingIndex,
+        matchLimit,
+        maxStartDepth,
+      );
+    } finally {
+      C.currentQueryProgressCallback = null;
+    }
 
     const rawCount = C.getValue(TRANSFER_BUFFER, 'i32');
     const startAddress = C.getValue(TRANSFER_BUFFER + SIZE_OF_INT, 'i32');
     const didExceedMatchLimit = C.getValue(TRANSFER_BUFFER + 2 * SIZE_OF_INT, 'i32');
-    const result = new Array<QueryMatch>(rawCount);
     this.exceededMatchLimit = Boolean(didExceedMatchLimit);
-
-    const readText = createQueryTextReader();
-    let filteredCount = 0;
-    let address = startAddress;
-    for (let i = 0; i < rawCount; i++) {
-      const patternIndex = C.getValue(address, 'i32');
-      address += SIZE_OF_INT;
-      const captureCount = C.getValue(address, 'i32');
-      address += SIZE_OF_INT;
-
-      const captures = new Array<QueryCapture>(captureCount);
-      address = unmarshalCaptures(this, node.tree, address, patternIndex, captures);
-
-      if (this.textPredicates[patternIndex].every((p) => p(captures, readText))) {
-        result[filteredCount] = { patternIndex, captures };
-        const setProperties = this.setProperties[patternIndex];
-        result[filteredCount].setProperties = setProperties;
-        const assertedProperties = this.assertedProperties[patternIndex];
-        result[filteredCount].assertedProperties = assertedProperties;
-        const refutedProperties = this.refutedProperties[patternIndex];
-        result[filteredCount].refutedProperties = refutedProperties;
-        filteredCount++;
-      }
-    }
-    result.length = filteredCount;
-
-    C._free(startAddress);
-    C.currentQueryProgressCallback = null;
-    return result;
+    return [rawCount, startAddress];
   }
+
 
   /**
    * Iterate over all of the individual captures in the order that they
