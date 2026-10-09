@@ -763,7 +763,7 @@ declare module 'web-tree-sitter' {
 		gotoDescendant(goalDescendantIndex: number): void;
 		/**
 		 * Move this cursor to the first child of its current node that contains or
-		 * starts after the given byte offset.
+		 * starts after the given document-relative UTF-16 code unit index.
 		 *
 		 * This returns `true` if the cursor successfully moved to a child node, and returns
 		 * `false` if no such child was found.
@@ -771,10 +771,10 @@ declare module 'web-tree-sitter' {
 		gotoFirstChildForIndex(goalIndex: number): boolean;
 		/**
 		 * Move this cursor to the first child of its current node that contains or
-		 * starts after the given byte offset.
+		 * starts after the given document-relative position. Columns count UTF-16 code units.
 		 *
-		 * This returns the index of the child node if one was found, and returns
-		 * `null` if no such child was found.
+		 * This returns `true` if the cursor successfully moved to a child node, and returns
+		 * `false` if no such child was found.
 		 */
 		gotoFirstChildForPosition(goalPosition: Point): boolean;
 		/**
