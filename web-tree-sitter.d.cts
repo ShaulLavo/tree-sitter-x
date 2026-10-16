@@ -1,4 +1,4 @@
-declare module 'web-tree-sitter' {
+
 	/**
 	 * A position in a multi-line text document, in terms of rows and columns.
 	 *
@@ -1108,6 +1108,6 @@ declare module 'web-tree-sitter' {
 	}
 
 	export {};
-}
+
 
 //# sourceMappingURL=web-tree-sitter.d.cts.map
