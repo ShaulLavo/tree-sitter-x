@@ -27,11 +27,16 @@ describe('TextBuffer', () => {
     const oldLength = bytes.length;
     const oldAddress = buffer[0];
     const blocker = C._malloc(oldLength * 2);
-    let tree: Tree | null = parser.parse(buffer);
+    let tree: Tree | null = null;
     let fresh: Tree | null = null;
     try {
+      expect(blocker).not.toBe(0);
+      expect(bytes.length).toBeGreaterThan(oldLength);
+      expect(buffer.slice()).toBe(source);
+      tree = parser.parse(buffer);
       // Keep another allocation above the old one, then exceed its capacity with an edit.
-      const inserted = '/*' + 'é😀'.repeat(oldLength) + '*/\nconst next = "hé";\n';
+      // Cross decoding chunks without scaling parse work to the runtime heap size.
+      const inserted = '/*' + 'é😀'.repeat(4096) + '*/\nconst next = "hé";\n';
       let text = source + inserted;
       buffer.edit(source.length, source.length, inserted);
       expect(buffer[0]).not.toBe(oldAddress);
