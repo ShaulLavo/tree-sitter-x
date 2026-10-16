@@ -31,17 +31,12 @@ describe('runtime location', () => {
 });
 
 async function runtime(options?: ModuleOptions) {
-  let memory: WebAssembly.Memory | undefined;
-  const convert = WebAssembly.Memory.prototype.toResizableBuffer;
-  const conversion = vi.spyOn(WebAssembly.Memory.prototype, 'toResizableBuffer')
-    .mockImplementation(function (this: WebAssembly.Memory) {
-      memory = this;
-      return convert.call(this);
-    });
+  const conversion = vi.spyOn(WebAssembly.Memory.prototype, 'toResizableBuffer');
   try {
     const module = await createModule(options);
     expect(conversion).toHaveBeenCalledTimes(1);
-    if (!memory) throw new Error('Runtime did not convert its memory');
+    const memory = conversion.mock.contexts[0];
+    if (!(memory instanceof WebAssembly.Memory)) throw new Error('Runtime did not convert its memory');
     return { module, memory };
   } finally {
     conversion.mockRestore();
@@ -122,7 +117,7 @@ describe('resizable heap', () => {
       module.setValue(address, 0x12345678, 'i32');
       expect(Array.from(module.HEAPU8.subarray(address, address + 4))).toEqual([0x78, 0x56, 0x34, 0x12]);
       expect(() => module.getValue(address, 'invalid')).toThrow('invalid type');
-      expect(() => module.setValue(address, 0, 'invalid')).toThrow('invalid type');
+      expect(() => { module.setValue(address, 0, 'invalid'); }).toThrow('invalid type');
     } finally {
       module._free(address);
     }

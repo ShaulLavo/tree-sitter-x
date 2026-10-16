@@ -1,11 +1,14 @@
 import { execFileSync } from 'child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'fs';
-import { tmpdir } from 'os';
+import { homedir, tmpdir } from 'os';
 import path from 'path';
 
 export function buildFixture(name: string, reactor = false): Uint8Array {
+  const cache = process.platform === 'win32'
+    ? process.env.LOCALAPPDATA ?? path.join(homedir(), 'AppData', 'Local')
+    : process.env.XDG_CACHE_HOME ?? path.join(homedir(), '.cache');
   const sdk = process.env.TREE_SITTER_WASI_SDK_PATH ?? process.env.WASI_SDK
-    ?? path.join(process.env.XDG_CACHE_HOME ?? path.join(process.env.HOME ?? '', '.cache'), 'tree-sitter/wasi-sdk');
+    ?? path.join(cache, 'tree-sitter', 'wasi-sdk');
   const clang = path.join(sdk, 'bin', process.platform === 'win32' ? 'clang.exe' : 'clang');
   const directory = mkdtempSync(path.join(tmpdir(), 'ts-fixture-'));
   try {

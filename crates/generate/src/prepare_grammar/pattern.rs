@@ -443,7 +443,7 @@ impl PatternSpan {
     }
 }
 
-/// A pattern rejected by [`parse`], carrying the pattern and the offending
+/// A pattern rejected by the parser, carrying the pattern and the offending
 /// range inside it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Error)]
 pub struct RegexError {
