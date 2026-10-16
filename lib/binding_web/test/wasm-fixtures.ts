@@ -15,7 +15,7 @@ export function buildFixture(name: string, reactor = false): Uint8Array {
     const output = path.join(directory, `${name}.wasm`);
     const flags = reactor
       ? ['-mexec-model=reactor', '-Wl,--export-memory', '-Wl,--max-memory=4294967296']
-      : ['-fPIC', '-shared', '-nostdlib', '-Wl,--allow-undefined', '-Wl,--no-entry'];
+      : ['-fPIC', '-shared', '-nostdlib', '-Wl,--allow-undefined', '-Wl,--no-entry', '-Wl,--export=__wasm_call_ctors'];
     execFileSync(clang, ['--target=wasm32-wasip1', '-O2', '-fvisibility=hidden'].concat(flags, [
       '-I', path.join(process.cwd(), '../include'),
       path.join(process.cwd(), `test/fixtures/${name}.c`), '-o', output,
