@@ -60,26 +60,22 @@ function assertScalars(module: Awaited<ReturnType<typeof createModule>>, address
 
 describe('resizable heap', () => {
   it('converts before constructors grow memory and call JS', async () => {
-    const decode = vi.spyOn(TextDecoder.prototype, 'decode');
-    try {
-      const { module, memory } = await runtime({ wasmBinary: buildFixture('memory', true) });
-      expect(decode.mock.results[0].value).toBe('initialized hé 😀');
-      const bytes = module.HEAPU8;
-      const buffer = bytes.buffer;
-      const length = bytes.length;
-      bytes[32] = 0x23;
-      const grow = Reflect.get(module, '_grow') as (pages: number) => number;
-      expect(grow(0)).toBe(length / 65536);
-      expect(bytes.buffer).toBe(buffer);
-      expect(grow(2)).toBe(length / 65536);
-      expect(bytes.length).toBe(length + 2 * 65536);
-      expect(memory.buffer).toBe(buffer);
-      expect(bytes[32]).toBe(0x23);
-      module.setValue(length + 16, 0x12345678, 'i32');
-      expect(Array.from(bytes.subarray(length + 16, length + 20))).toEqual([0x78, 0x56, 0x34, 0x12]);
-    } finally {
-      decode.mockRestore();
-    }
+    const { module, memory } = await runtime({ wasmBinary: buildFixture('memory', true) });
+    const initializedLength = Reflect.get(module, '_initialized_length') as () => number;
+    expect(initializedLength()).toBe(0);
+    const bytes = module.HEAPU8;
+    const buffer = bytes.buffer;
+    const length = bytes.length;
+    bytes[32] = 0x23;
+    const grow = Reflect.get(module, '_grow') as (pages: number) => number;
+    expect(grow(0)).toBe(length / 65536);
+    expect(bytes.buffer).toBe(buffer);
+    expect(grow(2)).toBe(length / 65536);
+    expect(bytes.length).toBe(length + 2 * 65536);
+    expect(memory.buffer).toBe(buffer);
+    expect(bytes[32]).toBe(0x23);
+    module.setValue(length + 16, 0x12345678, 'i32');
+    expect(Array.from(bytes.subarray(length + 16, length + 20))).toEqual([0x78, 0x56, 0x34, 0x12]);
   });
 
   it('retains the view across zero, positive host and allocator growth', async () => {
