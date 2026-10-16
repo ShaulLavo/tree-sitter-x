@@ -1,0 +1,41 @@
+name: Package types
+
+on:
+  pull_request:
+    branches: [master]
+    paths: ['lib/binding_web/**', '.github/workflows/package-types.yml']
+  push:
+    branches: [master]
+    paths: ['lib/binding_web/**', '.github/workflows/package-types.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  consumers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: lib/binding_web
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: lib/binding_web/package-lock.json
+      - run: npm ci
+      - name: Build package declarations
+        run: npm run build:dts
+      - name: Check packed npm and git consumer declarations
+        run: |
+          set -euo pipefail
+          work=$(mktemp -d "$RUNNER_TEMP/package-types-XXXXXX")
+          trap 'rm -rf "$work"' EXIT INT TERM
+          npm pack --pack-destination "$work"
+          tar xzf "$work"/*.tgz -C "$work"
+          node script/check-package-types.js "$work/package"
+          node script/git-package-manifest.ts "$work/package/package.json"
+          npm install --prefix "$work/compiler" --no-save --ignore-scripts typescript@7.0.2
+          node script/check-package-types.js "$work/package" "$work/compiler/node_modules/typescript/bin/tsc"

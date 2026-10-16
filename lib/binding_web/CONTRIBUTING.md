@@ -76,9 +76,9 @@ you should run:
 npm run build:dts
 ```
 
-This uses [`dts-buddy`][dts-buddy] to generate `web-tree-sitter.d.ts` from the public types in `src`. Additionally, a sourcemap
-is generated for the `.d.ts` file, which enables `go-to definition` and other editor integrations to take you straight
-to the TypeScript source code.
+This uses [`dts-buddy`][dts-buddy] to bundle the public types in `src`. The generator removes the ambient module wrapper
+and writes a module-scoped `web-tree-sitter.d.cts` with a declaration source map. The ESM `web-tree-sitter.d.ts` re-exports
+that bundle, so ESM, CommonJS and `/debug` consumers share types without ambient declarations.
 
 This TypeScript code is then compiled into a single JavaScript file with `esbuild`. The build configuration for this can
 be found in [`script/build.js`][build.js], but this shouldn't need to be updated. This step is responsible for emitting

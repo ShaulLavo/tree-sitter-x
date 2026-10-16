@@ -19,6 +19,7 @@ npm run build:dts
 npm pack --pack-destination "$work"
 tar xzf "$work"/*.tgz -C "$work"
 node script/git-package-manifest.ts "$work/package/package.json"
+node script/check-package-types.js "$work/package"
 
 git fetch -q origin "$branch"
 git worktree add -q --detach "$work/branch" FETCH_HEAD
