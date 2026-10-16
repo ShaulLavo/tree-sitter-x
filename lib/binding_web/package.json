@@ -1,6 +1,6 @@
 {
   "name": "@singapore-editor/tree-sitter-x",
-  "version": "0.28.2",
+  "version": "0.28.3",
   "description": "Tree-sitter-x WASI runtime for JavaScript, with shared text buffers and C extensions",
   "repository": {
     "type": "git",
@@ -105,5 +105,8 @@
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
+  },
+  "engines": {
+    "node": ">=26"
   }
 }

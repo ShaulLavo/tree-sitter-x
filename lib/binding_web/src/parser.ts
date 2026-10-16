@@ -201,81 +201,79 @@ export class Parser {
     oldTree?: Tree | null,
     options?: ParseOptions,
   ): Tree | null {
-    if (callback instanceof TextBuffer) {
-      C.currentParseCallback = callback.read;
-    } else if (typeof callback === 'string') {
-      C.currentParseCallback = (index: number) => callback.slice(index);
-    } else if (typeof callback === 'function') {
-      C.currentParseCallback = callback;
-    } else {
-      throw new Error('Argument must be a string or a function');
-    }
-
-    if (options?.progressCallback) {
-      C.currentProgressCallback = options.progressCallback;
-    } else {
-      C.currentProgressCallback = null;
-    }
-
-    if (this.logCallback) {
-      C.currentLogCallback = this.logCallback;
-      C._ts_parser_enable_logger_wasm(this[0], 1);
-    } else {
-      C.currentLogCallback = null;
-      C._ts_parser_enable_logger_wasm(this[0], 0);
-    }
-
-    let rangeCount = 0;
-    let rangeAddress = 0;
-    if (options?.includedRanges) {
-      rangeCount = options.includedRanges.length;
-      rangeAddress = C._calloc(rangeCount, SIZE_OF_RANGE);
-      let address = rangeAddress;
-      for (let i = 0; i < rangeCount; i++) {
-        marshalRange(address, options.includedRanges[i]);
-        address += SIZE_OF_RANGE;
+    const previousParseCallback = C.currentParseCallback;
+    const previousLogCallback = C.currentLogCallback;
+    const previousProgressCallback = C.currentProgressCallback;
+    try {
+      if (callback instanceof TextBuffer) {
+        C.currentParseCallback = callback.read;
+      } else if (typeof callback === 'string') {
+        C.currentParseCallback = (index: number) => callback.slice(index);
+      } else if (typeof callback === 'function') {
+        C.currentParseCallback = callback;
+      } else {
+        throw new Error('Argument must be a string or a function');
       }
+
+      if (options?.progressCallback) {
+        C.currentProgressCallback = options.progressCallback;
+      } else {
+        C.currentProgressCallback = null;
+      }
+
+      if (this.logCallback) {
+        C.currentLogCallback = this.logCallback;
+        C._ts_parser_enable_logger_wasm(this[0], 1);
+      } else {
+        C.currentLogCallback = null;
+        C._ts_parser_enable_logger_wasm(this[0], 0);
+      }
+
+      const ranges = options?.includedRanges ?? [];
+      const rangeCount = ranges.length;
+      const rangeAddress = rangeCount ? C._calloc(rangeCount, SIZE_OF_RANGE) : 0;
+      for (let i = 0; i < rangeCount; i++) {
+        marshalRange(rangeAddress + i * SIZE_OF_RANGE, ranges[i]);
+      }
+
+      const treeAddress = callback instanceof TextBuffer
+        ? C._ts_parser_parse_utf16_wasm(
+          this[0],
+          callback[0],
+          callback.length * 2,
+          oldTree ? oldTree[0] : 0,
+          rangeAddress,
+          rangeCount
+        )
+        : C._ts_parser_parse_wasm(
+          this[0],
+          this[1],
+          oldTree ? oldTree[0] : 0,
+          rangeAddress,
+          rangeCount
+        );
+
+      if (!treeAddress) {
+        return null;
+      }
+
+      if (!this.language) {
+        throw new Error('Parser must have a language to parse');
+      }
+
+      const result = new Tree(INTERNAL, treeAddress, this.language, C.currentParseCallback);
+      return result;
+    } finally {
+      C.currentParseCallback = previousParseCallback;
+      C.currentLogCallback = previousLogCallback;
+      C.currentProgressCallback = previousProgressCallback;
     }
-
-    const treeAddress = callback instanceof TextBuffer
-      ? C._ts_parser_parse_utf16_wasm(
-        this[0],
-        callback[0],
-        callback.length * 2,
-        oldTree ? oldTree[0] : 0,
-        rangeAddress,
-        rangeCount
-      )
-      : C._ts_parser_parse_wasm(
-        this[0],
-        this[1],
-        oldTree ? oldTree[0] : 0,
-        rangeAddress,
-        rangeCount
-      );
-
-    if (!treeAddress) {
-      C.currentParseCallback = null;
-      C.currentLogCallback = null;
-      C.currentProgressCallback = null;
-      return null;
-    }
-
-    if (!this.language) {
-      throw new Error('Parser must have a language to parse');
-    }
-
-    const result = new Tree(INTERNAL, treeAddress, this.language, C.currentParseCallback);
-    C.currentParseCallback = null;
-    C.currentLogCallback = null;
-    C.currentProgressCallback = null;
-    return result;
   }
 
   /**
    * Instruct the parser to start the next parse from the beginning.
    *
-   * If the parser previously failed because of a callback, 
+   * If the parser previously failed because of a callback,
    * then by default, it will resume where it left off on the
    * next call to {@link Parser#parse} or other parsing functions.
    * If you don't want to resume, and instead intend to use this parser to

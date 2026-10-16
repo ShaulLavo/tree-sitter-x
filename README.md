@@ -36,11 +36,28 @@ import { Parser, Language, TextBuffer } from '@singapore-editor/tree-sitter-x'
 Projects that import `web-tree-sitter` can install the runtime under that dependency name:
 
 ```json
-"web-tree-sitter": "npm:@singapore-editor/tree-sitter-x@0.28.0"
+"web-tree-sitter": "npm:@singapore-editor/tree-sitter-x@0.28.3"
 ```
 
 CI also publishes built artifacts on the `web-tree-sitter` Git branch after source checks pass.
 Run `sh lib/binding_web/script/package-branch.sh --push` to refresh that branch manually.
+
+## Runtime requirements
+
+The JavaScript runtime requires Node 26+, Bun 1.2.22+, Chromium 144+, Firefox 145+,
+or Safari 26.2+ (including iOS). It uses `WebAssembly.Memory.toResizableBuffer()`;
+ordinary resizable `ArrayBuffer` support alone is insufficient.
+
+`heap()` returns the same live view as memory grows, including `memory.grow(0)`.
+Its length tracks memory growth. Addresses still expire after `free` or a moving
+`realloc`; copy a result before releasing its allocation or transferring it to a worker.
+
+### 0.28.3
+
+Breaking: the JavaScript runtime now requires the engines above. Retained `heap()`
+views stay attached and grow instead of detaching. Wasm memory starts small and can
+grow to the full 4 GiB Wasm32 limit. UTF-8 encoding uses fixed storage at browser
+Encoding API boundaries, and parser callbacks copy UTF-16 through reusable staging.
 
 ## Build and test
 

@@ -5,6 +5,18 @@
 #include <tree_sitter/api.h>
 
 static void (*release)(void *) = free;
+static char *constructed_text;
+
+__attribute__((constructor)) static void initialize(void) {
+  __builtin_wasm_memory_grow(0, 1);
+  constructed_text = strdup("extension hé 😀");
+}
+
+__attribute__((export_name("constructor_text")))
+const char *constructor_text(void) { return constructed_text; }
+
+__attribute__((export_name("release_fixture")))
+void release_fixture(void) { release(constructed_text); }
 
 __attribute__((export_name("count_named")))
 uint32_t count_named(const TSTree *tree) {

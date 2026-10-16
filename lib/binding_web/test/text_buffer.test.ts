@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync } from 'fs';
 import path from 'path';
-import { Edit, Language, Parser, TextBuffer } from '../src';
+import { Edit, heap, Language, Parser, Query, TextBuffer, type Tree } from '../src';
+import { C } from '../src/constants';
 import helper from './helper';
 
 let JavaScript: Language;
@@ -17,6 +18,66 @@ function point(text: string, index: number) {
 }
 
 describe('TextBuffer', () => {
+  it('rebuilds allocation views after realloc and matches a fresh parse across growth', () => {
+    const parser = new Parser().setLanguage(JavaScript);
+    const source = 'const café = "水😀";\n';
+    const buffer = new TextBuffer(source);
+    const query = new Query(JavaScript, '(identifier) @name (string) @text');
+    const bytes = heap();
+    const oldLength = bytes.length;
+    const oldAddress = buffer[0];
+    const blocker = C._malloc(oldLength * 2);
+    let tree: Tree | null = parser.parse(buffer);
+    let fresh: Tree | null = null;
+    try {
+      // Keep another allocation above the old one, then exceed its capacity with an edit.
+      const inserted = '/*' + 'é😀'.repeat(oldLength) + '*/\nconst next = "hé";\n';
+      let text = source + inserted;
+      buffer.edit(source.length, source.length, inserted);
+      expect(buffer[0]).not.toBe(oldAddress);
+      expect(bytes.length).toBeGreaterThan(oldLength);
+      expect(heap()).toBe(bytes);
+      tree!.edit(new Edit({
+        startIndex: source.length, oldEndIndex: source.length, newEndIndex: text.length,
+        startPosition: point(source, source.length), oldEndPosition: point(source, source.length),
+        newEndPosition: point(text, text.length),
+      }));
+      const incremental = parser.parse(buffer, tree)!;
+      tree!.delete();
+      tree = incremental;
+      fresh = parser.parse(text)!;
+      expect(tree.rootNode.toString()).toBe(fresh.rootNode.toString());
+      expect(tree.rootNode.text).toBe(text);
+      expect(query.captureRanges(tree.rootNode)).toEqual(query.captureRanges(fresh.rootNode));
+      expect(query.captures(tree.rootNode).map(({ node }) => node.text))
+        .toEqual(query.captures(fresh.rootNode).map(({ node }) => node.text));
+
+      text = text.slice(source.length);
+      buffer.edit(0, source.length, '');
+      tree.edit(new Edit({
+        startIndex: 0, oldEndIndex: source.length, newEndIndex: 0,
+        startPosition: point(source, 0), oldEndPosition: point(source, source.length),
+        newEndPosition: point(text, 0),
+      }));
+      const deleted = parser.parse(buffer, tree)!;
+      tree.delete();
+      tree = deleted;
+      fresh.delete();
+      fresh = parser.parse(text)!;
+      expect(buffer.slice()).toBe(text);
+      expect(tree.rootNode.toString()).toBe(fresh.rootNode.toString());
+      expect(query.captureRanges(tree.rootNode)).toEqual(query.captureRanges(fresh.rootNode));
+      expect(tree.rootNode.text).toBe(text);
+    } finally {
+      fresh?.delete();
+      tree?.delete();
+      query.delete();
+      buffer.delete();
+      C._free(blocker);
+      parser.delete();
+    }
+  });
+
   it('keeps text through edits, growth and surrogate pairs', () => {
     const buffer = new TextBuffer('héllo 😀 world');
     let text = 'héllo 😀 world';

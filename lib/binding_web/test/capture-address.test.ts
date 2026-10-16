@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { heap, Language, Parser, Query, TextBuffer, type Tree } from '../src';
 import { C, SIZE_OF_INT } from '../src/constants';
 import { TRANSFER_BUFFER } from '../src/parser';
@@ -148,6 +148,18 @@ describe('memory above the signed Wasm32 boundary', () => {
     const resultAddress = () => C.getValue(TRANSFER_BUFFER + SIZE_OF_INT, 'i32') >>> 0;
     expect(lowQuery.captures(lowTree.rootNode)).toHaveLength(LINES);
     expect(resultAddress()).toBeGreaterThanOrEqual(SIGNED_LIMIT);
+    const release = vi.spyOn(C, '_free');
+    try {
+      const ranges = lowQuery.captureRanges(lowTree.rootNode);
+      expect(ranges).toHaveLength(LINES);
+      const text = lowTree.rootNode.text;
+      expect(ranges.map(({ name, startIndex, endIndex }) => [name, text.slice(startIndex, endIndex)]))
+        .toEqual(Array.from({ length: LINES }, () => ['variable', 'value']));
+      // captureRanges uses the transfer buffer for nodes too; inspect the released block.
+      expect(release.mock.calls.some(([address]) => (address >>> 0) >= SIGNED_LIMIT)).toBe(true);
+    } finally {
+      release.mockRestore();
+    }
     expect(lowQuery.matches(lowTree.rootNode)).toHaveLength(LINES);
     expect(resultAddress()).toBeGreaterThanOrEqual(SIGNED_LIMIT);
 

@@ -40,6 +40,7 @@ function wasiImports(module: WebAssembly.Module): Record<string, () => number> {
 const utf8Decoder = new TextDecoder();
 const utf8Encoder = new TextEncoder();
 const INPUT_BUFFER_SIZE = 10 * 1024;
+const UTF16_CHUNK_SIZE = 4096;
 
 function readLeb(bytes: Uint8Array, cursor: { at: number }): number {
   let result = 0;
@@ -115,34 +116,11 @@ export default async function createModule(options: ModuleOptions = {}): Promise
     currentQueryProgressCallback: null,
   } as unknown as MainModule & Record<string, unknown>;
 
-  // Filled once the runtime is instantiated; the import callbacks run only after that.
-  const runtime = { exports: undefined as unknown as Exports };
-  let heapBuffer: ArrayBufferLike | null = null;
-  let heap = new DataView(new ArrayBuffer(0));
-  let heap8 = new Int8Array(0);
-  let heapU8 = new Uint8Array(0);
-  let heap16 = new Int16Array(0);
-  let heap32 = new Int32Array(0);
-  // Memory can grow during any call into the runtime, detaching earlier views.
-  const refresh = () => {
-    const buffer = runtime.exports.memory.buffer;
-    if (buffer === heapBuffer) return;
-    heapBuffer = buffer;
-    heap = new DataView(buffer);
-    heap8 = new Int8Array(buffer);
-    heapU8 = new Uint8Array(buffer);
-    heap16 = new Int16Array(buffer);
-    heap32 = new Int32Array(buffer);
-  };
-  const bytes = () => {
-    refresh();
-    return heapU8;
-  };
+  const utf16Scratch = new Uint16Array(UTF16_CHUNK_SIZE);
 
   // Typed-array reads, as Emscripten's getValue does: the bindings only pass aligned
   // addresses, and these calls are the hot path of query and node unmarshaling.
   const getValue = (ptr: number, type = 'i8'): number => {
-    refresh();
     // Wasm32 pointers can arrive as signed i32 values when memory exceeds 2 GiB.
     ptr >>>= 0;
     switch (type) {
@@ -157,7 +135,6 @@ export default async function createModule(options: ModuleOptions = {}): Promise
     }
   };
   const setValue = (ptr: number, value: number, type = 'i8'): void => {
-    refresh();
     ptr >>>= 0;
     switch (type) {
       case 'i32': case '*': heap32[ptr >>> 2] = value; return;
@@ -173,16 +150,15 @@ export default async function createModule(options: ModuleOptions = {}): Promise
   const UTF8ToString = (ptr: number, maxBytesToRead?: number, ignoreNul?: boolean): string => {
     if (!ptr) return '';
     ptr >>>= 0;
-    const heapU8 = bytes();
     const limit = maxBytesToRead === undefined ? heapU8.length : Math.min(heapU8.length, ptr + maxBytesToRead);
     let end = ptr;
     if (ignoreNul) end = limit;
     else while (end < limit && heapU8[end]) end++;
-    return utf8Decoder.decode(heapU8.subarray(ptr, end));
+    // Encoding APIs reject resizable-backed inputs in browsers. slice owns fixed storage.
+    return utf8Decoder.decode(heapU8.slice(ptr, end));
   };
   const AsciiToString = (ptr: number): string => {
     ptr >>>= 0;
-    const heapU8 = bytes();
     let result = '';
     for (let at = ptr; heapU8[at]; at++) result += String.fromCharCode(heapU8[at]);
     return result;
@@ -191,19 +167,25 @@ export default async function createModule(options: ModuleOptions = {}): Promise
   const stringToUTF8 = (str: string, outPtr: number, maxBytesToWrite: number): number => {
     if (maxBytesToWrite <= 0) return 0;
     outPtr >>>= 0;
-    const target = bytes().subarray(outPtr, outPtr + maxBytesToWrite - 1);
-    const { written } = utf8Encoder.encodeInto(str, target);
-    bytes()[outPtr + written] = 0;
+    const target = heapU8.subarray(outPtr, outPtr + maxBytesToWrite - 1);
+    const scratch = new Uint8Array(target.length);
+    const { written } = utf8Encoder.encodeInto(str, scratch);
+    target.set(scratch.subarray(0, written));
+    heapU8[outPtr + written] = 0;
     return written;
   };
   const stringToUTF16 = (str: string, outPtr: number, maxBytesToWrite = 0x7fffffff): number => {
     if (maxBytesToWrite < 2) return 0;
     outPtr >>>= 0;
-    const length = Math.min(str.length, (maxBytesToWrite - 2) >> 1);
-    // wasm32 is little-endian, like every host that runs it, so a Uint16Array writes UTF-16LE.
-    const units = new Uint16Array(bytes().buffer, outPtr, length + 1);
-    for (let i = 0; i < length; i++) units[i] = str.charCodeAt(i);
-    units[length] = 0;
+    const length = Math.min(str.length, Math.floor((maxBytesToWrite - 2) / 2));
+    // Populate fixed storage before bulk copying to the resizable heap. No user code runs
+    // while this scratch is live; parse callbacks (including nested calls) finish first.
+    for (let at = 0; at < length; at += UTF16_CHUNK_SIZE) {
+      const count = Math.min(length - at, UTF16_CHUNK_SIZE);
+      for (let i = 0; i < count; i++) utf16Scratch[i] = str.charCodeAt(at + i);
+      heap16.set(utf16Scratch.subarray(0, count), (outPtr >>> 1) + at);
+    }
+    heap16[(outPtr >>> 1) + length] = 0;
     return 2 * length;
   };
 
@@ -236,8 +218,13 @@ export default async function createModule(options: ModuleOptions = {}): Promise
   const source = await runtimeBytes(options);
   const compiled = source instanceof WebAssembly.Module ? source : await WebAssembly.compile(source as BufferSource);
   const instance = await WebAssembly.instantiate(compiled, { ...imports, wasi_snapshot_preview1: wasiImports(compiled) });
-  runtime.exports = instance.exports as unknown as Exports;
-  const exports = runtime.exports;
+  const exports = instance.exports as unknown as Exports;
+  const heapBuffer = exports.memory.toResizableBuffer();
+  const heap = new DataView(heapBuffer);
+  const heap8 = new Int8Array(heapBuffer);
+  const heapU8 = new Uint8Array(heapBuffer);
+  const heap16 = new Int16Array(heapBuffer);
+  const heap32 = new Int32Array(heapBuffer);
   exports._initialize();
 
   // Links a grammar built as a dylink side module: its data goes in a block of the
@@ -248,7 +235,7 @@ export default async function createModule(options: ModuleOptions = {}): Promise
     const align = Math.max(2 ** info.memoryAlign, 16);
     // Unsigned, so the zero fill below starts at the block above 2 GiB and not near the heap's end.
     const memoryBase = info.memorySize ? Math.ceil((exports.malloc(info.memorySize + align) >>> 0) / align) * align : 0;
-    if (info.memorySize) bytes().fill(0, memoryBase, memoryBase + info.memorySize);
+    if (info.memorySize) heapU8.fill(0, memoryBase, memoryBase + info.memorySize);
     const table = exports.__indirect_function_table;
     const tableBase = table.grow(info.tableSize);
 
@@ -315,8 +302,7 @@ export default async function createModule(options: ModuleOptions = {}): Promise
     stringToUTF16,
     loadWebAssemblyModule,
   });
-  // Views over the current memory, which growth replaces.
-  Object.defineProperty(module, 'HEAPU8', { get: bytes });
+  Object.defineProperty(module, 'HEAPU8', { value: heapU8 });
   for (const [name, value] of Object.entries(exports)) {
     if (typeof value === 'function') (module as Record<string, unknown>)[`_${name}`] = value;
   }
