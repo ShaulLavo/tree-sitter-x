@@ -1401,6 +1401,7 @@ __name(wasiImports, "wasiImports");
 var utf8Decoder = new TextDecoder();
 var utf8Encoder = new TextEncoder();
 var INPUT_BUFFER_SIZE = 10 * 1024;
+var UTF16_CHUNK_SIZE = 4096;
 function readLeb(bytes, cursor) {
   let result = 0;
   let shift = 0;
@@ -1467,29 +1468,8 @@ async function createModule(options = {}) {
     currentProgressCallback: null,
     currentQueryProgressCallback: null
   };
-  const runtime = { exports: void 0 };
-  let heapBuffer = null;
-  let heap2 = new DataView(new ArrayBuffer(0));
-  let heap8 = new Int8Array(0);
-  let heapU8 = new Uint8Array(0);
-  let heap16 = new Int16Array(0);
-  let heap32 = new Int32Array(0);
-  const refresh = /* @__PURE__ */ __name(() => {
-    const buffer = runtime.exports.memory.buffer;
-    if (buffer === heapBuffer) return;
-    heapBuffer = buffer;
-    heap2 = new DataView(buffer);
-    heap8 = new Int8Array(buffer);
-    heapU8 = new Uint8Array(buffer);
-    heap16 = new Int16Array(buffer);
-    heap32 = new Int32Array(buffer);
-  }, "refresh");
-  const bytes = /* @__PURE__ */ __name(() => {
-    refresh();
-    return heapU8;
-  }, "bytes");
+  const utf16Scratch = new Uint16Array(UTF16_CHUNK_SIZE);
   const getValue = /* @__PURE__ */ __name((ptr, type = "i8") => {
-    refresh();
     ptr >>>= 0;
     switch (type) {
       case "i32":
@@ -1511,7 +1491,6 @@ async function createModule(options = {}) {
     }
   }, "getValue");
   const setValue = /* @__PURE__ */ __name((ptr, value, type = "i8") => {
-    refresh();
     ptr >>>= 0;
     switch (type) {
       case "i32":
@@ -1541,36 +1520,39 @@ async function createModule(options = {}) {
   const UTF8ToString = /* @__PURE__ */ __name((ptr, maxBytesToRead, ignoreNul) => {
     if (!ptr) return "";
     ptr >>>= 0;
-    const heapU82 = bytes();
-    const limit = maxBytesToRead === void 0 ? heapU82.length : Math.min(heapU82.length, ptr + maxBytesToRead);
+    const limit = maxBytesToRead === void 0 ? heapU8.length : Math.min(heapU8.length, ptr + maxBytesToRead);
     let end = ptr;
     if (ignoreNul) end = limit;
-    else while (end < limit && heapU82[end]) end++;
-    return utf8Decoder.decode(heapU82.subarray(ptr, end));
+    else while (end < limit && heapU8[end]) end++;
+    return utf8Decoder.decode(heapU8.slice(ptr, end));
   }, "UTF8ToString");
   const AsciiToString = /* @__PURE__ */ __name((ptr) => {
     ptr >>>= 0;
-    const heapU82 = bytes();
     let result = "";
-    for (let at = ptr; heapU82[at]; at++) result += String.fromCharCode(heapU82[at]);
+    for (let at = ptr; heapU8[at]; at++) result += String.fromCharCode(heapU8[at]);
     return result;
   }, "AsciiToString");
   const lengthBytesUTF8 = /* @__PURE__ */ __name((str) => utf8Encoder.encode(str).length, "lengthBytesUTF8");
   const stringToUTF8 = /* @__PURE__ */ __name((str, outPtr, maxBytesToWrite) => {
     if (maxBytesToWrite <= 0) return 0;
     outPtr >>>= 0;
-    const target = bytes().subarray(outPtr, outPtr + maxBytesToWrite - 1);
-    const { written } = utf8Encoder.encodeInto(str, target);
-    bytes()[outPtr + written] = 0;
+    const target = heapU8.subarray(outPtr, outPtr + maxBytesToWrite - 1);
+    const scratch = new Uint8Array(target.length);
+    const { written } = utf8Encoder.encodeInto(str, scratch);
+    target.set(scratch.subarray(0, written));
+    heapU8[outPtr + written] = 0;
     return written;
   }, "stringToUTF8");
   const stringToUTF16 = /* @__PURE__ */ __name((str, outPtr, maxBytesToWrite = 2147483647) => {
     if (maxBytesToWrite < 2) return 0;
     outPtr >>>= 0;
-    const length = Math.min(str.length, maxBytesToWrite - 2 >> 1);
-    const units = new Uint16Array(bytes().buffer, outPtr, length + 1);
-    for (let i = 0; i < length; i++) units[i] = str.charCodeAt(i);
-    units[length] = 0;
+    const length = Math.min(str.length, Math.floor((maxBytesToWrite - 2) / 2));
+    for (let at = 0; at < length; at += UTF16_CHUNK_SIZE) {
+      const count = Math.min(length - at, UTF16_CHUNK_SIZE);
+      for (let i = 0; i < count; i++) utf16Scratch[i] = str.charCodeAt(at + i);
+      heap16.set(utf16Scratch.subarray(0, count), (outPtr >>> 1) + at);
+    }
+    heap16[(outPtr >>> 1) + length] = 0;
     return 2 * length;
   }, "stringToUTF16");
   const imports = {
@@ -1601,14 +1583,19 @@ async function createModule(options = {}) {
   const source = await runtimeBytes(options);
   const compiled = source instanceof WebAssembly.Module ? source : await WebAssembly.compile(source);
   const instance = await WebAssembly.instantiate(compiled, { ...imports, wasi_snapshot_preview1: wasiImports(compiled) });
-  runtime.exports = instance.exports;
-  const exports2 = runtime.exports;
+  const exports2 = instance.exports;
+  const heapBuffer = exports2.memory.toResizableBuffer();
+  const heap2 = new DataView(heapBuffer);
+  const heap8 = new Int8Array(heapBuffer);
+  const heapU8 = new Uint8Array(heapBuffer);
+  const heap16 = new Int16Array(heapBuffer);
+  const heap32 = new Int32Array(heapBuffer);
   exports2._initialize();
   function link(wasmModule) {
     const info = dylinkInfo(wasmModule);
     const align = Math.max(2 ** info.memoryAlign, 16);
     const memoryBase = info.memorySize ? Math.ceil((exports2.malloc(info.memorySize + align) >>> 0) / align) * align : 0;
-    if (info.memorySize) bytes().fill(0, memoryBase, memoryBase + info.memorySize);
+    if (info.memorySize) heapU8.fill(0, memoryBase, memoryBase + info.memorySize);
     const table = exports2.__indirect_function_table;
     const tableBase = table.grow(info.tableSize);
     const env = {
@@ -1672,7 +1659,7 @@ async function createModule(options = {}) {
     stringToUTF16,
     loadWebAssemblyModule
   });
-  Object.defineProperty(module2, "HEAPU8", { get: bytes });
+  Object.defineProperty(module2, "HEAPU8", { value: heapU8 });
   for (const [name, value] of Object.entries(exports2)) {
     if (typeof value === "function") module2[`_${name}`] = value;
   }
@@ -2136,71 +2123,69 @@ var Parser = class {
    *  - The progress callback returned true.
    */
   parse(callback, oldTree, options) {
-    if (callback instanceof TextBuffer) {
-      C.currentParseCallback = callback.read;
-    } else if (typeof callback === "string") {
-      C.currentParseCallback = (index) => callback.slice(index);
-    } else if (typeof callback === "function") {
-      C.currentParseCallback = callback;
-    } else {
-      throw new Error("Argument must be a string or a function");
-    }
-    if (options?.progressCallback) {
-      C.currentProgressCallback = options.progressCallback;
-    } else {
-      C.currentProgressCallback = null;
-    }
-    if (this.logCallback) {
-      C.currentLogCallback = this.logCallback;
-      C._ts_parser_enable_logger_wasm(this[0], 1);
-    } else {
-      C.currentLogCallback = null;
-      C._ts_parser_enable_logger_wasm(this[0], 0);
-    }
-    let rangeCount = 0;
-    let rangeAddress = 0;
-    if (options?.includedRanges) {
-      rangeCount = options.includedRanges.length;
-      rangeAddress = C._calloc(rangeCount, SIZE_OF_RANGE);
-      let address = rangeAddress;
-      for (let i = 0; i < rangeCount; i++) {
-        marshalRange(address, options.includedRanges[i]);
-        address += SIZE_OF_RANGE;
+    const previousParseCallback = C.currentParseCallback;
+    const previousLogCallback = C.currentLogCallback;
+    const previousProgressCallback = C.currentProgressCallback;
+    try {
+      if (callback instanceof TextBuffer) {
+        C.currentParseCallback = callback.read;
+      } else if (typeof callback === "string") {
+        C.currentParseCallback = (index) => callback.slice(index);
+      } else if (typeof callback === "function") {
+        C.currentParseCallback = callback;
+      } else {
+        throw new Error("Argument must be a string or a function");
       }
+      if (options?.progressCallback) {
+        C.currentProgressCallback = options.progressCallback;
+      } else {
+        C.currentProgressCallback = null;
+      }
+      if (this.logCallback) {
+        C.currentLogCallback = this.logCallback;
+        C._ts_parser_enable_logger_wasm(this[0], 1);
+      } else {
+        C.currentLogCallback = null;
+        C._ts_parser_enable_logger_wasm(this[0], 0);
+      }
+      const ranges = options?.includedRanges ?? [];
+      const rangeCount = ranges.length;
+      const rangeAddress = rangeCount ? C._calloc(rangeCount, SIZE_OF_RANGE) : 0;
+      for (let i = 0; i < rangeCount; i++) {
+        marshalRange(rangeAddress + i * SIZE_OF_RANGE, ranges[i]);
+      }
+      const treeAddress = callback instanceof TextBuffer ? C._ts_parser_parse_utf16_wasm(
+        this[0],
+        callback[0],
+        callback.length * 2,
+        oldTree ? oldTree[0] : 0,
+        rangeAddress,
+        rangeCount
+      ) : C._ts_parser_parse_wasm(
+        this[0],
+        this[1],
+        oldTree ? oldTree[0] : 0,
+        rangeAddress,
+        rangeCount
+      );
+      if (!treeAddress) {
+        return null;
+      }
+      if (!this.language) {
+        throw new Error("Parser must have a language to parse");
+      }
+      const result = new Tree(INTERNAL, treeAddress, this.language, C.currentParseCallback);
+      return result;
+    } finally {
+      C.currentParseCallback = previousParseCallback;
+      C.currentLogCallback = previousLogCallback;
+      C.currentProgressCallback = previousProgressCallback;
     }
-    const treeAddress = callback instanceof TextBuffer ? C._ts_parser_parse_utf16_wasm(
-      this[0],
-      callback[0],
-      callback.length * 2,
-      oldTree ? oldTree[0] : 0,
-      rangeAddress,
-      rangeCount
-    ) : C._ts_parser_parse_wasm(
-      this[0],
-      this[1],
-      oldTree ? oldTree[0] : 0,
-      rangeAddress,
-      rangeCount
-    );
-    if (!treeAddress) {
-      C.currentParseCallback = null;
-      C.currentLogCallback = null;
-      C.currentProgressCallback = null;
-      return null;
-    }
-    if (!this.language) {
-      throw new Error("Parser must have a language to parse");
-    }
-    const result = new Tree(INTERNAL, treeAddress, this.language, C.currentParseCallback);
-    C.currentParseCallback = null;
-    C.currentLogCallback = null;
-    C.currentProgressCallback = null;
-    return result;
   }
   /**
    * Instruct the parser to start the next parse from the beginning.
    *
-   * If the parser previously failed because of a callback, 
+   * If the parser previously failed because of a callback,
    * then by default, it will resume where it left off on the
    * next call to {@link Parser#parse} or other parsing functions.
    * If you don't want to resume, and instead intend to use this parser to
