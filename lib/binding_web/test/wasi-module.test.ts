@@ -56,6 +56,12 @@ function assertScalars(module: Awaited<ReturnType<typeof createModule>>, address
     module.setValue(address, value, type);
     expect(module.getValue(address, type)).toBe(value);
   }
+  module.HEAPU8.set([0, 0, 192, 63], address);
+  expect(module.getValue(address, 'float')).toBe(1.5);
+  module.setValue(address, 1.5, 'double');
+  expect(Array.from(module.HEAPU8.subarray(address, address + 8))).toEqual([0, 0, 0, 0, 0, 0, 248, 63]);
+  module.HEAPU8.set([255, 255, 255, 255, 254, 255, 255, 255], address);
+  expect(module.getValue(address, 'i64')).toBe(-4294967297);
 }
 
 describe('resizable heap', () => {
@@ -97,13 +103,18 @@ describe('resizable heap', () => {
       expect(bytes.length).toBe(length + 2 * 65536);
       module.setValue(length + 8, 0x12345678, 'i32');
       expect(Array.from(bytes.subarray(length + 8, length + 12))).toEqual([0x78, 0x56, 0x34, 0x12]);
-      allocation = module._malloc(bytes.length * 2);
+      expect(module.getValue(length + 8, 'i32')).toBe(0x12345678);
+      const allocationSize = bytes.length * 2;
+      allocation = module._malloc(allocationSize);
       expect(allocation).not.toBe(0);
       expect(bytes.length).toBeGreaterThan(length + 2 * 65536);
       expect(module.HEAPU8).toBe(bytes);
       expect(bytes.buffer).toBe(buffer);
       expect(bytes[address]).toBe(0x23);
-      expect(module.getValue(length + 8, 'i32')).toBe(0x12345678);
+      const end = (allocation >>> 0) + allocationSize - 16;
+      expect(end).toBeGreaterThan(length);
+      module.setValue(end, 0x12345678, 'i32');
+      expect(Array.from(bytes.subarray(end, end + 4))).toEqual([0x78, 0x56, 0x34, 0x12]);
     } finally {
       module._free(allocation);
       module._free(address);
