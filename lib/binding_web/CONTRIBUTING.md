@@ -11,7 +11,7 @@ Contributors to Tree-sitter should abide by the [Contributor Covenant][covenant]
 To make changes to Web-tree-sitter, you should have:
 
 1. A [Rust toolchain][rust], for running the xtasks necessary to build the library.
-2. Node.js and NPM (or an equivalent package manager).
+2. Node.js 26+ and NPM (or an equivalent package manager).
 3. Nothing else: `cargo xtask build-wasm` compiles the library with clang from the [WASI SDK][wasi-sdk] and optimizes it
 with binaryen's `wasm-opt`, downloading both on first use (or set `TREE_SITTER_WASI_SDK_PATH` and
 `TREE_SITTER_BINARYEN_PATH`).
@@ -141,3 +141,9 @@ file mentioned earlier, namely in the `run_wasm` function.
 [sourcemap]: https://developer.mozilla.org/en-US/docs/Glossary/Source_map
 [tree-sitter.c]: lib/tree-sitter.c
 [tree-sitter.d.ts]: lib/tree-sitter.d.ts
+
+The growth and extension tests compile small C fixtures. Set
+`TREE_SITTER_WASI_SDK_PATH` to the SDK directory used by `cargo xtask build-wasm`
+(or `WASI_SDK`); otherwise tests use the same `tree-sitter/wasi-sdk` cache directory
+as the build. These tests fail when clang is missing. Temporary fixture directories
+are removed after compilation, including on compilation failure.

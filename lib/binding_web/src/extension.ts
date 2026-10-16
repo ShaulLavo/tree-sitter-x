@@ -16,9 +16,11 @@ export async function loadExtension(binary: Uint8Array | WebAssembly.Module): Pr
 }
 
 /**
- * The parser's memory, for exchanging data with extensions. Growth replaces the view.
+ * A live, length-tracking view of the parser's memory, for exchanging data with extensions.
+ * The view and its resizable buffer retain their identity and grow with Wasm memory.
+ * Allocation addresses still expire when freed or moved by realloc; copy data to retain it.
  * Addresses above 2 GiB arrive as negative numbers; index with `address >>> 0`.
  */
-export function heap(): Uint8Array {
+export function heap(): Uint8Array<ArrayBuffer> {
   return C.HEAPU8;
 }

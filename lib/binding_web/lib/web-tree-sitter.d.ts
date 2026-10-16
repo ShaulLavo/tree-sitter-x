@@ -42,7 +42,7 @@ declare namespace RuntimeExports {
     let HEAPF64: Float64Array;
     let HEAP_DATA_VIEW: DataView;
     let HEAP8: Int8Array;
-    let HEAPU8: Uint8Array;
+    let HEAPU8: Uint8Array<ArrayBuffer>;
     let HEAP16: Int16Array;
     let HEAPU16: Uint16Array;
     let HEAP32: Int32Array;

@@ -151,6 +151,7 @@ fn build_wasm(clang: &Path, wasm_opt: Option<&Path>, args: &BuildWasm) -> Result
         "lib/binding_web/lib/tree-sitter.c",
         "lib/src/lib.c",
         "-Wl,--export-memory",
+        "-Wl,--max-memory=4294967296",
         "-Wl,--export-table",
         "-Wl,--growable-table",
         // Grammars and extensions run on this stack. 64 KB, the default, overflowed on deeply
