@@ -39,7 +39,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7.0.0
         with:
-          node-version: 26.7.0
+          node-version: 26.12.1
           cache: npm
           cache-dependency-path: |
             test/highlight-compat/package-lock.json
