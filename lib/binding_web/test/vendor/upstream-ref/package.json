@@ -1,0 +1,22 @@
+{
+  "name": "web-tree-sitter-upstream",
+  "version": "0.28.0",
+  "private": true,
+  "description": "Vendored upstream tree-sitter/tree-sitter web-tree-sitter build (Emscripten) at commit 64aaee668e32b184c73ce79f93376f4f7fc62e89, used as the version-matched reference for differential.test.ts. Rebuild with script/build-upstream-ref.sh when re-syncing.",
+  "type": "module",
+  "types": "./web-tree-sitter.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./web-tree-sitter.d.ts",
+        "default": "./web-tree-sitter.js"
+      }
+    },
+    "./web-tree-sitter.wasm": "./web-tree-sitter.wasm"
+  },
+  "files": [
+    "web-tree-sitter.js",
+    "web-tree-sitter.wasm",
+    "web-tree-sitter.d.ts"
+  ]
+}

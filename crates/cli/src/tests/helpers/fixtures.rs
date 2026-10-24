@@ -182,5 +182,6 @@ fn get_test_language_internal(
             unimplemented!("Wasm feature is not enabled")
         }
     }
+
     TEST_LOADER.load_language_at_path_with_name(config).unwrap()
 }

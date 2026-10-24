@@ -3,13 +3,12 @@ use std::{
     mem,
 };
 
-use rustc_hash::FxHashMap;
-
 use log::debug;
+use rustc_hash::FxHashMap;
 
 use super::{coincident_tokens::CoincidentTokenIndex, token_conflicts::TokenConflictMap};
 use crate::{
-    dedup::split_state_id_groups,
+    dedup::{SplitCriterion, split_state_id_groups},
     grammars::{LexicalGrammar, SyntaxGrammar},
     nfa::{CharacterSet, NfaCursor},
     rules::{Symbol, SymbolView, TokenSet},
@@ -401,7 +400,7 @@ fn minimize_lex_table(table: &mut LexTable, parse_table: &mut ParseTable) {
         &mut state_ids_by_group_id,
         &mut group_ids_by_state_id,
         1,
-        lex_states_differ,
+        &mut LexStateSplit,
     ) {}
 
     let mut new_states = Vec::with_capacity(state_ids_by_group_id.len());
@@ -423,6 +422,32 @@ fn minimize_lex_table(table: &mut LexTable, parse_table: &mut ParseTable) {
     }
 
     table.states = new_states;
+}
+
+/// Separates lex states whose advance actions lead to different groups.
+struct LexStateSplit;
+
+impl SplitCriterion<LexState> for LexStateSplit {
+    fn should_split(
+        &mut self,
+        left: &LexState,
+        right: &LexState,
+        group_ids_by_state_id: &[LexStateId],
+    ) -> bool {
+        lex_states_differ(left, right, group_ids_by_state_id)
+    }
+
+    /// The states of a group have the same advance actions apart from the states they lead
+    /// to, so states that don't need to be split lead to the same groups. Every kept state
+    /// leads to the same groups as the first one, and `state` was just found to as well.
+    fn compatible_with_all(
+        &mut self,
+        _state: &LexState,
+        _kept: &[u32],
+        _group_ids_by_state_id: &[LexStateId],
+    ) -> bool {
+        true
+    }
 }
 
 fn lex_states_differ(

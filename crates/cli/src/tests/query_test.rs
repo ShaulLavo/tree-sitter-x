@@ -1,7 +1,6 @@
-use std::{env, fmt::Write, ops::ControlFlow, sync::LazyLock};
+use std::{cell::Cell, env, fmt::Write, ops::ControlFlow, sync::LazyLock};
 
 use indoc::indoc;
-use rand::{SeedableRng, prelude::StdRng};
 use streaming_iterator::StreamingIterator;
 use tree_sitter::{
     CaptureQuantifier, InputEdit, Language, Node, Parser, Point, Query, QueryCursor,
@@ -9,18 +8,20 @@ use tree_sitter::{
     QueryPredicateArg, QueryProperty, Range,
 };
 use tree_sitter_generate::load_grammar_file;
-use unindent::Unindent;
 
 use super::helpers::{
     allocations,
     fixtures::{get_language, get_test_language},
     query_helpers::{Match, Pattern, assert_query_matches},
 };
-use crate::tests::{
-    ITERATION_COUNT, generate_parser,
-    helpers::{
-        fixtures::get_test_fixture_language,
-        query_helpers::{collect_captures, collect_matches},
+use crate::{
+    fuzz::random::Rand,
+    tests::{
+        ITERATION_COUNT, generate_parser,
+        helpers::{
+            fixtures::get_test_fixture_language,
+            query_helpers::{collect_captures, collect_matches},
+        },
     },
 };
 
@@ -257,6 +258,16 @@ fn test_query_errors_on_invalid_syntax() {
 }
 
 #[test]
+fn test_query_rejects_excessive_pattern_depth() {
+    let language = get_test_fixture_language("basic_cst");
+    let nesting = 300;
+    let source = "(_ ".repeat(nesting) + "_" + &")".repeat(nesting);
+    let error = Query::new(&language, &source).unwrap_err();
+
+    assert_eq!(error.kind, QueryErrorKind::Structure);
+}
+
+#[test]
 fn test_query_errors_on_anchor_at_group_edge() {
     allocations::record(|| {
         let language = get_language("javascript");
@@ -414,6 +425,16 @@ fn test_query_errors_on_invalid_symbols() {
                 column: 0,
                 kind: QueryErrorKind::Field,
                 message: "\"fakefield\"".to_string()
+            }
+        );
+        assert_eq!(
+            Query::new(&language, "(ERR)").unwrap_err(),
+            QueryError {
+                row: 0,
+                offset: 1,
+                column: 1,
+                kind: QueryErrorKind::NodeType,
+                message: "\"ERR\"".to_string(),
             }
         );
         assert_eq!(
@@ -2659,7 +2680,7 @@ fn test_query_matches_within_point_range() {
         let language = get_language("javascript");
         let query = Query::new(&language, "(identifier) @element").unwrap();
 
-        let source = "
+        let source = indoc! {"
             [
               a, b,
               c, d,
@@ -2668,19 +2689,18 @@ fn test_query_matches_within_point_range() {
               i, j,
               k, l,
             ]
-        "
-        .unindent();
+        "};
 
         let mut parser = Parser::new();
         parser.set_language(&language).unwrap();
-        let tree = parser.parse(&source, None).unwrap();
+        let tree = parser.parse(source, None).unwrap();
         let mut cursor = QueryCursor::new();
 
         let matches = cursor
             .set_point_range(Point::new(1, 0)..Point::new(2, 3))
             .matches(&query, tree.root_node(), source.as_bytes());
         assert_eq!(
-            collect_matches(matches, &query, &source),
+            collect_matches(matches, &query, source),
             &[
                 (0, vec![("element", "a")]),
                 (0, vec![("element", "b")]),
@@ -2692,7 +2712,7 @@ fn test_query_matches_within_point_range() {
             .set_point_range(Point::new(2, 0)..Point::new(3, 3))
             .matches(&query, tree.root_node(), source.as_bytes());
         assert_eq!(
-            collect_matches(matches, &query, &source),
+            collect_matches(matches, &query, source),
             &[
                 (0, vec![("element", "c")]),
                 (0, vec![("element", "d")]),
@@ -2705,7 +2725,7 @@ fn test_query_matches_within_point_range() {
             .set_point_range(Point::new(4, 1)..Point::new(0, 0))
             .matches(&query, tree.root_node(), source.as_bytes());
         assert_eq!(
-            collect_matches(matches, &query, &source),
+            collect_matches(matches, &query, source),
             &[
                 (0, vec![("element", "g")]),
                 (0, vec![("element", "h")]),
@@ -3060,7 +3080,7 @@ fn test_query_matches_within_range_of_long_repetition() {
         )
         .unwrap();
 
-        let source = "
+        let source = indoc! {"
             fn zero() {}
             fn one() {}
             fn two() {}
@@ -3074,20 +3094,19 @@ fn test_query_matches_within_range_of_long_repetition() {
             fn ten() {}
             fn eleven() {}
             fn twelve() {}
-        "
-        .unindent();
+        "};
 
         let mut parser = Parser::new();
         let mut cursor = QueryCursor::new();
 
         parser.set_language(&language).unwrap();
-        let tree = parser.parse(&source, None).unwrap();
+        let tree = parser.parse(source, None).unwrap();
 
         let matches = cursor
             .set_point_range(Point::new(8, 0)..Point::new(20, 0))
             .matches(&query, tree.root_node(), source.as_bytes());
         assert_eq!(
-            collect_matches(matches, &query, &source),
+            collect_matches(matches, &query, source),
             &[
                 (0, vec![("fn-name", "eight")]),
                 (0, vec![("fn-name", "nine")]),
@@ -3112,7 +3131,7 @@ fn test_query_matches_contained_within_range() {
         )
         .unwrap();
 
-        let source = r#"
+        let source = indoc! {r#"
             [
                 {"key1": "value1"},
                 {"key2": "value2"},
@@ -3127,12 +3146,11 @@ fn test_query_matches_contained_within_range() {
                 {"key11": "value11"},
                 {"key12": "value12"},
             ]
-        "#
-        .unindent();
+        "#};
 
         let mut parser = Parser::new();
         parser.set_language(&language).unwrap();
-        let tree = parser.parse(&source, None).unwrap();
+        let tree = parser.parse(source, None).unwrap();
 
         let expected_matches = [
             (1, vec![("l_brace", "{"), ("r_brace", "}")]),
@@ -3143,7 +3161,7 @@ fn test_query_matches_contained_within_range() {
             let matches = cursor
                 .set_containing_point_range(Point::new(5, 0)..Point::new(7, 0))
                 .matches(&query, tree.root_node(), source.as_bytes());
-            assert_eq!(collect_matches(matches, &query, &source), &expected_matches);
+            assert_eq!(collect_matches(matches, &query, source), &expected_matches);
         }
         {
             let mut cursor = QueryCursor::new();
@@ -3152,7 +3170,7 @@ fn test_query_matches_contained_within_range() {
                 tree.root_node(),
                 source.as_bytes(),
             );
-            assert_eq!(collect_matches(matches, &query, &source), &expected_matches);
+            assert_eq!(collect_matches(matches, &query, source), &expected_matches);
         }
     });
 }
@@ -4799,8 +4817,7 @@ fn test_query_random() {
         let end_seed = start_seed + *ITERATION_COUNT;
 
         for seed in start_seed..(start_seed + end_seed) {
-            let seed = seed as u64;
-            let mut rand = StdRng::seed_from_u64(seed);
+            let mut rand = Rand::new(seed);
             let (pattern_ast, _) = Pattern::random_pattern_in_tree(&pattern_tree, &mut rand);
             let pattern = pattern_ast.to_string();
             let expected_matches = pattern_ast.matches_in_tree(&test_tree);
@@ -6070,7 +6087,8 @@ fn test_query_execution_with_timeout() {
     let mut parser = Parser::new();
     parser.set_language(&language).unwrap();
 
-    let source_code = "function foo() { while (true) { } }\n".repeat(1000);
+    let count = 10_000;
+    let source_code = "function foo() { while (true) { } }\n".repeat(count);
     let tree = parser.parse(&source_code, None).unwrap();
 
     let query = Query::new(&language, "(function_declaration) @function").unwrap();
@@ -6091,12 +6109,12 @@ fn test_query_execution_with_timeout() {
             QueryCursorOptions::new().progress_callback(&mut progress_callback),
         )
         .count();
-    assert!(matches < 1000);
+    assert!(matches < count);
 
     let matches = cursor
         .matches(&query, tree.root_node(), source_code.as_bytes())
         .count();
-    assert_eq!(matches, 1000);
+    assert_eq!(matches, count);
 }
 
 #[test]
@@ -6124,6 +6142,160 @@ fn test_query_progress_callback_lives_as_long_as_matches() {
 
     assert_eq!(matches.count(), 1000);
     assert!(callback_was_called);
+}
+
+#[test]
+fn test_query_captures_progress_callback_stops_behind_an_open_match() {
+    let language = get_language("javascript");
+    let mut parser = Parser::new();
+    parser.set_language(&language).unwrap();
+
+    let numbers = (0..1000).map(|i| i.to_string()).collect::<Vec<_>>();
+    let source_code = format!("[{}];", numbers.join(","));
+    let tree = parser.parse(&source_code, None).unwrap();
+
+    // The first pattern stays in progress until the array ends, so every number
+    // capture finishes behind it.
+    let query = Query::new(
+        &language,
+        "(array (number) @first (string)) (number) @number",
+    )
+    .unwrap();
+
+    let mut calls = 0;
+    let mut progress_callback = |_: &QueryCursorState| {
+        calls += 1;
+        ControlFlow::Break(())
+    };
+    let mut cursor = QueryCursor::new();
+    let captures = cursor
+        .captures_with_options(
+            &query,
+            tree.root_node(),
+            source_code.as_bytes(),
+            QueryCursorOptions::new().progress_callback(&mut progress_callback),
+        )
+        .count();
+
+    assert!(captures < 1000);
+    assert_eq!(calls, 1);
+}
+
+#[test]
+fn test_query_captures_progress_callback_discards_in_progress_matches() {
+    let language = get_language("json");
+    let mut parser = Parser::new();
+    parser.set_language(&language).unwrap();
+
+    // Within each element, the first pattern holds back the second pattern's captures
+    // until the inner array ends. The second pattern then stays in progress, but
+    // definite, until the element itself ends.
+    let element = format!("[[{{\"a\":1}},1,2],{}]", ["true"; 12].join(","));
+    let source_code = format!("[{}]", vec![element; 50].join(","));
+    let tree = parser.parse(&source_code, None).unwrap();
+    let query = Query::new(
+        &language,
+        r#"
+        (array (object) @object (string))
+        (array (array (number) @number) "]" @close)
+        (number) @n
+        "#,
+    )
+    .unwrap();
+
+    for cancel_at in 1..=20 {
+        let calls = Cell::new(0);
+        let mut progress_callback = |_: &QueryCursorState| {
+            calls.set(calls.get() + 1);
+            if calls.get() >= cancel_at {
+                ControlFlow::Break(())
+            } else {
+                ControlFlow::Continue(())
+            }
+        };
+        let mut cursor = QueryCursor::new();
+        let mut captures = cursor.captures_with_options(
+            &query,
+            tree.root_node(),
+            source_code.as_bytes(),
+            QueryCursorOptions::new().progress_callback(&mut progress_callback),
+        );
+        while let Some((m, _)) = captures.next() {
+            // Once the callback has asked to stop, only finished matches may be returned.
+            if calls.get() >= cancel_at && m.pattern_index == 1 {
+                assert_eq!(m.captures().len(), 2, "cancelled at callback {cancel_at}");
+            }
+        }
+    }
+}
+
+#[test]
+fn test_query_progress_callback_halts_for_good() {
+    let language = get_language("javascript");
+    let mut parser = Parser::new();
+    parser.set_language(&language).unwrap();
+
+    let source_code = "function foo() {}\n".repeat(1000);
+    let tree = parser.parse(&source_code, None).unwrap();
+    let query = Query::new(&language, "(function_declaration) @function").unwrap();
+
+    let stop = Cell::new(true);
+    let mut progress_callback = |_: &QueryCursorState| {
+        if stop.get() {
+            ControlFlow::Break(())
+        } else {
+            ControlFlow::Continue(())
+        }
+    };
+    let mut cursor = QueryCursor::new();
+    let mut matches = cursor.matches_with_options(
+        &query,
+        tree.root_node(),
+        source_code.as_bytes(),
+        QueryCursorOptions::new().progress_callback(&mut progress_callback),
+    );
+    let mut count = 0;
+    while matches.next().is_some() {
+        count += 1;
+    }
+    assert!(count < 1000);
+
+    // Asking the cursor for more after a cancellation does not resume the query.
+    stop.set(false);
+    assert!(matches.next().is_none());
+}
+
+#[test]
+fn test_query_progress_callback_keeps_up_with_in_progress_states() {
+    let language = get_language("javascript");
+    let mut parser = Parser::new();
+    parser.set_language(&language).unwrap();
+
+    let depth = 1000;
+    let source_code = format!("{}{};", "[".repeat(depth), "]".repeat(depth));
+    let tree = parser.parse(&source_code, None).unwrap();
+
+    // No array has a string, so every enclosing array keeps a state in
+    // progress, and the cursor visits all of them at every node it steps over.
+    let query = Query::new(&language, "(array (string) @string)").unwrap();
+
+    let mut calls = 0;
+    let mut progress_callback = |_: &QueryCursorState| {
+        calls += 1;
+        ControlFlow::Continue(())
+    };
+    let mut cursor = QueryCursor::new();
+    let matches = cursor
+        .matches_with_options(
+            &query,
+            tree.root_node(),
+            source_code.as_bytes(),
+            QueryCursorOptions::new().progress_callback(&mut progress_callback),
+        )
+        .count();
+
+    assert_eq!(matches, 0);
+    assert!(calls > depth, "{calls} calls for {depth} nested arrays");
 }
 
 #[test]
@@ -6536,6 +6708,105 @@ export default grammar({
     let source = "foo()\n()";
 
     assert_query_matches(&language, &query, source, &[(0, vec![("tuple", "()")])]);
+}
+
+#[test]
+fn test_query_negated_field_through_hidden_nodes() {
+    let language = get_test_fixture_language("field_lookup_through_hidden_nodes");
+
+    // `spread` is a field of the second list, through the supertype `item`, no
+    // node of the `shadow` is `outer`, since its only name is `inner`, and of the
+    // `maybe`s only the one with a name has an `outer`.
+    let source = indoc! {"
+        [a]
+        [a, ...b]
+        let a = b;
+        shadow a;
+        alias ...a;
+        pair ...a, b;
+        pair ...a, ...b;
+        let a // c
+        = b;
+        multi a a = b;
+        restore a;
+        back a b;
+        maybe none end;
+        maybe a end;
+        sum a + b + c;
+    "};
+    let query = Query::new(
+        &language,
+        r"
+        (list !spread) @list
+        (binding !outer) @binding
+        (shadow !outer) @shadow
+        (aliased !spread) @aliased
+        (alias_pair !spread) @pair
+        (multi !outer) @multi
+        (restored !outer) @restored
+        (back !outer) @back
+        (maybe !outer) @maybe
+        (sum !left) @sum
+        ",
+    )
+    .unwrap();
+
+    assert_query_matches(
+        &language,
+        &query,
+        source,
+        &[
+            (0, vec![("list", "[a]")]),
+            (2, vec![("shadow", "shadow a;")]),
+            (3, vec![("aliased", "alias ...a;")]),
+            (4, vec![("pair", "pair ...a, b;")]),
+            (8, vec![("maybe", "maybe none end;")]),
+        ],
+    );
+}
+
+#[test]
+fn test_query_field_on_hidden_rule_reaches_later_siblings() {
+    let language = get_test_fixture_language("field_on_hidden_rule");
+
+    // `outer` reaches the `=` and `b` through the hidden `_binding`, and `left`
+    // reaches `a`, the first `+`, and `b` through the nested hidden `_sum`s.
+    let source = "let a = b;\nsum a + b + c;\n";
+
+    let query = Query::new(
+        &language,
+        r#"
+        (binding outer: (name) @outer_name)
+        (binding outer: _ @outer_node)
+        (sum left: "+" @left_operator)
+        (sum left: (name) @left_name)
+        "#,
+    )
+    .unwrap();
+
+    assert_query_matches(
+        &language,
+        &query,
+        source,
+        &[
+            (1, vec![("outer_node", "=")]),
+            (0, vec![("outer_name", "b")]),
+            (1, vec![("outer_node", "b")]),
+            (3, vec![("left_name", "a")]),
+            (2, vec![("left_operator", "+")]),
+            (3, vec![("left_name", "b")]),
+        ],
+    );
+
+    // `arg` reaches the `(` through the hidden `_call`, and `a` has an `arg` of
+    // its own.
+    let query = Query::new(&language, "(call arg: (name) @arg_name)").unwrap();
+    assert_query_matches(
+        &language,
+        &query,
+        "call (a);\n",
+        &[(0, vec![("arg_name", "a")])],
+    );
 }
 
 #[test]

@@ -96,6 +96,24 @@ describe('Query', () => {
       ]);
     });
 
+    it('can search in specified index ranges', () => {
+      tree = parser.parse('[a, b,\nc, d,\ne, f,\ng, h]')!;
+      query = new Query(JavaScript, '(identifier) @element');
+      const matches = query.matches(
+        tree.rootNode,
+        {
+          startIndex: 8,
+          endIndex: 20,
+        }
+      );
+      expect(formatMatches(matches)).toEqual([
+        { patternIndex: 0, captures: [{ patternIndex: 0, name: 'element', text: 'd' }] },
+        { patternIndex: 0, captures: [{ patternIndex: 0, name: 'element', text: 'e' }] },
+        { patternIndex: 0, captures: [{ patternIndex: 0, name: 'element', text: 'f' }] },
+        { patternIndex: 0, captures: [{ patternIndex: 0, name: 'element', text: 'g' }] },
+      ]);
+    });
+
     it('can search in contained within point ranges', () => {
       tree = parser.parse(`[
                 {"key1": "value1"},
@@ -144,8 +162,8 @@ describe('Query', () => {
       const matches = query.matches(
         tree.rootNode,
         {
-          startContainingIndex: 290,
-          endContainingIndex: 432,
+          startContainingIndex: 145,
+          endContainingIndex: 216,
         }
       );
       expect(formatMatches(matches)).toEqual([
@@ -239,6 +257,18 @@ describe('Query', () => {
         { patternIndex: 1, name: 'function.def', text: 'no' },
         { patternIndex: 3, name: 'operator', text: '=' },
         { patternIndex: 1, name: 'function.alias', text: 'pq' },
+      ]);
+    });
+
+    it('can search in specified index ranges', () => {
+      tree = parser.parse('[a, b,\nc, d,\ne, f,\ng, h]')!;
+      query = new Query(JavaScript, '(identifier) @element');
+      const captures = query.captures(tree.rootNode, { startIndex: 8, endIndex: 20 });
+      expect(formatCaptures(captures)).toEqual([
+        { patternIndex: 0, name: 'element', text: 'd' },
+        { patternIndex: 0, name: 'element', text: 'e' },
+        { patternIndex: 0, name: 'element', text: 'f' },
+        { patternIndex: 0, name: 'element', text: 'g' },
       ]);
     });
 
@@ -557,6 +587,26 @@ describe('Query', () => {
         '((identifier) @b (#match? @b i))\n'.length
       );
     });
+
+    it('Returns string indices for sources with non-ASCII characters', () => {
+      const source = '; héllö wörld\n(identifier) @a\n(object "{" "}")';
+      const query = new Query(JavaScript, source);
+
+      expect(query.startIndexForPattern(0)).toBe(source.indexOf('(identifier)'));
+      expect(query.endIndexForPattern(0)).toBe(source.indexOf('(object'));
+      expect(query.startIndexForPattern(1)).toBe(source.indexOf('(object'));
+      expect(query.endIndexForPattern(1)).toBe(source.length);
+    });
+  });
+
+  describe('.isPatternGuaranteedAtStep', () => {
+    it('takes string indices into the source', () => {
+      const source = '; héllö wörld\n(object "{" "}")';
+      const query = new Query(JavaScript, source);
+
+      expect(query.isPatternGuaranteedAtStep(source.indexOf('object'))).toBe(false);
+      expect(query.isPatternGuaranteedAtStep(source.indexOf('{'))).toBe(true);
+    });
   });
 
   describe('Disable pattern', () => {
@@ -585,9 +635,10 @@ describe('Query', () => {
     });
   });
 
-  describe('Executes with a timeout', { timeout: 10000 }, () => {
+  describe('Executes with a timeout', { timeout: 60000 }, () => {
     it('Returns less than the expected matches', () => {
-      tree = parser.parse('function foo() while (true) { } }\n'.repeat(1000))!;
+      const count = 10000;
+      tree = parser.parse('function foo() while (true) { } }\n'.repeat(count))!;
       query = new Query(JavaScript, '(function_declaration) @function');
 
       const startTime = performance.now();
@@ -603,10 +654,30 @@ describe('Query', () => {
           },
         }
       );
-      expect(matches.length).toBeLessThan(1000);
+      expect(matches.length).toBeLessThan(count);
 
       const matches2 = query.matches(tree.rootNode);
-      expect(matches2).toHaveLength(1000);
+      expect(matches2).toHaveLength(count);
+    });
+    it('Stops captures when the progress callback returns true', () => {
+      const numbers = Array.from({ length: 1000 }, (_, i) => i).join(',');
+      tree = parser.parse(`[${numbers}];`)!;
+      // The first pattern stays in progress until the array ends, so every number
+      // capture finishes behind it.
+      query = new Query(JavaScript, '(array (number) @first (string)) (number) @number');
+
+      let calls = 0;
+      const captures = query.captures(tree.rootNode, {
+        progressCallback: () => {
+          calls++;
+          return true;
+        },
+      });
+      expect(captures.length).toBeLessThan(1000);
+      expect(calls).toBe(1);
+
+      const captures2 = query.captures(tree.rootNode);
+      expect(captures2).toHaveLength(1000);
     });
   });
 });

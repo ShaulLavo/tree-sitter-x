@@ -1022,11 +1022,10 @@ fn run_tests(
                             // Only bail early before updating if `actual` does not match `output`.
                             // Sometimes users want to test cases that are intended to have
                             // errors, hence why this check isn't shown above.
-                            if actual.contains("ERROR") || actual.contains("MISSING") {
+                            if tree.root_node().has_error() {
                                 test_summary.has_parse_errors = true;
 
-                                // keep the original `expected` output if the actual output has an
-                                // error
+                                // keep the original `expected` output if the tree has an error.
                                 corrected_entries.push(TestCorrection::new(
                                     &name,
                                     input,
@@ -1675,9 +1674,8 @@ fn build_test_entry(
 mod tests {
     use serde_json::json;
 
-    use crate::tests::get_language;
-
     use super::*;
+    use crate::tests::get_language;
 
     #[test]
     fn test_parse_test_content_simple() {

@@ -34,24 +34,20 @@ qjs-rt = [ "tree-sitter-generate/qjs-rt" ]
 wasm = [ "tree-sitter/wasm", "tree-sitter-loader/wasm" ]
 
 [dependencies]
-ansi_colours.workspace = true
 anstyle.workspace = true
 anyhow.workspace = true
 bstr.workspace = true
 clap.workspace = true
 clap_complete.workspace = true
 clap_complete_nushell.workspace = true
-crc32fast.workspace = true
 ctor.workspace = true
-ctrlc.workspace = true
 dialoguer.workspace = true
+dunce.workspace = true
 glob.workspace = true
 heck.workspace = true
-html-escape.workspace = true
 indoc.workspace = true
 log.workspace = true
 memchr.workspace = true
-rand.workspace = true
 regex.workspace = true
 schemars.workspace = true
 semver.workspace = true
@@ -62,8 +58,6 @@ streaming-iterator.workspace = true
 thiserror.workspace = true
 tiny_http.workspace = true
 walkdir.workspace = true
-wasmparser.workspace = true
-webbrowser.workspace = true
 
 tree-sitter.workspace = true
 tree-sitter-config.workspace = true
@@ -79,7 +73,6 @@ widestring = "1.2.1"
 
 pretty_assertions.workspace = true
 tempfile.workspace = true
-unindent.workspace = true
 
 [package.metadata.binstall]
 pkg-fmt = "zip"

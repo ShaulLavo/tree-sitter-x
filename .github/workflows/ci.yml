@@ -61,8 +61,17 @@ jobs:
           toolchain: stable
           components: clippy, rustfmt
 
+      - name: Set up pinned nightly Rust toolchain
+        run: rustup toolchain install nightly-2026-09-03 --profile minimal --component rustfmt,clippy
+
       - name: Lint Rust files
         run: make lint
+
+      - name: Check formatting with nightly rustfmt
+        run: cargo +nightly-2026-09-03 fmt --all --check
+
+      - name: Lint Rust files with nightly clippy
+        run: cargo +nightly-2026-09-03 clippy --workspace --all-targets -- -D warnings
 
       - name: Install Taplo
         uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2
@@ -81,6 +90,33 @@ jobs:
 
       - name: Lint web files
         run: make lint-web
+
+  consistency:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Set up stable Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v2
+        with:
+          toolchain: stable
+
+      # rustdoc's JSON output is nightly-only and unstable
+      - name: Set up pinned nightly Rust toolchain
+        run: rustup toolchain install nightly-2026-09-03 --profile minimal
+
+      - name: Check regex error kinds
+        run: cargo xtask check-regex-error-kinds
+
+      - name: Check Wasm stdlib
+        if: ${{ !cancelled() }}
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const scriptPath = `${process.env.GITHUB_WORKSPACE}/.github/scripts/wasm_stdlib.js`;
+            const script = require(scriptPath);
+            return script({ github, context, core });
 
   sanitize:
     needs: changes

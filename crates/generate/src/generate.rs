@@ -37,11 +37,12 @@ pub use parse_grammar::ParseGrammarError;
 use parse_grammar::parse_grammar;
 use prepare_grammar::prepare_grammar;
 pub use prepare_grammar::{
-    ConflictingPrecedenceOrderingError, ExpandRegexError, ExpandRepeatsError, ExpandRuleError,
-    ExpandTokensError, ExpandTokensProcessingError, ExtractTokensError, FlattenGrammarError,
-    IndirectRecursionError, InternSymbolsError, NonAsciiByteClassError, NonTerminalWordTokenError,
-    PatternSpan, PrepareGrammarError, ProcessInlinesError, RegexError, RegexErrorKind,
-    UndeclaredPrecedenceError, ValidatePrecedenceError,
+    ConflictingPrecedenceOrderingError, EmptyStringExtraError, ExpandRegexError,
+    ExpandRepeatsError, ExpandRuleError, ExpandTokensError, ExpandTokensProcessingError,
+    ExtractTokensError, FlattenGrammarError, IndirectRecursionError, InternSymbolsError,
+    NonAsciiByteClassError, NonTerminalWordTokenError, PatternSpan, PrepareGrammarError,
+    ProcessInlinesError, RegexError, RegexErrorKind, UndeclaredPrecedenceError,
+    ValidatePrecedenceError,
 };
 use render::render_c_code;
 pub use render::{ABI_VERSION_MAX, ABI_VERSION_MIN, RenderError};
@@ -275,7 +276,6 @@ pub enum Diagnostic {
     UnnecessaryConflicts(Box<[Box<[Box<str>]>]>),
     UnaryChoice { name: Option<Box<str>> },
     UnarySeq { name: Option<Box<str>> },
-    EmptyStringMatch(Box<str>),
     UnsupportedRegexFlag { flag: char, pattern: Box<str> },
     SupertypeInlined { name: Box<str> },
 }
@@ -310,13 +310,6 @@ impl std::fmt::Display for Diagnostic {
                     f,
                     "rule {} contains a `seq` rule with a single element. this is unnecessary.",
                     name.as_deref().unwrap_or("<ANONYMOUS>")
-                )?;
-            }
-            Self::EmptyStringMatch(rule) => {
-                write!(
-                    f,
-                    "named extra rule `{rule}` matches the empty string. \
-                     inline this to avoid infinite loops while parsing.",
                 )?;
             }
             Self::UnsupportedRegexFlag { flag, pattern } => {
@@ -476,6 +469,7 @@ fn generate_node_types_from_grammar(
         &syntax_grammar,
         &lexical_grammar,
         &default_aliases,
+        &inlines,
         &str_pool,
     )?;
 
@@ -485,6 +479,7 @@ fn generate_node_types_from_grammar(
         &lexical_grammar,
         &default_aliases,
         &variable_info,
+        &inlines,
         &str_pool,
     )?;
     Ok(JSONOutput {
@@ -511,15 +506,20 @@ fn generate_parser_for_grammar_with_opts(
     let JSONOutput {
         syntax_grammar,
         lexical_grammar,
-        inlines,
+        mut inlines,
         simple_aliases,
         variable_info,
         #[cfg(feature = "load")]
         node_types_json,
         str_pool,
     } = generate_node_types_from_grammar(input_grammar, diagnostics)?;
-    let supertype_symbol_map =
-        node_types::get_supertype_symbol_map(&syntax_grammar, &simple_aliases, &variable_info);
+    let supertype_symbol_map = node_types::get_supertype_symbol_map(
+        &syntax_grammar,
+        &simple_aliases,
+        &variable_info,
+        &inlines,
+    );
+    inlines.discard_fully_inlined();
     let tables = build_tables(
         &syntax_grammar,
         &lexical_grammar,
@@ -765,5 +765,42 @@ mod tests {
             parser_h == PARSER_HEADER,
             "parser.h.inc is out of sync with lib/src/parser.h. Run: cp lib/src/parser.h crates/generate/src/parser.h.inc"
         );
+    }
+
+    #[test]
+    fn test_external_word_token_outside_terminal_range() {
+        let grammar_json = r#"{
+            "name": "external_word_token_out_of_bounds",
+            "word": "ext_word",
+            "rules": {
+                "program": {"type": "REPEAT", "content": {"type": "SYMBOL", "name": "item"}},
+                "item": {"type": "CHOICE", "members": [
+                    {"type": "SEQ", "members": [
+                        {"type": "STRING", "value": "{"},
+                        {"type": "SYMBOL", "name": "ext_word"},
+                        {"type": "SYMBOL", "name": "ext_a"}
+                    ]},
+                    {"type": "SEQ", "members": [
+                        {"type": "STRING", "value": "let"},
+                        {"type": "SYMBOL", "name": "ext_word"},
+                        {"type": "SYMBOL", "name": "ext_b"}
+                    ]}
+                ]}
+            },
+            "externals": [
+                {"type": "SYMBOL", "name": "ext_a"},
+                {"type": "SYMBOL", "name": "ext_b"},
+                {"type": "SYMBOL", "name": "ext_word"}
+            ]
+        }"#;
+
+        // An external word token must not index the internal terminal table.
+        super::generate_parser_for_grammar(
+            grammar_json,
+            None,
+            super::OptLevel::default(),
+            &mut Vec::new(),
+        )
+        .unwrap();
     }
 }

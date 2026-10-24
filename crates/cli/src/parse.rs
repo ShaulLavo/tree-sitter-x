@@ -603,7 +603,16 @@ pub fn parse_file_at_path(
                                 stdout.write_all(b"  ")?;
                             }
                         }
-                        write!(&mut stdout, "{}", html_escape::encode_text(value))?;
+                        for chunk in value.split_inclusive(['&', '<', '>']) {
+                            let (text, escaped) = match chunk.as_bytes().last() {
+                                Some(b'&') => (&chunk[..chunk.len() - 1], "&amp;"),
+                                Some(b'<') => (&chunk[..chunk.len() - 1], "&lt;"),
+                                Some(b'>') => (&chunk[..chunk.len() - 1], "&gt;"),
+                                _ => (chunk, ""),
+                            };
+                            stdout.write_all(text.as_bytes())?;
+                            stdout.write_all(escaped.as_bytes())?;
+                        }
                     }
                 }
             }
@@ -1178,8 +1187,9 @@ pub fn position_for_offset(input: &[u8], offset: usize) -> Result<Point> {
 
 #[cfg(test)]
 mod tests {
-    use super::{offset_for_position, parse_edit_flag};
     use tree_sitter::Point;
+
+    use super::{offset_for_position, parse_edit_flag};
 
     #[test]
     fn offset_for_position_uses_zero_based_line_and_column_coordinates() {

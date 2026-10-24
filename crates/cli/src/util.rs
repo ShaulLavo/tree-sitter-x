@@ -1,10 +1,15 @@
+#[cfg(unix)]
+use std::ffi::c_int;
 use std::{
+    ffi::OsStr,
+    io,
     path::{Path, PathBuf},
     process::{Child, ChildStdin, Command, Stdio},
     sync::{
-        Arc,
+        Arc, LazyLock, Once,
         atomic::{AtomicUsize, Ordering},
     },
+    thread,
 };
 
 use anyhow::{Context, Result, anyhow};
@@ -51,17 +56,80 @@ pub fn lang_not_found_for_path(path: &Path, loader_config: &LoaderConfig) -> Str
     )
 }
 
+static CANCELLATION_FLAG: LazyLock<Arc<AtomicUsize>> = LazyLock::new(Arc::default);
+
 #[must_use]
 pub fn cancel_on_signal() -> Arc<AtomicUsize> {
-    let result = Arc::new(AtomicUsize::new(0));
-    ctrlc::set_handler({
-        let flag = result.clone();
-        move || {
-            flag.store(1, Ordering::Relaxed);
-        }
-    })
-    .expect("Error setting Ctrl-C handler");
-    result
+    static INSTALL_HANDLERS: Once = Once::new();
+
+    LazyLock::force(&CANCELLATION_FLAG);
+    INSTALL_HANDLERS.call_once(install_signal_handlers);
+    Arc::clone(&CANCELLATION_FLAG)
+}
+
+#[cfg(unix)]
+fn install_signal_handlers() {
+    unsafe extern "C" {
+        fn signal(signum: c_int, handler: extern "C" fn(c_int)) -> usize;
+    }
+
+    extern "C" fn handle(_signum: c_int) {
+        CANCELLATION_FLAG.store(1, Ordering::Relaxed);
+    }
+
+    const SIGHUP: c_int = 1;
+    const SIGINT: c_int = 2;
+    const SIGTERM: c_int = 15;
+    const SIG_ERR: usize = usize::MAX;
+
+    for signum in [SIGHUP, SIGINT, SIGTERM] {
+        // SAFETY: `signal` is declared with the POSIX signature, and these signal numbers are
+        // the same on Linux, macOS, and the BSDs. `handle` is async-signal-safe because
+        // `cancel_on_signal` forces the flag before installing it, leaving only an atomic store.
+        let previous = unsafe { signal(signum, handle) };
+        assert_ne!(previous, SIG_ERR, "Error setting signal handler");
+    }
+}
+
+#[cfg(windows)]
+fn install_signal_handlers() {
+    #[link(name = "kernel32")]
+    unsafe extern "system" {
+        fn SetConsoleCtrlHandler(handler: Option<extern "system" fn(u32) -> i32>, add: i32) -> i32;
+    }
+
+    extern "system" fn handle(_event: u32) -> i32 {
+        CANCELLATION_FLAG.store(1, Ordering::Relaxed);
+        1
+    }
+
+    // SAFETY: the declaration matches `SetConsoleCtrlHandler` in kernel32 and `handle` matches
+    // `PHANDLER_ROUTINE`. Windows runs the handler on its own thread, where touching the flag is
+    // sound.
+    let installed = unsafe { SetConsoleCtrlHandler(Some(handle), 1) };
+    assert_ne!(installed, 0, "Error setting Ctrl-C handler");
+}
+
+pub fn open_in_browser(target: impl AsRef<OsStr>) -> io::Result<()> {
+    #[cfg(target_os = "macos")]
+    let mut command = Command::new("open");
+    #[cfg(windows)]
+    let mut command = {
+        let mut command = Command::new("rundll32");
+        command.arg("url.dll,FileProtocolHandler");
+        command
+    };
+    #[cfg(not(any(target_os = "macos", windows)))]
+    let mut command = Command::new("xdg-open");
+
+    let mut child = command
+        .arg(target)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()?;
+    thread::spawn(move || child.wait());
+
+    Ok(())
 }
 
 pub struct LogSession {
@@ -117,8 +185,14 @@ impl Drop for LogSession {
         drop(self.dot_process_stdin.take().unwrap());
         let output = self.dot_process.take().unwrap().wait_with_output().unwrap();
         if output.status.success() {
-            if self.open_log && fs::metadata(&self.path).unwrap().len() > HTML_HEADER.len() as u64 {
-                webbrowser::open(&self.path.to_string_lossy()).unwrap();
+            if self.open_log
+                && fs::metadata(&self.path).unwrap().len() > HTML_HEADER.len() as u64
+                && let Err(error) = open_in_browser(&self.path)
+            {
+                error!(
+                    "Failed to open {} in a web browser: {error}",
+                    self.path.display()
+                );
             }
         } else {
             error!(

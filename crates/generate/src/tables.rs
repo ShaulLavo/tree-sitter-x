@@ -2,8 +2,7 @@ use std::collections::BTreeMap;
 
 use super::{
     nfa::CharacterSet,
-    rules::Alias,
-    rules::{Symbol, TokenSet},
+    rules::{Alias, Symbol, TokenSet},
     strpool::StrId,
 };
 
@@ -11,10 +10,7 @@ pub type ProductionInfoId = u32;
 pub type ParseStateId = u32;
 pub type LexStateId = u32;
 
-use std::hash::BuildHasherDefault;
-
-use indexmap::IndexMap;
-use rustc_hash::{FxHashMap, FxHasher};
+use rustc_hash::FxHashMap;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ParseAction {
@@ -172,8 +168,8 @@ struct ActionListRange {
 /// 98-99% of these lists are duplicates. Each entry holds an [`ActionListId`] pointing
 /// into  [`Self::ranges`], which points to a representative slice into [`Self::actions`].
 ///
-/// [`intern_table`] builds this pool immediately after the parse table is constructed
-/// (every inline becomes an id). `minimize` then rewrites shift targets at the pool
+/// The parse table builder interns each state's lists into this pool as it completes the
+/// state (every inline becomes an id). `minimize` then rewrites shift targets at the pool
 /// level. `canonicalize` rebuilds the pool before `render` with each list stored exactly
 /// once. Pool index 0 is always the empty list.
 #[derive(Clone, Debug, Default)]
@@ -214,45 +210,6 @@ impl ActionListPool {
         }
     }
 
-    pub fn intern_table(table: ParseTable<ParseTableEntry>) -> ParseTable<ActionListId> {
-        let mut pool = Self::default();
-        let mut ids = FxHashMap::default();
-        let states = table
-            .states
-            .into_iter()
-            .map(|state| {
-                let terminal_entries = state
-                    .terminal_entries
-                    .into_iter()
-                    .map(|(symbol, entry)| {
-                        let index = pool.intern(&mut ids, entry.actions);
-                        (symbol, ActionListId::new(index, entry.reusable))
-                    })
-                    .collect();
-
-                ParseState {
-                    id: state.id,
-                    terminal_entries,
-                    nonterminal_entries: state.nonterminal_entries,
-                    reserved_words: state.reserved_words,
-                    lex_state_id: state.lex_state_id,
-                    external_lex_state_id: state.external_lex_state_id,
-                    core_id: state.core_id,
-                    has_eof_gated_reduce: state.has_eof_gated_reduce,
-                }
-            })
-            .collect();
-
-        ParseTable {
-            states,
-            action_lists: pool,
-            symbols: table.symbols,
-            production_infos: table.production_infos,
-            max_aliased_production_length: table.max_aliased_production_length,
-            external_lex_states: table.external_lex_states,
-        }
-    }
-
     pub fn canonicalize(&mut self, states: &mut [ParseState]) {
         let old_actions = std::mem::take(&mut self.actions);
         let old_ranges = std::mem::take(&mut self.ranges);
@@ -285,11 +242,122 @@ pub struct ParseTableEntry {
     pub reusable: bool,
 }
 
+/// A parse state's entries, one per symbol, in the order they were added.
+#[derive(Clone, Debug)]
+pub struct ParseStateEntries<V>(Vec<(Symbol, V)>);
+
+/// A parse state's terminal entries: the action list for each lookahead.
+pub type TerminalEntries = ParseStateEntries<ActionListId>;
+
+/// A parse state's non-terminal entries: what to do after reducing to each non-terminal.
+pub type NonterminalEntries = ParseStateEntries<GotoAction>;
+
+impl<V> Default for ParseStateEntries<V> {
+    fn default() -> Self {
+        Self(Vec::new())
+    }
+}
+
+impl<V> ParseStateEntries<V> {
+    #[must_use]
+    pub const fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&Symbol, &V)> {
+        self.0.iter().map(|(symbol, value)| (symbol, value))
+    }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&Symbol, &mut V)> {
+        self.0.iter_mut().map(|(symbol, value)| (&*symbol, value))
+    }
+
+    pub fn keys(&self) -> impl Iterator<Item = &Symbol> {
+        self.0.iter().map(|(symbol, _)| symbol)
+    }
+
+    pub fn values(&self) -> impl Iterator<Item = &V> {
+        self.0.iter().map(|(_, value)| value)
+    }
+
+    pub fn values_mut(&mut self) -> impl Iterator<Item = &mut V> {
+        self.0.iter_mut().map(|(_, value)| value)
+    }
+
+    #[must_use]
+    pub fn get(&self, symbol: Symbol) -> Option<&V> {
+        self.0
+            .iter()
+            .find(|(entry_symbol, _)| *entry_symbol == symbol)
+            .map(|(_, value)| value)
+    }
+
+    #[must_use]
+    pub fn get_index(&self, index: usize) -> Option<(&Symbol, &V)> {
+        self.0.get(index).map(|(symbol, value)| (symbol, value))
+    }
+
+    pub fn get_index_mut(&mut self, index: usize) -> Option<(&Symbol, &mut V)> {
+        self.0
+            .get_mut(index)
+            .map(|(symbol, value)| (&*symbol, value))
+    }
+
+    #[must_use]
+    pub fn contains_key(&self, symbol: Symbol) -> bool {
+        self.0
+            .iter()
+            .any(|&(entry_symbol, _)| entry_symbol == symbol)
+    }
+
+    /// Sets the value for `symbol`. An existing entry keeps its place.
+    pub fn insert(&mut self, symbol: Symbol, value: V) {
+        match self
+            .0
+            .iter_mut()
+            .find(|(entry_symbol, _)| *entry_symbol == symbol)
+        {
+            Some((_, entry_value)) => *entry_value = value,
+            None => self.0.push((symbol, value)),
+        }
+    }
+
+    /// Adds an entry for `symbol`, unless it already has one.
+    pub fn insert_if_missing(&mut self, symbol: Symbol, value: V) {
+        if !self.contains_key(symbol) {
+            self.0.push((symbol, value));
+        }
+    }
+
+    /// Adds an entry for `symbol`, which must not have one yet.
+    pub fn push(&mut self, symbol: Symbol, value: V) {
+        debug_assert!(!self.contains_key(symbol));
+        self.0.push((symbol, value));
+    }
+
+    pub fn reserve_exact(&mut self, additional: usize) {
+        self.0.reserve_exact(additional);
+    }
+
+    pub fn shrink_to_fit(&mut self) {
+        self.0.shrink_to_fit();
+    }
+}
+
+impl<V> IntoIterator for ParseStateEntries<V> {
+    type Item = (Symbol, V);
+    type IntoIter = std::vec::IntoIter<(Symbol, V)>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
 #[derive(Clone, Debug, Default)]
-pub struct ParseState<T = ActionListId> {
+pub struct ParseState {
     pub id: ParseStateId,
-    pub terminal_entries: IndexMap<Symbol, T, BuildHasherDefault<FxHasher>>,
-    pub nonterminal_entries: IndexMap<Symbol, GotoAction, BuildHasherDefault<FxHasher>>,
+    pub terminal_entries: TerminalEntries,
+    pub nonterminal_entries: NonterminalEntries,
     pub reserved_words: TokenSet,
     pub lex_state_id: LexStateId,
     pub external_lex_state_id: LexStateId,
@@ -310,8 +378,8 @@ pub struct ProductionInfo {
 }
 
 #[derive(Debug, Default)]
-pub struct ParseTable<T = ActionListId> {
-    pub states: Vec<ParseState<T>>,
+pub struct ParseTable {
+    pub states: Vec<ParseState>,
     pub action_lists: ActionListPool,
     pub symbols: Vec<Symbol>,
     pub production_infos: Vec<ProductionInfo>,
@@ -348,15 +416,13 @@ impl ParseTableEntry {
     }
 }
 
-impl<T> ParseState<T> {
+impl ParseState {
     #[must_use]
     pub fn is_end_of_non_terminal_extra(&self) -> bool {
         self.terminal_entries
-            .contains_key(&Symbol::EndOfNonTerminalExtra)
+            .contains_key(Symbol::EndOfNonTerminalExtra)
     }
-}
 
-impl ParseState<ActionListId> {
     pub fn referenced_states<'a>(
         &'a self,
         pool: &'a ActionListPool,
@@ -383,22 +449,22 @@ impl ParseState<ActionListId> {
         F: FnMut(ParseStateId, &Self) -> ParseStateId,
     {
         let mut updates = Vec::new();
-        for (symbol, action) in &self.nonterminal_entries {
+        for (index, (_, action)) in self.nonterminal_entries.iter().enumerate() {
             if let GotoAction::Goto(other_state) = action {
                 let result = f(*other_state, self);
                 if result != *other_state {
-                    updates.push((*symbol, result));
+                    updates.push((index, result));
                 }
             }
         }
-        for (symbol, new_state) in updates {
-            self.nonterminal_entries
-                .insert(symbol, GotoAction::Goto(new_state));
+        for (index, new_state) in updates {
+            // INVARIANT: `index` came from enumerating these entries.
+            *self.nonterminal_entries.get_index_mut(index).unwrap().1 = GotoAction::Goto(new_state);
         }
     }
 }
 
-impl ParseTable<ActionListId> {
+impl ParseTable {
     pub fn remap_terminal_references(&mut self, mut f: impl FnMut(ParseStateId) -> ParseStateId) {
         self.action_lists
             .remap_scratch
