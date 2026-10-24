@@ -30,7 +30,7 @@ use crate::{
     node_types::VariableInfo,
     rules::{AliasMap, Symbol, SymbolView, TerminalIndex, TokenSet},
     strpool::StrPool,
-    tables::{ActionList, ActionListPool, LexTable, ParseAction, ParseTable, ParseTableEntry},
+    tables::{ActionListId, LexTable, ParseAction, ParseTable},
 };
 
 pub struct Tables {
@@ -38,6 +38,72 @@ pub struct Tables {
     pub main_lex_table: LexTable,
     pub keyword_lex_table: LexTable,
     pub large_character_sets: Vec<(Option<Symbol>, CharacterSet)>,
+}
+
+/// Gives each of a grammar's symbols a position. Positions follow `Symbol` order:
+/// - external tokens
+/// - [`Symbol::End`]
+/// - [`Symbol::EndOfNonTerminalExtra`]
+/// - terminals
+/// - non-terminals
+#[derive(Clone, Copy, Default)]
+#[expect(clippy::struct_field_names)]
+struct SymbolIndexer {
+    external_count: u32,
+    terminal_count: u32,
+    non_terminal_count: u32,
+}
+
+impl SymbolIndexer {
+    const fn new(syntax_grammar: &SyntaxGrammar, lexical_grammar: &LexicalGrammar) -> Self {
+        Self {
+            external_count: syntax_grammar.external_tokens.len() as u32,
+            terminal_count: lexical_grammar.variables.len() as u32,
+            non_terminal_count: syntax_grammar.variables.len() as u32,
+        }
+    }
+
+    /// This symbol's position.
+    #[inline]
+    fn index(self, symbol: Symbol) -> usize {
+        let position = match symbol.view() {
+            SymbolView::External(index) => u32::from(index),
+            SymbolView::End => self.external_count,
+            SymbolView::EndOfNonTerminalExtra => self.external_count + 1,
+            SymbolView::Terminal(index) => self.external_count + 2 + u32::from(index),
+            SymbolView::NonTerminal(index) => self.token_count() + u32::from(index),
+        };
+        position as usize
+    }
+
+    /// The symbol at a position, the inverse of [`Self::index`].
+    #[inline]
+    const fn symbol(self, index: usize) -> Symbol {
+        let position = index as u32;
+        if position < self.external_count {
+            Symbol::external(index)
+        } else if position == self.external_count {
+            Symbol::End
+        } else if position == self.external_count + 1 {
+            Symbol::EndOfNonTerminalExtra
+        } else if position < self.token_count() {
+            Symbol::terminal((position - self.external_count - 2) as usize)
+        } else {
+            Symbol::non_terminal((position - self.token_count()) as usize)
+        }
+    }
+
+    /// How many positions [`Self::index`] gives to tokens _only_: one per external token, one
+    /// each for `End` and `EndOfNonTerminalExtra`, and one per terminal.
+    const fn token_count(self) -> u32 {
+        self.external_count + 2 + self.terminal_count
+    }
+
+    /// How many positions [`Self::index`] gives out in _total_: the tokens, then one per
+    /// non-terminal.
+    const fn symbol_count(self) -> u32 {
+        self.token_count() + self.non_terminal_count
+    }
 }
 
 #[expect(
@@ -87,7 +153,6 @@ pub fn build_tables(
         str_pool,
     );
     populate_used_symbols(&mut parse_table, syntax_grammar, lexical_grammar);
-    let mut parse_table = ActionListPool::intern_table(parse_table);
     minimize_parse_table(
         &mut parse_table,
         syntax_grammar,
@@ -176,7 +241,7 @@ fn get_following_tokens(
 }
 
 fn populate_error_state(
-    parse_table: &mut ParseTable<ParseTableEntry>,
+    parse_table: &mut ParseTable,
     syntax_grammar: &SyntaxGrammar,
     lexical_grammar: &LexicalGrammar,
     coincident_token_index: &CoincidentTokenIndex,
@@ -184,7 +249,6 @@ fn populate_error_state(
     keywords: &TokenSet,
     str_pool: &StrPool,
 ) {
-    let state = &mut parse_table.states[0];
     let n = lexical_grammar.variables.len();
 
     // First identify the *conflict-free tokens*: tokens that do not overlap with
@@ -209,10 +273,11 @@ fn populate_error_state(
         })
         .collect::<TokenSet>();
 
-    let recover_entry = ParseTableEntry {
-        reusable: false,
-        actions: ActionList::One(ParseAction::Recover),
-    };
+    let recover_entry = ActionListId::new(
+        parse_table.action_lists.push(&[ParseAction::Recover]),
+        false,
+    );
+    let state = &mut parse_table.states[0];
 
     // Exclude from the error-recovery state any token that conflicts with one of
     // the *conflict-free tokens* identified above.
@@ -239,16 +304,14 @@ fn populate_error_state(
         );
         state
             .terminal_entries
-            .entry(symbol)
-            .or_insert_with(|| recover_entry.clone());
+            .insert_if_missing(symbol, recover_entry);
     }
 
     for (i, external_token) in syntax_grammar.external_tokens.iter().enumerate() {
         if external_token.corresponding_internal_token.is_none() {
             state
                 .terminal_entries
-                .entry(Symbol::external(i))
-                .or_insert_with(|| recover_entry.clone());
+                .insert_if_missing(Symbol::external(i), recover_entry);
         }
     }
 
@@ -256,7 +319,7 @@ fn populate_error_state(
 }
 
 fn populate_used_symbols(
-    parse_table: &mut ParseTable<ParseTableEntry>,
+    parse_table: &mut ParseTable,
     syntax_grammar: &SyntaxGrammar,
     lexical_grammar: &LexicalGrammar,
 ) {
@@ -288,13 +351,7 @@ fn populate_used_symbols(
             // ensure that a subtree's symbol can be successfully reassigned to the word token
             // without having to move the subtree to the heap.
             // See https://github.com/tree-sitter/tree-sitter/issues/258
-            if syntax_grammar.word_token.is_some_and(|t| match t.view() {
-                SymbolView::External(index) => usize::from(index) == i,
-                SymbolView::Terminal(index) => usize::from(index) == i,
-                SymbolView::End
-                | SymbolView::EndOfNonTerminalExtra
-                | SymbolView::NonTerminal(_) => false,
-            }) {
+            if syntax_grammar.word_token == Some(Symbol::terminal(i)) {
                 parse_table.symbols.insert(1, Symbol::terminal(i));
             } else {
                 parse_table.symbols.push(Symbol::terminal(i));
@@ -363,14 +420,12 @@ fn identify_keywords(
     coincident_token_index: &CoincidentTokenIndex,
     str_pool: &StrPool,
 ) -> TokenSet {
-    if word_token.is_none() {
-        return TokenSet::new();
-    }
-
-    let word_token_index = match word_token.unwrap().view() {
-        SymbolView::External(index) => usize::from(index),
-        SymbolView::Terminal(index) => usize::from(index),
-        SymbolView::End | SymbolView::EndOfNonTerminalExtra | SymbolView::NonTerminal(_) => {
+    let word_token_index = match word_token.map(Symbol::view) {
+        Some(SymbolView::Terminal(index)) => usize::from(index),
+        // An external token has no lexical rule to compare with keywords.
+        None | Some(SymbolView::External(_)) => return TokenSet::new(),
+        // INVARIANT: Token extraction rejects a non-terminal word token.
+        Some(SymbolView::End | SymbolView::EndOfNonTerminalExtra | SymbolView::NonTerminal(_)) => {
             unreachable!()
         }
     };
@@ -475,7 +530,7 @@ fn mark_fragile_tokens(parse_table: &mut ParseTable, token_conflict_map: &TokenC
                 valid_terminal_indices.push(index);
             }
         }
-        for (token, id) in &mut state.terminal_entries {
+        for (token, id) in state.terminal_entries.iter_mut() {
             if let SymbolView::Terminal(index) = token.view() {
                 for &i in &valid_terminal_indices {
                     if token_conflict_map.does_overlap(usize::from(i), usize::from(index)) {

@@ -240,6 +240,12 @@ impl BitVec {
         Some(val)
     }
 
+    /// Unsets every bit, keeping the length.
+    pub fn unset_all(&mut self) {
+        let n_words = self.words_in_use();
+        self.as_full_slice_mut()[..n_words].fill(0);
+    }
+
     /// Word-level OR: self |= other. Returns true if any new bits were set.
     #[inline]
     pub fn insert_all(&mut self, other: &Self) -> bool {
@@ -252,7 +258,8 @@ impl BitVec {
             // Need a larger arena region.
             let new_data = arena_alloc(other_words);
             if self_words > 0 {
-                // SAFETY: new_data points to other_words valid zeroed words; self_words <= capacity.
+                // SAFETY: new_data points to other_words valid zeroed words; self_words <=
+                // capacity.
                 let dst = unsafe { std::slice::from_raw_parts_mut(new_data, self_words) };
                 dst.copy_from_slice(self.as_slice());
             }

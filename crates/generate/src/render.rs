@@ -6,11 +6,8 @@ use std::{
 };
 
 use rustc_hash::{FxHashMap, FxHashSet};
-
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-
-use crate::tables::{ActionListId, ActionListPool};
 
 use super::{
     LANGUAGE_VERSION,
@@ -18,15 +15,17 @@ use super::{
     grammars::{LexicalGrammar, SyntaxGrammar, VariableType},
     nfa::CharacterSet,
     node_types::ChildType,
-    rules::Alias,
-    rules::{AliasMap, Symbol, SymbolType, SymbolView, TokenSet},
+    rules::{Alias, AliasMap, Symbol, SymbolType, SymbolView, TokenSet},
     strpool::{StrId, StrPool},
     tables::{
         AdvanceAction, FieldLocation, GotoAction, LexState, LexTable, ParseAction, ParseTable,
     },
 };
+use crate::tables::{ActionListId, ActionListPool};
 
 const SMALL_STATE_THRESHOLD: usize = 64;
+/// The two highest symbol IDs are reserved for `ERROR` and `_ERROR`.
+const MAX_SYMBOL_COUNT: usize = u16::MAX as usize - 1;
 pub const ABI_VERSION_MIN: usize = 14;
 pub const ABI_VERSION_MAX: usize = LANGUAGE_VERSION;
 const ABI_VERSION_WITH_RESERVED_WORDS: usize = 15;
@@ -37,6 +36,8 @@ pub type RenderResult<T> = Result<T, RenderError>;
 pub enum RenderError {
     #[error("Parse table action count {0} exceeds maximum value of {max}", max=u16::MAX)]
     ParseTable(usize),
+    #[error("Symbol count {0} exceeds maximum value of {MAX_SYMBOL_COUNT}")]
+    SymbolCount(usize),
     #[error(
         "This version of Tree-sitter can only generate parsers with ABI version {ABI_VERSION_MIN} - {ABI_VERSION_MAX}, not {0}"
     )]
@@ -123,7 +124,7 @@ struct Metadata {
 
 impl Generator {
     fn generate(mut self) -> RenderResult<String> {
-        self.init();
+        self.init()?;
         self.add_header();
         self.add_includes();
         self.add_pragmas();
@@ -192,7 +193,7 @@ impl Generator {
         Ok(self.buffer)
     }
 
-    fn init(&mut self) {
+    fn init(&mut self) -> RenderResult<()> {
         let mut symbol_identifiers = FxHashSet::default();
         for i in 0..self.parse_table.symbols.len() {
             self.assign_symbol_id(self.parse_table.symbols[i], &mut symbol_identifiers);
@@ -290,6 +291,11 @@ impl Generator {
             }
         }
 
+        let symbol_count = self.parse_table.symbols.len() + self.unique_aliases.len();
+        if symbol_count > MAX_SYMBOL_COUNT {
+            Err(RenderError::SymbolCount(symbol_count))?;
+        }
+
         for (ix, (symbol, _)) in self.large_character_sets.iter().enumerate() {
             let count = self.large_character_sets[0..ix]
                 .iter()
@@ -347,6 +353,8 @@ impl Generator {
                 *i <= 1 || s.terminal_entries.len() + s.nonterminal_entries.len() > threshold
             })
             .count();
+
+        Ok(())
     }
 
     fn add_header(&mut self) {
@@ -368,16 +376,16 @@ impl Generator {
         add_line!(self, "#endif");
         add_line!(self, "");
 
-        // Compiling large lexer functions can be very slow. Disabling optimizations
-        // is not ideal, but only a very small fraction of overall parse time is
-        // spent lexing, so the performance impact of this is negligible.
+        // Compiling large lexer functions with optimization can be very slow, so
+        // disable most optimizations for large lexers. GCC 15 and later also
+        // disable jump tables at O0, which makes the lexer much slower at runtime.
         if self.main_lex_table.states.len() > 300 {
             add_line!(self, "#ifdef _MSC_VER");
             add_line!(self, "#pragma optimize(\"\", off)");
             add_line!(self, "#elif defined(__clang__)");
             add_line!(self, "#pragma clang optimize off");
             add_line!(self, "#elif defined(__GNUC__)");
-            add_line!(self, "#pragma GCC optimize (\"O0\")");
+            add_line!(self, "#pragma GCC optimize (\"O0\", \"jump-tables\")");
             add_line!(self, "#endif");
             add_line!(self, "");
         }
@@ -627,22 +635,20 @@ impl Generator {
 
     fn add_non_terminal_alias_map(&mut self) {
         let mut alias_ids_by_symbol = FxHashMap::default();
-        for i in 0..self.syntax_grammar.variables.len() {
-            for prod_id in self.syntax_grammar.variable_prod_ids(i) {
-                for step in self.syntax_grammar.production(prod_id).steps {
-                    if let Some(alias) = step.alias()
-                        && matches!(step.symbol().view(), SymbolView::NonTerminal(_))
-                        && Some(alias) != self.default_aliases.get(&step.symbol()).copied()
-                        && self.symbol_ids.contains_key(&step.symbol())
-                        && let Some(alias_id) = self.alias_ids.get(&alias)
-                    {
-                        let alias_ids = alias_ids_by_symbol
-                            .entry(step.symbol())
-                            .or_insert(Vec::new());
-                        if let Err(i) = alias_ids.binary_search(&alias_id) {
-                            alias_ids.insert(i, alias_id);
-                        }
-                    }
+        // Include appended productions, where inlining can copy an alias onto
+        // the symbols that replace the inlined step.
+        for step in &self.syntax_grammar.steps {
+            if let Some(alias) = step.alias()
+                && matches!(step.symbol().view(), SymbolView::NonTerminal(_))
+                && Some(alias) != self.default_aliases.get(&step.symbol()).copied()
+                && self.symbol_ids.contains_key(&step.symbol())
+                && let Some(alias_id) = self.alias_ids.get(&alias)
+            {
+                let alias_ids = alias_ids_by_symbol
+                    .entry(step.symbol())
+                    .or_insert(Vec::new());
+                if let Err(i) = alias_ids.binary_search(&alias_id) {
+                    alias_ids.insert(i, alias_id);
                 }
             }
         }
@@ -962,7 +968,9 @@ impl Generator {
             // the additional checks that need to be performed to match this transition.
             let mut best_large_char_set: Option<(usize, CharacterSet, CharacterSet)> = None;
             if simplified_chars.range_count() >= super::build_tables::LARGE_CHARACTER_RANGE_COUNT {
-                for (ix, (_, set)) in self.large_character_sets.iter().enumerate() {
+                // Prefer the last candidate on ties. Searching backwards lets
+                // us stop as soon as a match needs no additional checks.
+                for (ix, (_, set)) in self.large_character_sets.iter().enumerate().rev() {
                     chars_copy.assign(&simplified_chars);
                     large_set.assign(set);
                     let intersection = chars_copy.remove_intersection(&mut large_set);
@@ -976,11 +984,16 @@ impl Generator {
                         if let Some((_, best_additions, best_removals)) = &best_large_char_set {
                             let best_range_count =
                                 best_additions.range_count() + best_removals.range_count();
-                            if best_range_count < total_range_count {
+                            // Only a set that needs fewer checks replaces the best one, so on
+                            // a tie the set found first wins.
+                            if best_range_count <= total_range_count {
                                 continue;
                             }
                         }
                         best_large_char_set = Some((ix, additions, removals));
+                        if total_range_count == 0 {
+                            break;
+                        }
                     }
                 }
             }
@@ -1408,7 +1421,7 @@ impl Generator {
                         .or_default()
                         .push(**symbol);
                 }
-                for (symbol, action) in &state.nonterminal_entries {
+                for (symbol, action) in state.nonterminal_entries.iter() {
                     let state_id = match action {
                         GotoAction::Goto(i) => *i,
                         GotoAction::ShiftExtra => {

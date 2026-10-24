@@ -465,6 +465,77 @@ fn test_node_child_by_field_name_with_extra_hidden_children() {
 }
 
 #[test]
+fn test_node_child_by_field_name_through_hidden_nodes() {
+    let mut parser = Parser::new();
+    let language = get_test_fixture_language("field_lookup_through_hidden_nodes");
+    parser.set_language(&language).unwrap();
+
+    // The first child that the tree cursor gives each field, if any.
+    for (source, field_name, expected) in [
+        ("[a]", "spread", None),
+        ("[a, ...b]", "spread", Some("...b")),
+        ("let a = b;", "outer", Some("=")),
+        ("let a // c\n= b;", "outer", Some("=")),
+        ("let a @x = b;", "outer", Some("x")),
+        ("shadow a;", "outer", None),
+        ("alias ...a;", "spread", None),
+        ("pair ...a, b;", "spread", None),
+        ("pair ...a, ...b;", "spread", Some("...b")),
+        ("multi a a = b;", "outer", Some("=")),
+        ("restore a;", "outer", Some("a")),
+        ("back a b;", "outer", Some("b")),
+        ("maybe none end;", "outer", None),
+        ("maybe a end;", "outer", Some("a")),
+        ("order a b c;", "outer", Some("c")),
+        ("skip a b c;", "outer", Some("c")),
+        ("sum a + b + c;", "left", Some("a")),
+    ] {
+        let tree = parser.parse(source, None).unwrap();
+        let node = tree.root_node().named_child(0).unwrap();
+        assert_eq!(
+            node.child_by_field_name(field_name)
+                .map(|child| &source[child.byte_range()]),
+            expected,
+            "`{field_name}` of `{source}`",
+        );
+    }
+}
+
+#[test]
+fn test_node_field_name_for_child_through_hidden_extras() {
+    let mut parser = Parser::new();
+    let language = get_test_fixture_language("field_lookup_through_hidden_nodes");
+    parser.set_language(&language).unwrap();
+
+    // The tree cursor gives the nodes inside a hidden extra only the fields set
+    // inside it, not the field of the child before it or of a rule around it.
+    // An empty string stands for no field.
+    for (source, fields, named_fields) in [
+        (
+            "let a @x = b;",
+            ["", "inner", "", "outer", "outer", "outer", ""],
+            ["inner", "outer", "outer"],
+        ),
+        (
+            "let a #y = b;",
+            ["", "inner", "", "", "outer", "outer", ""],
+            ["inner", "", "outer"],
+        ),
+    ] {
+        let tree = parser.parse(source, None).unwrap();
+        let binding = tree.root_node().named_child(0).unwrap();
+        let actual = (0..binding.child_count())
+            .map(|i| binding.field_name_for_child(i).unwrap_or(""))
+            .collect::<Vec<_>>();
+        assert_eq!(actual, fields, "`{source}`");
+        let actual = (0..binding.named_child_count() as u32)
+            .map(|i| binding.field_name_for_named_child(i).unwrap_or(""))
+            .collect::<Vec<_>>();
+        assert_eq!(actual, named_fields, "named children of `{source}`");
+    }
+}
+
+#[test]
 fn test_node_named_child() {
     let tree = parse_json_example();
     let array_node = tree.root_node().child(0).unwrap();
@@ -846,6 +917,25 @@ fn test_node_is_error() {
 }
 
 #[test]
+fn test_node_has_error() {
+    let mut parser = Parser::new();
+    parser.set_language(&get_language("json")).unwrap();
+    let tree = parser.parse("!", None).unwrap();
+
+    let root = tree.root_node();
+    assert!(root.has_error());
+
+    let error = root.child(0).unwrap();
+    assert!(error.is_error());
+    assert!(error.has_error());
+
+    let terminal_error = error.child(0).unwrap();
+    assert!(terminal_error.is_error());
+    assert_eq!(terminal_error.child_count(), 0);
+    assert!(terminal_error.has_error());
+}
+
+#[test]
 fn test_edit_point() {
     let edit = InputEdit {
         start_byte: 5,
@@ -950,13 +1040,10 @@ fn test_node_sexp() {
 
 #[test]
 fn test_node_field_names() {
-    // - "x":
-    //      This isn't used in the test, but prevents `_hidden_rule1` from being eliminated as a
-    //      unit reduction.
-    // - "_hidden_rule1":
-    //      Fields pointing to hidden nodes with a single child resolve to the child.
-    // - "_hidden_rule2":
-    //      Fields within hidden nodes can be referenced through the parent node.
+    // - "x": This isn't used in the test, but prevents `_hidden_rule1` from being eliminated as a
+    //   unit reduction.
+    // - "_hidden_rule1": Fields pointing to hidden nodes with a single child resolve to the child.
+    // - "_hidden_rule2": Fields within hidden nodes can be referenced through the parent node.
     let (parser_name, parser_code) = generate_parser(
         r#"
         {
@@ -1301,4 +1388,271 @@ fn test_node_first_child_for_byte_in_hidden_trailing_content() {
     let mut cursor = root.walk();
     assert_eq!(cursor.goto_first_child_for_byte(6), None);
     assert_eq!(cursor.node(), root);
+}
+
+fn parse_deeply_nested_tree(depth: usize) -> Tree {
+    let (parser_name, parser_code) = generate_parser(
+        r#"{
+            "name": "deeply_nested",
+            "rules": {
+                "document": {"type": "SYMBOL", "name": "expression"},
+                "expression": {
+                    "type": "CHOICE",
+                    "members": [
+                        {"type": "STRING", "value": "x"},
+                        {
+                            "type": "SEQ",
+                            "members": [
+                                {"type": "STRING", "value": "("},
+                                {"type": "SYMBOL", "name": "expression"},
+                                {"type": "STRING", "value": ")"}
+                            ]
+                        }
+                    ]
+                }
+            }
+        }"#,
+    )
+    .unwrap();
+    let language = get_test_language(&parser_name, &parser_code, None);
+    let source = "(".repeat(depth) + "x" + &")".repeat(depth);
+    let mut parser = Parser::new();
+    parser.set_language(&language).unwrap();
+    parser.parse(source, None).unwrap()
+}
+
+fn collapse_deeply_nested_tree(tree: &mut Tree, depth: usize) {
+    let old_end_byte = depth * 2 + 1;
+    tree.edit(&InputEdit {
+        start_byte: 0,
+        old_end_byte,
+        new_end_byte: 0,
+        start_position: Point::new(0, 0),
+        old_end_position: Point::new(0, old_end_byte),
+        new_end_position: Point::new(0, 0),
+    });
+}
+
+#[test]
+fn test_deeply_nested_dot_graph_does_not_overflow_stack() {
+    let tree = parse_deeply_nested_tree(100_000);
+    #[cfg(unix)]
+    let null_path = "/dev/null";
+    #[cfg(windows)]
+    let null_path = "NUL";
+
+    let file = std::fs::OpenOptions::new()
+        .write(true)
+        .open(null_path)
+        .unwrap();
+    tree.print_dot_graph(&file);
+}
+
+#[test]
+fn test_previous_sibling_of_identical_zero_width_leaves() {
+    for depth in [3, 63, 64, 65, 66] {
+        let mut tree = parse_deeply_nested_tree(depth);
+        collapse_deeply_nested_tree(&mut tree, depth);
+        let expression = tree.root_node().named_child(0).unwrap();
+        let inner_expression = expression.named_child(0).unwrap();
+        let closing_parenthesis = expression.child(expression.child_count() - 1).unwrap();
+
+        // Different closing parentheses can share inline data after the edit.
+        assert_eq!(
+            closing_parenthesis.prev_sibling(),
+            Some(inner_expression),
+            "depth {depth}"
+        );
+        assert_eq!(
+            closing_parenthesis.prev_named_sibling(),
+            Some(inner_expression),
+            "depth {depth}"
+        );
+    }
+}
+
+#[test]
+fn test_previous_sibling_of_zero_width_nodes_in_hidden_rules() {
+    let (parser_name, parser_code) = generate_parser(
+        r#"{
+            "name": "deeply_nested_hidden_siblings",
+            "rules": {
+                "document": {"type": "SYMBOL", "name": "_expression"},
+                "_expression": {
+                    "type": "CHOICE",
+                    "members": [
+                        {"type": "STRING", "value": "x"},
+                        {
+                            "type": "SEQ",
+                            "members": [
+                                {"type": "STRING", "value": "("},
+                                {"type": "SYMBOL", "name": "_expression"},
+                                {"type": "STRING", "value": ")"}
+                            ]
+                        }
+                    ]
+                }
+            }
+        }"#,
+    )
+    .unwrap();
+    let language = get_test_language(&parser_name, &parser_code, None);
+    let mut parser = Parser::new();
+    parser.set_language(&language).unwrap();
+
+    for depth in [3, 63, 64, 65, 66, 128] {
+        let source = "(".repeat(depth) + "x" + &")".repeat(depth);
+        let mut tree = parser.parse(source, None).unwrap();
+        collapse_deeply_nested_tree(&mut tree, depth);
+        let root = tree.root_node();
+        let x_index = depth as u32;
+        let opening_parenthesis = root.child(x_index - 1).unwrap();
+        let x = root.child(x_index).unwrap();
+        let first_closing_parenthesis = root.child(x_index + 1).unwrap();
+        let last_closing_parenthesis = root.child(root.child_count() - 1).unwrap();
+        let previous_closing_parenthesis = root.child(root.child_count() - 2).unwrap();
+
+        assert_eq!(x.prev_sibling(), Some(opening_parenthesis), "depth {depth}");
+        assert_eq!(
+            first_closing_parenthesis.prev_sibling(),
+            Some(x),
+            "depth {depth}"
+        );
+        assert_eq!(
+            last_closing_parenthesis.prev_sibling(),
+            Some(previous_closing_parenthesis),
+            "depth {depth}"
+        );
+    }
+}
+
+#[test]
+fn test_deeply_nested_node_searches_do_not_overflow_stack() {
+    let depth = 100_000;
+    let mut tree = parse_deeply_nested_tree(depth);
+    collapse_deeply_nested_tree(&mut tree, depth);
+    let root = tree.root_node();
+    let expression = root.named_child(0).unwrap();
+    let mut descendant = expression;
+    while let Some(child) = descendant.named_child(0) {
+        descendant = child;
+    }
+    let inner_expression = expression.named_child(0).unwrap();
+    let closing_parenthesis = expression.child(expression.child_count() - 1).unwrap();
+
+    assert_eq!(root.child_with_descendant(descendant), Some(expression));
+    assert_eq!(closing_parenthesis.kind(), ")");
+    assert_eq!(closing_parenthesis.prev_sibling(), Some(inner_expression));
+    assert_eq!(
+        closing_parenthesis.prev_named_sibling(),
+        Some(inner_expression)
+    );
+}
+
+#[test]
+fn test_deeply_nested_trailing_empty_descendant_search() {
+    let (parser_name, parser_code) = generate_parser(
+        r#"{
+            "name": "deeply_nested_with_marker",
+            "rules": {
+                "document": {
+                    "type": "SEQ",
+                    "members": [
+                        {"type": "SYMBOL", "name": "expression"},
+                        {"type": "SYMBOL", "name": "marker"}
+                    ]
+                },
+                "expression": {
+                    "type": "CHOICE",
+                    "members": [
+                        {"type": "STRING", "value": "x"},
+                        {
+                            "type": "SEQ",
+                            "members": [
+                                {"type": "STRING", "value": "("},
+                                {"type": "SYMBOL", "name": "expression"},
+                                {"type": "STRING", "value": ")"}
+                            ]
+                        }
+                    ]
+                },
+                "marker": {
+                    "type": "SEQ",
+                    "members": [
+                        {"type": "STRING", "value": "a"},
+                        {"type": "STRING", "value": "b"}
+                    ]
+                }
+            }
+        }"#,
+    )
+    .unwrap();
+    let language = get_test_language(&parser_name, &parser_code, None);
+    let mut parser = Parser::new();
+    parser.set_language(&language).unwrap();
+
+    for depth in [63, 64, 65, 100_000] {
+        let source = "(".repeat(depth) + "x" + &")".repeat(depth) + "ab";
+        let mut tree = parser.parse(&source, None).unwrap();
+        tree.edit(&InputEdit {
+            start_byte: 0,
+            old_end_byte: source.len(),
+            new_end_byte: 0,
+            start_position: Point::new(0, 0),
+            old_end_position: Point::new(0, source.len()),
+            new_end_position: Point::new(0, 0),
+        });
+        let root = tree.root_node();
+        let expression = root.named_child(0).unwrap();
+        let marker = root.named_child(1).unwrap();
+
+        // A non-leaf marker forces the search through the preceding empty subtree.
+        assert_eq!(marker.child_count(), 2);
+        assert_eq!(marker.prev_sibling(), Some(expression), "depth {depth}");
+    }
+}
+
+#[test]
+fn test_deeply_nested_field_search_does_not_overflow_stack() {
+    let (parser_name, parser_code) = generate_parser(
+        r#"{
+            "name": "deeply_nested_fields",
+            "rules": {
+                "document": {"type": "SYMBOL", "name": "_nested"},
+                "_nested": {
+                    "type": "CHOICE",
+                    "members": [
+                        {
+                            "type": "FIELD",
+                            "name": "target",
+                            "content": {"type": "STRING", "value": "x"}
+                        },
+                        {
+                            "type": "SEQ",
+                            "members": [
+                                {"type": "STRING", "value": "("},
+                                {"type": "SYMBOL", "name": "_nested"},
+                                {"type": "STRING", "value": ")"},
+                                {
+                                    "type": "FIELD",
+                                    "name": "target",
+                                    "content": {"type": "STRING", "value": "z"}
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        }"#,
+    )
+    .unwrap();
+    let language = get_test_language(&parser_name, &parser_code, None);
+    let depth = 100_000;
+    let source = "(".repeat(depth) + "x" + &")z".repeat(depth);
+    let mut parser = Parser::new();
+    parser.set_language(&language).unwrap();
+    let tree = parser.parse(source.as_bytes(), None).unwrap();
+    let target = tree.root_node().child_by_field_name("target").unwrap();
+
+    assert_eq!(&source[target.byte_range()], "x");
 }

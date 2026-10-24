@@ -30,11 +30,6 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::{
-    grammars::{InputGrammar, PrecedenceEntry, ProductionStore, VariableType},
-    strpool::StrPool,
-};
-
 use self::{
     expand_repeats::expand_repeats, extract_default_aliases::extract_default_aliases,
     extract_tokens::extract_tokens, flatten_grammar::flatten_grammar,
@@ -46,6 +41,13 @@ use super::{
     prepare_grammar::flatten_grammar::{FlattenState, assemble_syntax_grammar},
     rules::{AliasMap, Precedence, Rule, RuleId},
     strpool::StrId,
+};
+use crate::{
+    bitvec::BitVec,
+    grammars::{InputGrammar, PrecedenceEntry, ProductionStore, VariableType},
+    nfa::NfaState,
+    rules::{Symbol, SymbolView},
+    strpool::StrPool,
 };
 
 pub type PrepareGrammarResult<T> = Result<T, PrepareGrammarError>;
@@ -61,6 +63,7 @@ pub enum PrepareGrammarError {
     FlattenGrammar(#[from] FlattenGrammarError),
     ExpandTokens(#[from] ExpandTokensError),
     ProcessInlines(#[from] ProcessInlinesError),
+    ValidateExtras(#[from] EmptyStringExtraError),
 }
 
 pub type ValidatePrecedenceResult<T> = Result<T, ValidatePrecedenceError>;
@@ -87,6 +90,15 @@ impl std::fmt::Display for IndirectRecursionError {
         Ok(())
     }
 }
+
+#[derive(Debug, Error, Serialize, Deserialize, PartialEq, Eq)]
+#[error(
+    "The extra rule `{0}` matches the empty string.
+
+Tree-sitter does not support extras that match the empty string.
+"
+)]
+pub struct EmptyStringExtraError(pub Box<str>);
 
 #[derive(Debug, Error, Serialize, Deserialize, PartialEq, Eq)]
 #[error("Undeclared precedence '{}' in rule '{}'", self.precedence, self.rule)]
@@ -131,7 +143,6 @@ pub fn prepare_grammar(
     diagnostics: &mut Vec<Diagnostic>,
 ) -> PrepareGrammarResult<PreparedGrammar> {
     validate_precedences(&g)?;
-    validate_indirect_recursion(&g)?;
 
     let interned_meta = intern_symbols(&mut g, diagnostics)?;
     let pending_tokens = extract_tokens(&mut g, &interned_meta)?;
@@ -141,6 +152,8 @@ pub fn prepare_grammar(
     let mut state = FlattenState::default();
     let mut out = ProductionStore::default();
     flatten_grammar(&g, &ext_meta, &mut state, &mut out)?;
+    validate_indirect_recursion(&g, &out)?;
+    validate_extras(&g, &ext_meta.extra_symbols, &lexical_grammar, &out)?;
 
     let default_aliases =
         extract_default_aliases(&g, &ext_meta, &lexical_grammar.variables, &mut out);
@@ -159,29 +172,28 @@ pub fn prepare_grammar(
 /// Check for indirect recursion cycles in the grammar that can cause infinite loops while
 /// parsing. An indirect recursion cycle occurs when a non-terminal can derive itself through
 /// a chain of single-symbol productions (e.g., A -> B, B -> A).
-fn validate_indirect_recursion(grammar: &InputGrammar) -> Result<(), IndirectRecursionError> {
+fn validate_indirect_recursion(
+    grammar: &InputGrammar,
+    productions: &ProductionStore,
+) -> Result<(), IndirectRecursionError> {
     let mut epsilon_transitions = IndexMap::new();
-    let mut stack = Vec::new();
-    for variable in &grammar.variables {
-        let mut productions = BTreeSet::new();
-        stack.clear();
-        stack.push(variable.root);
-        while let Some(id) = stack.pop() {
-            match grammar.pool.node(id) {
-                Rule::NamedSymbol(sid) if sid != variable.name => {
-                    // Rules that *directly* reference themselves don't cause a parsing loop.
-                    productions.insert(sid);
-                }
-                Rule::Choice(range) => stack.extend_from_slice(grammar.pool.child_slice(range)),
-                Rule::Metadata { rule, .. } => stack.push(rule),
-                _ => {}
-            }
-        }
-        epsilon_transitions.insert(variable.name, productions);
+    for (variable, &(start, end)) in grammar.variables.iter().zip(&productions.var_prods) {
+        let symbols = productions.productions[start as usize..end as usize]
+            .iter()
+            // Only a production containing exactly one nonterminal adds an edge
+            .filter_map(|p| match productions.steps[p.step_range()] {
+                [step] => step.non_terminal_index(),
+                _ => None,
+            })
+            .map(|index| grammar.variables[usize::from(index)].name)
+            // Rules that *directly* reference themselves don't cause a parsing loop.
+            .filter(|&name| name != variable.name)
+            .collect::<BTreeSet<_>>();
+        epsilon_transitions.insert(variable.name, symbols);
     }
 
+    let mut visited = BTreeSet::new();
     for &start_symbol in epsilon_transitions.keys() {
-        let mut visited = BTreeSet::new();
         let mut path = Vec::new();
         if let Some((start_idx, end_idx)) =
             get_cycle(start_symbol, &epsilon_transitions, &mut visited, &mut path)
@@ -226,6 +238,142 @@ fn get_cycle(
 
     path.pop();
     None
+}
+
+/// Reject extras that can match the empty string through internal tokens and rules.
+/// Parsing an extra doesn't change the parse state, so the parser could keep parsing
+/// an empty one at the same position.
+fn validate_extras(
+    grammar: &InputGrammar,
+    extra_symbols: &[Symbol],
+    lexical_grammar: &LexicalGrammar,
+    productions: &ProductionStore,
+) -> Result<(), EmptyStringExtraError> {
+    let mut empty = EmptyMatches::new(lexical_grammar, productions);
+    for symbol in extra_symbols {
+        let (matches_empty, name) = match symbol.view() {
+            SymbolView::Terminal(index) => {
+                let index = usize::from(index);
+                (empty.token(index), lexical_grammar.variables[index].name)
+            }
+            SymbolView::NonTerminal(index) => {
+                let index = usize::from(index);
+                (empty.rule(index), grammar.variables[index].name)
+            }
+            // External scanners decide whether a token consumes input, so generation
+            // cannot check them.
+            SymbolView::External(_) => continue,
+            // INVARIANT: Token extraction only resolves extras to terminals, non-terminals,
+            // and external tokens.
+            SymbolView::End | SymbolView::EndOfNonTerminalExtra => unreachable!(),
+        };
+        if matches_empty {
+            return Err(EmptyStringExtraError(grammar.pool.resolve(name).into()));
+        }
+    }
+    Ok(())
+}
+
+/// Which tokens and rules can match the empty string, checked as the extras reach them
+struct EmptyMatches<'a> {
+    lexical_grammar: &'a LexicalGrammar,
+    productions: &'a ProductionStore,
+    /// The NFA states reached so far while checking a token
+    reached: Vec<u32>,
+    /// Rules that have been checked, or are being checked
+    checked_rules: BitVec,
+    /// The checked rules that can match the empty string
+    empty_rules: BitVec,
+    /// Rules found not to match while another rule was still being checked
+    provisional: Vec<u32>,
+    /// How many rules are being checked
+    depth: u32,
+}
+
+impl<'a> EmptyMatches<'a> {
+    const fn new(lexical_grammar: &'a LexicalGrammar, productions: &'a ProductionStore) -> Self {
+        Self {
+            lexical_grammar,
+            productions,
+            reached: Vec::new(),
+            checked_rules: BitVec::new(),
+            empty_rules: BitVec::new(),
+            provisional: Vec::new(),
+            depth: 0,
+        }
+    }
+
+    fn symbol(&mut self, symbol: Symbol) -> bool {
+        match symbol.view() {
+            SymbolView::Terminal(index) => self.token(usize::from(index)),
+            SymbolView::NonTerminal(index) => self.rule(usize::from(index)),
+            // External token nullability is unknown. Only reject empty matches
+            // established by the internal grammar.
+            SymbolView::External(_) => false,
+            // INVARIANT: Flattening never leaves an `End` step in a production, and
+            // `EndOfNonTerminalExtra` only appears in parse table lookaheads.
+            SymbolView::End | SymbolView::EndOfNonTerminalExtra => unreachable!(),
+        }
+    }
+
+    /// Whether the token's NFA can reach an accept state without consuming a character
+    fn token(&mut self, index: usize) -> bool {
+        self.reached.clear();
+        self.reached
+            .push(self.lexical_grammar.variables[index].start_state);
+        let mut i = 0;
+        while let Some(&id) = self.reached.get(i) {
+            match &self.lexical_grammar.nfa.states[id as usize] {
+                NfaState::Accept { .. } => return true,
+                NfaState::Split(left, right) => {
+                    for next in [left, right] {
+                        if !self.reached.contains(next) {
+                            self.reached.push(*next);
+                        }
+                    }
+                }
+                NfaState::Advance { .. } => {}
+            }
+            i += 1;
+        }
+        false
+    }
+
+    /// Whether every step of one of the rule's productions can match the empty string.
+    ///
+    /// A rule that's still being checked counts as not matching, which cuts cycles. If it
+    /// turns out to match, answers found while it was open are dropped and rechecked.
+    fn rule(&mut self, index: usize) -> bool {
+        if self.checked_rules.len() == 0 {
+            let rules = self.productions.var_prods.len();
+            self.checked_rules.resize(rules, false);
+            self.empty_rules.resize(rules, false);
+        }
+        if !self.checked_rules[index] {
+            self.checked_rules.set(index, true);
+            let since = self.provisional.len();
+            self.depth += 1;
+            let (start, end) = self.productions.var_prods[index];
+            let empty = self.productions.productions[start as usize..end as usize]
+                .iter()
+                .any(|p| {
+                    self.productions.steps[p.step_range()]
+                        .iter()
+                        .all(|step| self.symbol(step.symbol()))
+                });
+            self.depth -= 1;
+            if empty {
+                self.empty_rules.set(index, true);
+                // These may have only failed because this rule was still open
+                for rule in self.provisional.drain(since..) {
+                    self.checked_rules.set(rule as usize, false);
+                }
+            } else if self.depth > 0 {
+                self.provisional.push(index as u32);
+            }
+        }
+        self.empty_rules[index]
+    }
 }
 
 /// Check that all of the named precedences used in the grammar are declared
@@ -459,13 +607,257 @@ mod tests {
                 },
             ]
         });
+        // b -> c -> b, through `seq(optional('|'), $.b, repeat(seq('|', $.b)))`
+        let case4 = build_grammar(|p| {
+            let a = {
+                let b = named(p, "b");
+                let assign = leaf(p, ":=");
+                p.seq(&[b, assign])
+            };
+            let b = {
+                let x = leaf(p, "x");
+                let c = named(p, "c");
+                p.choice(&[x, c])
+            };
+            let c = {
+                let pipe = leaf(p, "|");
+                let blank = p.blank();
+                let leading_pipe = p.choice(&[pipe, blank]);
+                let b = named(p, "b");
+                let rest = {
+                    let pipe = leaf(p, "|");
+                    let b = named(p, "b");
+                    let item = p.seq(&[pipe, b]);
+                    let items = p.repeat(item);
+                    let blank = p.blank();
+                    p.choice(&[items, blank])
+                };
+                p.seq(&[leading_pipe, b, rest])
+            };
+            vec![
+                Variable {
+                    name: p.intern("a"),
+                    root: a,
+                },
+                Variable {
+                    name: p.intern("b"),
+                    root: b,
+                },
+                Variable {
+                    name: p.intern("c"),
+                    root: c,
+                },
+            ]
+        });
 
         let err1 = IndirectRecursionError(["a".into(), "b".into(), "a".into()].into());
         let err3 = IndirectRecursionError(["b".into(), "c".into(), "d".into(), "b".into()].into());
+        let err4 = IndirectRecursionError(["b".into(), "c".into(), "b".into()].into());
 
-        for (g, expected) in &[(case1, Err(err1)), (case2, Ok(())), (case3, Err(err3))] {
-            assert_eq!(*expected, validate_indirect_recursion(g));
+        for (g, expected) in [
+            (case1, Some(err1)),
+            (case2, None),
+            (case3, Some(err3)),
+            (case4, Some(err4)),
+        ] {
+            assert_eq!(
+                prepare_grammar(g, &mut Vec::new()).err(),
+                expected.map(PrepareGrammarError::from)
+            );
         }
+    }
+
+    #[test]
+    fn test_validate_extras() {
+        // `source: 'a'` followed by `rules`, with `comment` as the only extra
+        fn grammar(
+            rules: impl FnOnce(&mut RulePool) -> Vec<(&'static str, RuleId)>,
+        ) -> InputGrammar {
+            let mut grammar = build_grammar(|p| {
+                let source = leaf(p, "a");
+                let rules = rules(p);
+                std::iter::once(("source", source))
+                    .chain(rules)
+                    .map(|(name, root)| Variable {
+                        name: p.intern(name),
+                        root,
+                    })
+                    .collect()
+            });
+            let extra = named(&mut grammar.pool, "comment");
+            grammar.extra_roots.push(extra);
+            grammar
+        }
+
+        for (grammar, matches_empty) in [
+            // A token
+            (grammar(|p| vec![("comment", pattern(p, ".*"))]), true),
+            // A non-terminal whose only step is a token
+            (
+                grammar(|p| {
+                    let content = pattern(p, ".*");
+                    vec![("comment", p.seq(&[content]))]
+                }),
+                true,
+            ),
+            // A non-terminal with an empty production
+            (
+                grammar(|p| {
+                    let hash = leaf(p, "#");
+                    let content = pattern(p, ".*");
+                    let comment = p.seq(&[hash, content]);
+                    let blank = p.blank();
+                    vec![("comment", p.choice(&[comment, blank]))]
+                }),
+                true,
+            ),
+            // A non-terminal that matches it through another one
+            (
+                grammar(|p| {
+                    let comment = {
+                        let hashes = pattern(p, "#*");
+                        let body = named(p, "_body");
+                        p.seq(&[hashes, body])
+                    };
+                    let content = pattern(p, ".*");
+                    vec![("comment", comment), ("_body", p.seq(&[content]))]
+                }),
+                true,
+            ),
+            // A non-terminal that matches it through rules that reach each other
+            (
+                grammar(|p| {
+                    let comment = {
+                        let hashes = pattern(p, "#*");
+                        let a = named(p, "a");
+                        let b = named(p, "b");
+                        let bangs = pattern(p, "!*");
+                        p.seq(&[hashes, a, b, bangs])
+                    };
+                    let a = {
+                        let b = named(p, "b");
+                        let xs = pattern(p, "x*");
+                        let b_xs = p.seq(&[b, xs]);
+                        let zs = pattern(p, "z*");
+                        p.choice(&[b_xs, zs])
+                    };
+                    let b = {
+                        let a = named(p, "a");
+                        let ws = pattern(p, "w*");
+                        p.seq(&[a, ws])
+                    };
+                    vec![("comment", comment), ("a", a), ("b", b)]
+                }),
+                true,
+            ),
+            // A nullable first token is safe when a later step consumes input
+            (
+                grammar(|p| {
+                    let hashes = pattern(p, "#*");
+                    let hash = leaf(p, "#");
+                    vec![("comment", p.seq(&[hashes, hash]))]
+                }),
+                false,
+            ),
+            // These have to consume the `#`
+            (
+                grammar(|p| {
+                    let hash = leaf(p, "#");
+                    let content = pattern(p, ".*");
+                    let comment = p.seq(&[hash, content]);
+                    vec![("comment", p.token(comment))]
+                }),
+                false,
+            ),
+            (
+                grammar(|p| {
+                    let hash = leaf(p, "#");
+                    let content = pattern(p, ".*");
+                    vec![("comment", p.seq(&[hash, content]))]
+                }),
+                false,
+            ),
+        ] {
+            assert_eq!(
+                prepare_grammar(grammar, &mut Vec::new()).err(),
+                matches_empty
+                    .then(|| PrepareGrammarError::from(EmptyStringExtraError("comment".into())))
+            );
+        }
+    }
+
+    #[test]
+    fn test_validate_extras_with_shared_nullable_rules() {
+        let mut grammar = build_grammar(|p| {
+            let source = leaf(p, "a");
+            let first = {
+                let hashes = pattern(p, "#*");
+                let a = named(p, "a");
+                let bang = leaf(p, "!");
+                p.seq(&[hashes, a, bang])
+            };
+            let second = {
+                let ats = pattern(p, "@*");
+                let b = named(p, "b");
+                p.seq(&[ats, b])
+            };
+            let a = {
+                let b = named(p, "b");
+                let xs = pattern(p, "x*");
+                let b_xs = p.seq(&[b, xs]);
+                let zs = pattern(p, "z*");
+                p.choice(&[b_xs, zs])
+            };
+            let b = {
+                let a = named(p, "a");
+                let ws = pattern(p, "w*");
+                p.seq(&[a, ws])
+            };
+            [
+                ("source", source),
+                ("first", first),
+                ("second", second),
+                ("a", a),
+                ("b", b),
+            ]
+            .into_iter()
+            .map(|(name, root)| Variable {
+                name: p.intern(name),
+                root,
+            })
+            .collect()
+        });
+        for name in ["first", "second"] {
+            let extra = named(&mut grammar.pool, name);
+            grammar.extra_roots.push(extra);
+        }
+
+        // Checking the first extra reaches the nullable cycle, but its `!` makes it safe.
+        // The same memo must still identify the second extra as nullable.
+        assert_eq!(
+            prepare_grammar(grammar, &mut Vec::new()).err(),
+            Some(PrepareGrammarError::ValidateExtras(EmptyStringExtraError(
+                "second".into()
+            )))
+        );
+    }
+
+    #[test]
+    fn test_nullable_syntactic_tokens_and_anonymous_extras() {
+        let mut grammar = build_grammar(|p| {
+            let quote = leaf(p, "\"");
+            let content = pattern(p, "[^\"]*");
+            let source = p.seq(&[quote, content, quote]);
+            vec![Variable {
+                name: p.intern("source"),
+                root: source,
+            }]
+        });
+        let whitespace = pattern(&mut grammar.pool, "\\s*");
+        grammar.extra_roots.push(whitespace);
+
+        // Both tokens can match empty, but neither is shifted as an extra symbol.
+        assert!(prepare_grammar(grammar, &mut Vec::new()).is_ok());
     }
 
     #[test]
@@ -647,7 +1039,7 @@ mod tests {
             ]
         );
 
-        assert_eq!(prepared.syntax_grammar.extra_symbols, Vec::<Symbol>::new());
+        assert_eq!(prepared.syntax_grammar.extra_symbols, [] as [Symbol; 0]);
     }
 
     #[test]
@@ -821,6 +1213,11 @@ mod tests {
     fn leaf(pool: &mut RulePool, s: &str) -> RuleId {
         let id = pool.intern(s);
         pool.string(id)
+    }
+    fn pattern(pool: &mut RulePool, value: &str) -> RuleId {
+        let value = pool.intern(value);
+        let flags = pool.intern("");
+        pool.pattern(value, flags)
     }
     fn prec(pool: &mut RulePool, name: &str, content: RuleId) -> RuleId {
         let p = Precedence::Name(pool.intern(name));
