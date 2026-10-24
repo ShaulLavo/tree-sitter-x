@@ -2,15 +2,22 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { readdirSync, readFileSync, existsSync } from 'fs';
 import path from 'path';
 import * as ours from '../src';
-// @ts-expect-error: the published declaration file is a global script, not a module.
+// @ts-expect-error: the declaration file is a global script, not a module.
 import * as upstreamModule from 'web-tree-sitter-upstream';
 
-// The published package exposes the same API; its types do not resolve under this tsconfig.
+// The reference exposes the same API; its types do not resolve under this tsconfig.
 const upstream = upstreamModule as unknown as typeof ours;
 
-// Parses every fixture grammar's corpus with this build and with the published
+// Parses every fixture grammar's corpus with this build and with the upstream
 // Emscripten build of web-tree-sitter, and requires identical trees, identical
 // trees and changed ranges after seeded edits, and identical highlight captures.
+//
+// The reference is a vendored, version-matched build of tree-sitter/tree-sitter
+// (Emscripten) at the commit this fork is synced to, under
+// test/vendor/upstream-ref. Because it is the same tree-sitter version
+// as our WASI build, the comparison isolates WASI-vs-Emscripten build differences
+// rather than release-vs-master runtime drift. Rebuild it with
+// script/build-upstream-ref.sh after each upstream sync.
 
 const root = path.join(process.cwd(), '../..');
 const grammarDir = (dir: string) => path.join(root, 'test/fixtures/grammars', dir);

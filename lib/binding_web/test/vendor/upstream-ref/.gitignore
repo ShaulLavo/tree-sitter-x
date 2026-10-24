@@ -1,0 +1,5 @@
+# Vendored upstream reference artifacts. These must be committed, so re-include
+# them against the `web-tree-sitter*` build-output ignore in lib/binding_web/.gitignore.
+!web-tree-sitter.js
+!web-tree-sitter.wasm
+!web-tree-sitter.d.ts
