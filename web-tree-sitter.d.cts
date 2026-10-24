@@ -1036,9 +1036,9 @@
 		 * of in-progress matches.
 		 */
 		didExceedMatchLimit(): boolean;
-		/** Get the byte offset where the given pattern starts in the query's source. */
+		/** Get the index where the given pattern starts in the query's source. */
 		startIndexForPattern(patternIndex: number): number;
-		/** Get the byte offset where the given pattern ends in the query's source. */
+		/** Get the index where the given pattern ends in the query's source. */
 		endIndexForPattern(patternIndex: number): number;
 		/** Get the number of patterns in the query. */
 		patternCount(): number;
@@ -1049,12 +1049,12 @@
 		/** Check if a given pattern within a query has a single root node. */
 		isPatternNonLocal(patternIndex: number): boolean;
 		/**
-		 * Check if a given step in a query is 'definite'.
+		 * Check if the step at the given index in the query's source is 'definite'.
 		 *
 		 * A query step is 'definite' if its parent pattern will be guaranteed to
 		 * match successfully once it reaches the step.
 		 */
-		isPatternGuaranteedAtStep(byteIndex: number): boolean;
+		isPatternGuaranteedAtStep(index: number): boolean;
 	}
 	export class LookaheadIterator implements Iterable<string> {
 		/**

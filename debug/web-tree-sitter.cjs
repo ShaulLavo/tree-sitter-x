@@ -413,29 +413,17 @@ var Tree = class _Tree {
 };
 
 // src/tree_cursor.ts
-var finalizer3 = newFinalizer((address) => {
-  C._ts_tree_cursor_delete_wasm(address);
+var finalizer3 = newFinalizer((handles) => {
+  marshalTreeCursor({ handles });
+  C._ts_tree_cursor_delete_wasm(0);
 });
 var TreeCursor = class _TreeCursor {
   static {
     __name(this, "TreeCursor");
   }
   /** @internal */
-  // @ts-expect-error: never read
-  [0] = 0;
-  // Internal handle for Wasm
-  /** @internal */
-  // @ts-expect-error: never read
-  [1] = 0;
-  // Internal handle for Wasm
-  /** @internal */
-  // @ts-expect-error: never read
-  [2] = 0;
-  // Internal handle for Wasm
-  /** @internal */
-  // @ts-expect-error: never read
-  [3] = 0;
-  // Internal handle for Wasm
+  handles = [0, 0, 0, 0];
+  // Internal handles for Wasm, shared with the finalizer.
   /** @internal */
   tree;
   /** @internal */
@@ -443,21 +431,20 @@ var TreeCursor = class _TreeCursor {
     assertInternal(internal);
     this.tree = tree;
     unmarshalTreeCursor(this);
-    finalizer3?.register(this, this.tree[0], this);
+    finalizer3?.register(this, this.handles, this);
   }
   /** Creates a deep copy of the tree cursor. This allocates new memory. */
   copy() {
-    const copy = new _TreeCursor(INTERNAL, this.tree);
+    marshalTreeCursor(this);
     C._ts_tree_cursor_copy_wasm(this.tree[0]);
-    unmarshalTreeCursor(copy);
-    return copy;
+    return new _TreeCursor(INTERNAL, this.tree);
   }
   /** Delete the tree cursor, freeing its resources. */
   delete() {
     finalizer3?.unregister(this);
     marshalTreeCursor(this);
     C._ts_tree_cursor_delete_wasm(this.tree[0]);
-    this[0] = this[1] = this[2] = 0;
+    this.handles.fill(0);
   }
   /** Get the tree cursor's current {@link Node}. */
   get currentNode() {
@@ -687,8 +674,9 @@ var TreeCursor = class _TreeCursor {
   reset(node) {
     marshalNode(node);
     marshalTreeCursor(this, TRANSFER_BUFFER + SIZE_OF_NODE);
-    C._ts_tree_cursor_reset_wasm(this.tree[0]);
+    C._ts_tree_cursor_reset_wasm(node.tree[0]);
     unmarshalTreeCursor(this);
+    this.tree = node.tree;
   }
   /**
    * Re-initialize a tree cursor to the same position as another cursor.
@@ -701,6 +689,7 @@ var TreeCursor = class _TreeCursor {
     marshalTreeCursor(cursor, TRANSFER_BUFFER + SIZE_OF_CURSOR);
     C._ts_tree_cursor_reset_to_wasm(this.tree[0], cursor.tree[0]);
     unmarshalTreeCursor(this);
+    this.tree = cursor.tree;
   }
 };
 
@@ -1061,15 +1050,13 @@ var Node = class {
     if (!Array.isArray(types)) types = [types];
     const symbols = [];
     const typesBySymbol = this.tree.language.types;
-    for (const node_type of types) {
-      if (node_type == "ERROR") {
-        symbols.push(65535);
-      }
-    }
     for (let i = 0, n = typesBySymbol.length; i < n; i++) {
       if (types.includes(typesBySymbol[i])) {
         symbols.push(i);
       }
+    }
+    if (types.includes("ERROR")) {
+      symbols.push(65535);
     }
     const symbolsAddress = C._malloc(SIZE_OF_INT * symbols.length);
     for (let i = 0, n = symbols.length; i < n; i++) {
@@ -1225,31 +1212,9 @@ var Node = class {
    * you want to keep and continue to use after an edit.
    */
   edit(edit) {
-    if (this.startIndex >= edit.oldEndIndex) {
-      this.startIndex = edit.newEndIndex + (this.startIndex - edit.oldEndIndex);
-      let subbedPointRow;
-      let subbedPointColumn;
-      if (this.startPosition.row > edit.oldEndPosition.row) {
-        subbedPointRow = this.startPosition.row - edit.oldEndPosition.row;
-        subbedPointColumn = this.startPosition.column;
-      } else {
-        subbedPointRow = 0;
-        subbedPointColumn = this.startPosition.column;
-        if (this.startPosition.column >= edit.oldEndPosition.column) {
-          subbedPointColumn = this.startPosition.column - edit.oldEndPosition.column;
-        }
-      }
-      if (subbedPointRow > 0) {
-        this.startPosition.row += subbedPointRow;
-        this.startPosition.column = subbedPointColumn;
-      } else {
-        this.startPosition.column += subbedPointColumn;
-      }
-    } else if (this.startIndex > edit.startIndex) {
-      this.startIndex = edit.newEndIndex;
-      this.startPosition.row = edit.newEndPosition.row;
-      this.startPosition.column = edit.newEndPosition.column;
-    }
+    const { point, index } = edit.editPoint(this.startPosition, this.startIndex);
+    this.startPosition = point;
+    this.startIndex = index;
   }
   /** Get the S-expression representation of this node. */
   toString() {
@@ -1307,18 +1272,18 @@ function unmarshalNode(tree, address = TRANSFER_BUFFER) {
   return result;
 }
 __name(unmarshalNode, "unmarshalNode");
-function marshalTreeCursor(cursor, address = TRANSFER_BUFFER) {
-  C.setValue(address + 0 * SIZE_OF_INT, cursor[0], "i32");
-  C.setValue(address + 1 * SIZE_OF_INT, cursor[1], "i32");
-  C.setValue(address + 2 * SIZE_OF_INT, cursor[2], "i32");
-  C.setValue(address + 3 * SIZE_OF_INT, cursor[3], "i32");
+function marshalTreeCursor({ handles }, address = TRANSFER_BUFFER) {
+  C.setValue(address + 0 * SIZE_OF_INT, handles[0], "i32");
+  C.setValue(address + 1 * SIZE_OF_INT, handles[1], "i32");
+  C.setValue(address + 2 * SIZE_OF_INT, handles[2], "i32");
+  C.setValue(address + 3 * SIZE_OF_INT, handles[3], "i32");
 }
 __name(marshalTreeCursor, "marshalTreeCursor");
-function unmarshalTreeCursor(cursor) {
-  cursor[0] = C.getValue(TRANSFER_BUFFER + 0 * SIZE_OF_INT, "i32");
-  cursor[1] = C.getValue(TRANSFER_BUFFER + 1 * SIZE_OF_INT, "i32");
-  cursor[2] = C.getValue(TRANSFER_BUFFER + 2 * SIZE_OF_INT, "i32");
-  cursor[3] = C.getValue(TRANSFER_BUFFER + 3 * SIZE_OF_INT, "i32");
+function unmarshalTreeCursor({ handles }) {
+  handles[0] = C.getValue(TRANSFER_BUFFER + 0 * SIZE_OF_INT, "i32");
+  handles[1] = C.getValue(TRANSFER_BUFFER + 1 * SIZE_OF_INT, "i32");
+  handles[2] = C.getValue(TRANSFER_BUFFER + 2 * SIZE_OF_INT, "i32");
+  handles[3] = C.getValue(TRANSFER_BUFFER + 3 * SIZE_OF_INT, "i32");
 }
 __name(unmarshalTreeCursor, "unmarshalTreeCursor");
 function marshalPoint(address, point) {
@@ -2476,6 +2441,10 @@ function parsePattern(index, stepType, stepValueId, captureNames, stringValues, 
   }
 }
 __name(parsePattern, "parsePattern");
+function indexForByteOffset(source, byteOffset) {
+  return new TextEncoder().encodeInto(source, new Uint8Array(byteOffset)).read;
+}
+__name(indexForByteOffset, "indexForByteOffset");
 var finalizer6 = newFinalizer((address) => {
   C._ts_query_delete(address);
 });
@@ -2490,6 +2459,8 @@ var Query = class {
   exceededMatchLimit;
   /** @internal */
   textPredicates;
+  /** @internal */
+  source;
   /** The names of the captures used in the query. */
   captureNames;
   /** The quantifiers of the captures used in the query. */
@@ -2628,6 +2599,7 @@ var Query = class {
     this.captureNames = captureNames;
     this.captureQuantifiers = captureQuantifiers;
     this.textPredicates = textPredicates;
+    this.source = source;
     this.predicates = predicates;
     this.setProperties = setProperties;
     this.assertedProperties = assertedProperties;
@@ -2922,23 +2894,25 @@ var Query = class {
   didExceedMatchLimit() {
     return this.exceededMatchLimit;
   }
-  /** Get the byte offset where the given pattern starts in the query's source. */
+  /** Get the index where the given pattern starts in the query's source. */
   startIndexForPattern(patternIndex) {
     if (patternIndex >= this.predicates.length) {
       throw new Error(
         `Pattern index is ${patternIndex} but the pattern count is ${this.predicates.length}`
       );
     }
-    return C._ts_query_start_byte_for_pattern(this[0], patternIndex);
+    const byteOffset = C._ts_query_start_byte_for_pattern(this[0], patternIndex);
+    return indexForByteOffset(this.source, byteOffset);
   }
-  /** Get the byte offset where the given pattern ends in the query's source. */
+  /** Get the index where the given pattern ends in the query's source. */
   endIndexForPattern(patternIndex) {
     if (patternIndex >= this.predicates.length) {
       throw new Error(
         `Pattern index is ${patternIndex} but the pattern count is ${this.predicates.length}`
       );
     }
-    return C._ts_query_end_byte_for_pattern(this[0], patternIndex);
+    const byteOffset = C._ts_query_end_byte_for_pattern(this[0], patternIndex);
+    return indexForByteOffset(this.source, byteOffset);
   }
   /** Get the number of patterns in the query. */
   patternCount() {
@@ -2957,13 +2931,14 @@ var Query = class {
     return C._ts_query_is_pattern_non_local(this[0], patternIndex) === 1;
   }
   /**
-   * Check if a given step in a query is 'definite'.
+   * Check if the step at the given index in the query's source is 'definite'.
    *
    * A query step is 'definite' if its parent pattern will be guaranteed to
    * match successfully once it reaches the step.
    */
-  isPatternGuaranteedAtStep(byteIndex) {
-    return C._ts_query_is_pattern_guaranteed_at_step(this[0], byteIndex) === 1;
+  isPatternGuaranteedAtStep(index) {
+    const byteOffset = C.lengthBytesUTF8(this.source.slice(0, index));
+    return C._ts_query_is_pattern_guaranteed_at_step(this[0], byteOffset) === 1;
   }
 };
 // Annotate the CommonJS export names for ESM import in node:
