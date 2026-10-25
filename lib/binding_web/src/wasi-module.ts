@@ -225,9 +225,8 @@ export default async function createModule(options: ModuleOptions = {}): Promise
   const compiled = source instanceof WebAssembly.Module ? source : await WebAssembly.compile(source as BufferSource);
   const instance = await WebAssembly.instantiate(compiled, { ...imports, wasi_snapshot_preview1: wasiImports(compiled) });
   const exports = instance.exports as unknown as Exports;
-  const toResizableBuffer = exports.memory.toResizableBuffer;
-  const resizable = typeof toResizableBuffer === 'function';
-  let heapBuffer = resizable ? toResizableBuffer.call(exports.memory) : exports.memory.buffer;
+  const resizable = typeof exports.memory.toResizableBuffer === 'function';
+  let heapBuffer = resizable ? exports.memory.toResizableBuffer() : exports.memory.buffer;
   let heap = new DataView(heapBuffer);
   let heap8 = new Int8Array(heapBuffer);
   let heapU8 = new Uint8Array(heapBuffer);

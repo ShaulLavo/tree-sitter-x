@@ -77,6 +77,7 @@ describe.each(modes)('%s heap', (mode) => {
     if (conversionDescriptor) Object.defineProperty(WebAssembly.Memory.prototype, 'toResizableBuffer', conversionDescriptor);
     else Reflect.deleteProperty(WebAssembly.Memory.prototype, 'toResizableBuffer');
   });
+
   it('refreshes before constructors grow memory and call JS', async () => {
     const { module, memory } = await runtime({ wasmBinary: buildFixture('memory', true) });
     const initializedLength = Reflect.get(module, '_initialized_length') as () => number;
@@ -151,7 +152,7 @@ describe.each(modes)('%s heap', (mode) => {
     const { module } = await runtime();
     const initial = module.HEAPU8.byteLength;
     const side = await module.loadWebAssemblyModule(buildFixture('heap-data'), { loadAsync: true });
-    const address = side.data_address as () => number;
+    const address = side.data_address;
     expect(module.HEAPU8.byteLength).toBeGreaterThan(initial);
     expect(module.HEAPU8[address()]).toBe(0);
     expect(module.HEAPU8[address() + 4 * 1024 * 1024 - 1]).toBe(0);
