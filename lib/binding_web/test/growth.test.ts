@@ -21,8 +21,8 @@ function grow() {
   const allocation = C._malloc(length + 65536);
   allocations.push(allocation);
   expect(allocation).not.toBe(0);
-  expect(bytes.length).toBeGreaterThan(length);
-  expect(heap()).toBe(bytes);
+  expect(heap().length).toBeGreaterThan(length);
+  expect(heap() === bytes).toBe(bytes.buffer.resizable);
 }
 
 describe('callbacks across heap growth', () => {
@@ -58,7 +58,7 @@ describe('callbacks across heap growth', () => {
         return false;
       } });
       expect([grewInput, grewLog, grewProgress]).toEqual([true, true, true]);
-      expect(heap()).toBe(bytes);
+      expect(heap() === bytes).toBe(bytes.buffer.resizable);
       expect(messages).toContain('done');
       parser.setLogger(null);
       fresh = parser.parse(source)!;
