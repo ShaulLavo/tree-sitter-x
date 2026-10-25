@@ -1435,6 +1435,7 @@ async function createModule(options = {}) {
   };
   const utf16Scratch = new Uint16Array(UTF16_CHUNK_SIZE);
   const getValue = /* @__PURE__ */ __name((ptr, type = "i8") => {
+    refreshHeap();
     ptr >>>= 0;
     switch (type) {
       case "i32":
@@ -1456,6 +1457,7 @@ async function createModule(options = {}) {
     }
   }, "getValue");
   const setValue = /* @__PURE__ */ __name((ptr, value, type = "i8") => {
+    refreshHeap();
     ptr >>>= 0;
     switch (type) {
       case "i32":
@@ -1484,6 +1486,7 @@ async function createModule(options = {}) {
   }, "setValue");
   const UTF8ToString = /* @__PURE__ */ __name((ptr, maxBytesToRead, ignoreNul) => {
     if (!ptr) return "";
+    refreshHeap();
     ptr >>>= 0;
     const limit = maxBytesToRead === void 0 ? heapU8.length : Math.min(heapU8.length, ptr + maxBytesToRead);
     let end = ptr;
@@ -1492,6 +1495,7 @@ async function createModule(options = {}) {
     return utf8Decoder.decode(heapU8.slice(ptr, end));
   }, "UTF8ToString");
   const AsciiToString = /* @__PURE__ */ __name((ptr) => {
+    refreshHeap();
     ptr >>>= 0;
     let result = "";
     for (let at = ptr; heapU8[at]; at++) result += String.fromCharCode(heapU8[at]);
@@ -1500,6 +1504,7 @@ async function createModule(options = {}) {
   const lengthBytesUTF8 = /* @__PURE__ */ __name((str) => utf8Encoder.encode(str).length, "lengthBytesUTF8");
   const stringToUTF8 = /* @__PURE__ */ __name((str, outPtr, maxBytesToWrite) => {
     if (maxBytesToWrite <= 0) return 0;
+    refreshHeap();
     outPtr >>>= 0;
     const target = heapU8.subarray(outPtr, outPtr + maxBytesToWrite - 1);
     const scratch = new Uint8Array(target.length);
@@ -1510,6 +1515,7 @@ async function createModule(options = {}) {
   }, "stringToUTF8");
   const stringToUTF16 = /* @__PURE__ */ __name((str, outPtr, maxBytesToWrite = 2147483647) => {
     if (maxBytesToWrite < 2) return 0;
+    refreshHeap();
     outPtr >>>= 0;
     const length = Math.min(str.length, Math.floor((maxBytesToWrite - 2) / 2));
     for (let at = 0; at < length; at += UTF16_CHUNK_SIZE) {
@@ -1549,17 +1555,29 @@ async function createModule(options = {}) {
   const compiled = source instanceof WebAssembly.Module ? source : await WebAssembly.compile(source);
   const instance = await WebAssembly.instantiate(compiled, { ...imports, wasi_snapshot_preview1: wasiImports(compiled) });
   const exports2 = instance.exports;
-  const heapBuffer = exports2.memory.toResizableBuffer();
-  const heap2 = new DataView(heapBuffer);
-  const heap8 = new Int8Array(heapBuffer);
-  const heapU8 = new Uint8Array(heapBuffer);
-  const heap16 = new Int16Array(heapBuffer);
-  const heap32 = new Int32Array(heapBuffer);
+  let heapBuffer = typeof exports2.memory.toResizableBuffer === "function" ? exports2.memory.toResizableBuffer() : exports2.memory.buffer;
+  const resizable = heapBuffer.resizable;
+  let heap2 = new DataView(heapBuffer);
+  let heap8 = new Int8Array(heapBuffer);
+  let heapU8 = new Uint8Array(heapBuffer);
+  let heap16 = new Int16Array(heapBuffer);
+  let heap32 = new Int32Array(heapBuffer);
+  function refreshHeap() {
+    if (resizable || heapBuffer === exports2.memory.buffer) return;
+    heapBuffer = exports2.memory.buffer;
+    heap2 = new DataView(heapBuffer);
+    heap8 = new Int8Array(heapBuffer);
+    heapU8 = new Uint8Array(heapBuffer);
+    heap16 = new Int16Array(heapBuffer);
+    heap32 = new Int32Array(heapBuffer);
+  }
+  __name(refreshHeap, "refreshHeap");
   exports2._initialize();
   function link(wasmModule) {
     const info = dylinkInfo(wasmModule);
     const align = Math.max(2 ** info.memoryAlign, 16);
     const memoryBase = info.memorySize ? Math.ceil((exports2.malloc(info.memorySize + align) >>> 0) / align) * align : 0;
+    refreshHeap();
     if (info.memorySize) heapU8.fill(0, memoryBase, memoryBase + info.memorySize);
     const table = exports2.__indirect_function_table;
     const tableBase = table.grow(info.tableSize);
@@ -1624,7 +1642,10 @@ async function createModule(options = {}) {
     stringToUTF16,
     loadWebAssemblyModule
   });
-  Object.defineProperty(module2, "HEAPU8", { value: heapU8 });
+  Object.defineProperty(module2, "HEAPU8", { get() {
+    refreshHeap();
+    return heapU8;
+  } });
   for (const [name, value] of Object.entries(exports2)) {
     if (typeof value === "function") module2[`_${name}`] = value;
   }

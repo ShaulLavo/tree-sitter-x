@@ -75,6 +75,6 @@
     "registry": "https://registry.npmjs.org/"
   },
   "engines": {
-    "node": ">=26"
+    "node": ">=24"
   }
 }
