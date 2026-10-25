@@ -176,57 +176,65 @@ describe.each(modes)('%s heap', (mode) => {
     }
   });
 
-  it('uses fixed UTF-8 boundaries, preserving bounds, NUL and owned Unicode strings', async () => {
-    const { module, memory } = await runtime();
-    const address = module._malloc(32768) >>> 0;
-    const encode = vi.spyOn(TextEncoder.prototype, 'encodeInto');
-    const decode = vi.spyOn(TextDecoder.prototype, 'decode');
-    try {
-      for (const text of ['ASCII', 'hé水😀', 'a\0é😀', '\ud800x\udc00']) {
-        const expected = new TextDecoder().decode(new TextEncoder().encode(text));
-        memory.grow(0);
-        const length = module.stringToUTF8(text, address, 128);
-        expect(module.HEAPU8[address + length]).toBe(0);
-        memory.grow(0);
-        expect(module.UTF8ToString(address, length, true)).toBe(expected);
-        memory.grow(0);
-        expect(module.UTF8ToString(address)).toBe(expected.split('\0')[0]);
-      }
-      module.stringToUTF8('ASCII', address, 128);
-      memory.grow(0);
-      expect(module.AsciiToString(address)).toBe('ASCII');
-      expect(module.stringToUTF8('😀x', address, 4)).toBe(0);
-      expect(module.stringToUTF8('😀x', address, 5)).toBe(4);
-      expect(module.UTF8ToString(address, 4)).toBe('😀');
-      const retained = module.UTF8ToString(address, 4);
-      memory.grow(1);
-      module.stringToUTF8('other', address, 128);
-      expect(retained).toBe('😀');
-      expect(module.UTF8ToString(0)).toBe('');
-      expect(module.stringToUTF8('x', address, 0)).toBe(0);
-      for (const [, destination] of encode.mock.calls) {
-        expect(destination.buffer).toBeInstanceOf(ArrayBuffer);
-        if (destination.buffer instanceof ArrayBuffer) expect(destination.buffer.resizable).toBe(false);
-      }
-      for (const [source] of decode.mock.calls) {
-        if (ArrayBuffer.isView(source) && source.buffer instanceof ArrayBuffer) expect(source.buffer.resizable).toBe(false);
-      }
-
-      const text = 'x'.repeat(4095) + '😀' + 'é水\0\ud800';
-      memory.grow(0);
-      expect(module.stringToUTF16(text, address, 32768)).toBe(text.length * 2);
-      const units = new Uint16Array(module.HEAPU8.buffer, address, text.length + 1);
-      expect(Array.from(units)).toEqual(Array.from({ length: text.length }, (_, i) => text.charCodeAt(i)).concat([0]));
-      expect(module.stringToUTF16('😀', address, 4)).toBe(2);
-      expect(units[0]).toBe(0xd83d);
-      expect(units[1]).toBe(0);
-      expect(module.stringToUTF16('x', address, 1)).toBe(0);
-      expect(module.stringToUTF16('', address, 2)).toBe(0);
-      expect(units[0]).toBe(0);
-    } finally {
-      encode.mockRestore();
-      decode.mockRestore();
-      module._free(address);
-    }
-  });
+  it('uses fixed UTF-8 boundaries, preserving bounds, NUL and owned Unicode strings', assertStringGrowth);
 });
+
+function assertFixedEncodingInput(source: AllowSharedBufferSource | undefined) {
+  if (!source) return;
+  const buffer = ArrayBuffer.isView(source) ? source.buffer : source;
+  if (buffer instanceof ArrayBuffer) expect(buffer.resizable).toBe(false);
+}
+
+async function assertStringGrowth() {
+  const { module, memory } = await runtime();
+  const address = module._malloc(32768) >>> 0;
+  const encode = vi.spyOn(TextEncoder.prototype, 'encodeInto');
+  const decode = vi.spyOn(TextDecoder.prototype, 'decode');
+  try {
+    for (const text of ['ASCII', 'hé水😀', 'a\0é😀', '\ud800x\udc00']) {
+      const expected = new TextDecoder().decode(new TextEncoder().encode(text));
+      memory.grow(0);
+      const length = module.stringToUTF8(text, address, 128);
+      expect(module.HEAPU8[address + length]).toBe(0);
+      memory.grow(0);
+      expect(module.UTF8ToString(address, length, true)).toBe(expected);
+      memory.grow(0);
+      expect(module.UTF8ToString(address)).toBe(expected.split('\0')[0]);
+    }
+    module.stringToUTF8('ASCII', address, 128);
+    memory.grow(0);
+    expect(module.AsciiToString(address)).toBe('ASCII');
+    expect(module.stringToUTF8('😀x', address, 4)).toBe(0);
+    expect(module.stringToUTF8('😀x', address, 5)).toBe(4);
+    expect(module.UTF8ToString(address, 4)).toBe('😀');
+    const retained = module.UTF8ToString(address, 4);
+    memory.grow(1);
+    module.stringToUTF8('other', address, 128);
+    expect(retained).toBe('😀');
+    expect(module.UTF8ToString(0)).toBe('');
+    expect(module.stringToUTF8('x', address, 0)).toBe(0);
+    for (const [, destination] of encode.mock.calls) {
+      expect(destination.buffer).toBeInstanceOf(ArrayBuffer);
+      assertFixedEncodingInput(destination);
+    }
+    for (const [source] of decode.mock.calls) {
+      assertFixedEncodingInput(source);
+    }
+
+    const text = 'x'.repeat(4095) + '😀' + 'é水\0\ud800';
+    memory.grow(0);
+    expect(module.stringToUTF16(text, address, 32768)).toBe(text.length * 2);
+    const units = new Uint16Array(module.HEAPU8.buffer, address, text.length + 1);
+    expect(Array.from(units)).toEqual(Array.from({ length: text.length }, (_, i) => text.charCodeAt(i)).concat([0]));
+    expect(module.stringToUTF16('😀', address, 4)).toBe(2);
+    expect(units[0]).toBe(0xd83d);
+    expect(units[1]).toBe(0);
+    expect(module.stringToUTF16('x', address, 1)).toBe(0);
+    expect(module.stringToUTF16('', address, 2)).toBe(0);
+    expect(units[0]).toBe(0);
+  } finally {
+    encode.mockRestore();
+    decode.mockRestore();
+    module._free(address);
+  }
+}
