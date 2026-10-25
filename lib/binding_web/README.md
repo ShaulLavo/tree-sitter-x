@@ -4,7 +4,7 @@ WASI bindings for [tree-sitter-x](https://github.com/ShaulLavo/tree-sitter-x), w
 
 Requires Node 24+, Bun 1.2.22+, Chromium 144+, Firefox 145+, or Safari/iOS 26.2+.
 The runtime starts small and can grow to 4 GiB. `toResizableBuffer()` is optional.
-See [memory and heap views](../../docs/runtime-memory.md) for buffer identity and allocation lifetimes.
+See [memory and heap views](https://github.com/ShaulLavo/tree-sitter-x/blob/master/docs/runtime-memory.md) for buffer identity and allocation lifetimes.
 
 ## Setup
 
