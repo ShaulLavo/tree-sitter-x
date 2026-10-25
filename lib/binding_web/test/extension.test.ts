@@ -23,16 +23,16 @@ describe('loadExtension', () => {
     const bytes = heap();
     const oldLength = bytes.length;
     const allocation = C._malloc(oldLength * 2);
-    const afterAllocation = bytes.length;
+    const afterAllocation = heap().length;
     const extension = await loadExtension(buildFixture('extension'));
     const countNamed = extension.count_named as (tree: number) => number;
     const rootTypeLength = extension.root_type_length as (tree: number) => number;
     const constructorText = extension.constructor_text as () => number;
     const releaseFixture = extension.release_fixture as () => void;
     try {
-      expect(heap()).toBe(bytes);
-      expect(bytes.length).toBeGreaterThan(oldLength);
-      expect(bytes.length).toBeGreaterThan(afterAllocation);
+      expect(heap() === bytes).toBe(bytes.buffer.resizable);
+      expect(heap().length).toBeGreaterThan(oldLength);
+      expect(heap().length).toBeGreaterThan(afterAllocation);
       expect(C.UTF8ToString(constructorText())).toBe('extension hé 😀');
       expect(countNamed(tree[0])).toBe(countNamedNodes(tree.rootNode));
       expect(rootTypeLength(tree[0])).toBe('program'.length);

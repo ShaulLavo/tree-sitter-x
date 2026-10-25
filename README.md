@@ -44,20 +44,9 @@ Run `sh lib/binding_web/script/package-branch.sh --push` to refresh that branch 
 
 ## Runtime requirements
 
-The JavaScript runtime requires Node 26+, Bun 1.2.22+, Chromium 144+, Firefox 145+,
-or Safari 26.2+ (including iOS). It uses `WebAssembly.Memory.toResizableBuffer()`;
-ordinary resizable `ArrayBuffer` support alone is insufficient.
-
-`heap()` returns the same live view as memory grows, including `memory.grow(0)`.
-Its length tracks memory growth. Addresses still expire after `free` or a moving
-`realloc`; copy a result before releasing its allocation or transferring it to a worker.
-
-### 0.28.3
-
-Breaking: the JavaScript runtime now requires the engines above. Retained `heap()`
-views stay attached and grow instead of detaching. Wasm memory starts small and can
-grow to the full 4 GiB Wasm32 limit. UTF-8 encoding uses fixed storage at browser
-Encoding API boundaries, and parser callbacks copy UTF-16 through reusable staging.
+The JavaScript runtime requires Node 24+, Bun 1.2.22+, Chromium 144+, Firefox 145+,
+or Safari 26.2+ (including iOS). `WebAssembly.Memory.toResizableBuffer()` is optional.
+See [memory and heap views](docs/runtime-memory.md) for growth, buffer identity, and allocation lifetimes.
 
 ## Build and test
 

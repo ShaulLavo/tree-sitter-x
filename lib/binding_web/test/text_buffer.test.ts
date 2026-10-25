@@ -31,7 +31,7 @@ describe('TextBuffer', () => {
     let fresh: Tree | null = null;
     try {
       expect(blocker).not.toBe(0);
-      expect(bytes.length).toBeGreaterThan(oldLength);
+      expect(heap().length).toBeGreaterThan(oldLength);
       expect(buffer.slice()).toBe(source);
       tree = parser.parse(buffer);
       // Keep another allocation above the old one, then exceed its capacity with an edit.
@@ -40,8 +40,8 @@ describe('TextBuffer', () => {
       let text = source + inserted;
       buffer.edit(source.length, source.length, inserted);
       expect(buffer[0]).not.toBe(oldAddress);
-      expect(bytes.length).toBeGreaterThan(oldLength);
-      expect(heap()).toBe(bytes);
+      expect(heap().length).toBeGreaterThan(oldLength);
+      expect(heap() === bytes).toBe(bytes.buffer.resizable);
       tree!.edit(new Edit({
         startIndex: source.length, oldEndIndex: source.length, newEndIndex: text.length,
         startPosition: point(source, source.length), oldEndPosition: point(source, source.length),

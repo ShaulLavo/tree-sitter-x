@@ -122,6 +122,7 @@ export default async function createModule(options: ModuleOptions = {}): Promise
   // addresses, and these calls are the hot path of query and node unmarshaling.
   const getValue = (ptr: number, type = 'i8'): number => {
     // Wasm32 pointers can arrive as signed i32 values when memory exceeds 2 GiB.
+    refreshHeap();
     ptr >>>= 0;
     switch (type) {
       case 'i32': case '*': return heap32[ptr >>> 2];
@@ -135,6 +136,7 @@ export default async function createModule(options: ModuleOptions = {}): Promise
     }
   };
   const setValue = (ptr: number, value: number, type = 'i8'): void => {
+    refreshHeap();
     ptr >>>= 0;
     switch (type) {
       case 'i32': case '*': heap32[ptr >>> 2] = value; return;
@@ -149,6 +151,7 @@ export default async function createModule(options: ModuleOptions = {}): Promise
   };
   const UTF8ToString = (ptr: number, maxBytesToRead?: number, ignoreNul?: boolean): string => {
     if (!ptr) return '';
+    refreshHeap();
     ptr >>>= 0;
     const limit = maxBytesToRead === undefined ? heapU8.length : Math.min(heapU8.length, ptr + maxBytesToRead);
     let end = ptr;
@@ -158,6 +161,7 @@ export default async function createModule(options: ModuleOptions = {}): Promise
     return utf8Decoder.decode(heapU8.slice(ptr, end));
   };
   const AsciiToString = (ptr: number): string => {
+    refreshHeap();
     ptr >>>= 0;
     let result = '';
     for (let at = ptr; heapU8[at]; at++) result += String.fromCharCode(heapU8[at]);
@@ -166,6 +170,7 @@ export default async function createModule(options: ModuleOptions = {}): Promise
   const lengthBytesUTF8 = (str: string): number => utf8Encoder.encode(str).length;
   const stringToUTF8 = (str: string, outPtr: number, maxBytesToWrite: number): number => {
     if (maxBytesToWrite <= 0) return 0;
+    refreshHeap();
     outPtr >>>= 0;
     const target = heapU8.subarray(outPtr, outPtr + maxBytesToWrite - 1);
     const scratch = new Uint8Array(target.length);
@@ -176,6 +181,7 @@ export default async function createModule(options: ModuleOptions = {}): Promise
   };
   const stringToUTF16 = (str: string, outPtr: number, maxBytesToWrite = 0x7fffffff): number => {
     if (maxBytesToWrite < 2) return 0;
+    refreshHeap();
     outPtr >>>= 0;
     const length = Math.min(str.length, Math.floor((maxBytesToWrite - 2) / 2));
     // Populate fixed storage before bulk copying to the resizable heap. No user code runs
@@ -219,12 +225,24 @@ export default async function createModule(options: ModuleOptions = {}): Promise
   const compiled = source instanceof WebAssembly.Module ? source : await WebAssembly.compile(source as BufferSource);
   const instance = await WebAssembly.instantiate(compiled, { ...imports, wasi_snapshot_preview1: wasiImports(compiled) });
   const exports = instance.exports as unknown as Exports;
-  const heapBuffer = exports.memory.toResizableBuffer();
-  const heap = new DataView(heapBuffer);
-  const heap8 = new Int8Array(heapBuffer);
-  const heapU8 = new Uint8Array(heapBuffer);
-  const heap16 = new Int16Array(heapBuffer);
-  const heap32 = new Int32Array(heapBuffer);
+  let heapBuffer = typeof exports.memory.toResizableBuffer === 'function'
+    ? exports.memory.toResizableBuffer() : exports.memory.buffer;
+  const resizable = heapBuffer.resizable;
+  let heap = new DataView(heapBuffer);
+  let heap8 = new Int8Array(heapBuffer);
+  let heapU8 = new Uint8Array(heapBuffer);
+  let heap16 = new Int16Array(heapBuffer);
+  let heap32 = new Int32Array(heapBuffer);
+
+  function refreshHeap() {
+    if (resizable || heapBuffer === exports.memory.buffer) return;
+    heapBuffer = exports.memory.buffer;
+    heap = new DataView(heapBuffer);
+    heap8 = new Int8Array(heapBuffer);
+    heapU8 = new Uint8Array(heapBuffer);
+    heap16 = new Int16Array(heapBuffer);
+    heap32 = new Int32Array(heapBuffer);
+  }
   exports._initialize();
 
   // Links a grammar built as a dylink side module: its data goes in a block of the
@@ -235,6 +253,7 @@ export default async function createModule(options: ModuleOptions = {}): Promise
     const align = Math.max(2 ** info.memoryAlign, 16);
     // Unsigned, so the zero fill below starts at the block above 2 GiB and not near the heap's end.
     const memoryBase = info.memorySize ? Math.ceil((exports.malloc(info.memorySize + align) >>> 0) / align) * align : 0;
+    refreshHeap();
     if (info.memorySize) heapU8.fill(0, memoryBase, memoryBase + info.memorySize);
     const table = exports.__indirect_function_table;
     const tableBase = table.grow(info.tableSize);
@@ -302,7 +321,10 @@ export default async function createModule(options: ModuleOptions = {}): Promise
     stringToUTF16,
     loadWebAssemblyModule,
   });
-  Object.defineProperty(module, 'HEAPU8', { value: heapU8 });
+  Object.defineProperty(module, 'HEAPU8', { get() {
+    refreshHeap();
+    return heapU8;
+  } });
   for (const [name, value] of Object.entries(exports)) {
     if (typeof value === 'function') (module as Record<string, unknown>)[`_${name}`] = value;
   }
