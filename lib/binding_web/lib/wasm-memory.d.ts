@@ -4,7 +4,7 @@ export {};
 declare global {
   namespace WebAssembly {
     interface Memory {
-      toResizableBuffer(): ArrayBuffer;
+      toResizableBuffer?(): ArrayBuffer;
     }
   }
 }

@@ -2,18 +2,9 @@
 
 WASI bindings for [tree-sitter-x](https://github.com/ShaulLavo/tree-sitter-x), with shared text buffers and C extensions.
 
-Requires Node 26+, Bun 1.2.22+, Chromium 144+, Firefox 145+, or Safari/iOS 26.2+.
-The runtime uses `WebAssembly.Memory.toResizableBuffer()` with a 4 GiB maximum and a
-small initial allocation. It has no fixed-buffer compatibility mode.
-
-Breaking: 0.28.3 raised these engine requirements, which remain in 0.28.4.
-The view returned by `heap()` and its buffer now retain their identities and grow
-with memory. A C allocation can still move during `realloc` or expire after `free`.
-Recreate allocation-specific views after a move and copy data that must outlive an
-allocation or cross a worker boundary.
-
-0.28.4 fixes TypeScript declarations for ESM, CommonJS, mixed consumers and the
-public `/debug` entry point. Both module formats share the same declared types.
+Requires Node 24+, Bun 1.2.22+, Chromium 144+, Firefox 145+, or Safari/iOS 26.2+.
+The runtime starts small and can grow to 4 GiB. `toResizableBuffer()` is optional.
+See [memory and heap views](../../docs/runtime-memory.md) for buffer identity and allocation lifetimes.
 
 ## Setup
 
