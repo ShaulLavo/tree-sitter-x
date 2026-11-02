@@ -11,6 +11,9 @@ jobs:
   fixtures:
     name: Generate fixtures
     if: inputs.run-test
+    outputs:
+      normal-artifact: ${{ steps.fixture_artifact_names.outputs.normal }}
+      wasm-artifact: ${{ steps.fixture_artifact_names.outputs.wasm }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
 
@@ -28,6 +31,22 @@ jobs:
 
     - name: Set up Rust
       uses: actions-rust-lang/setup-rust-toolchain@v2
+
+    - name: Resolve fixture artifact names
+      id: fixture_artifact_names
+      run: |
+        hash='${{ hashFiles(
+        'crates/generate/src/**',
+        'lib/src/parser.h',
+        'lib/src/array.h',
+        'lib/src/alloc.h',
+        'lib/src/wasm-stdlib/external_scanner_stdlib.h',
+        'crates/loader/wasi-sdk-version',
+        'crates/loader/binaryen-version',
+        'test/fixtures/fixtures.json',
+        '.github/actions/cache/action.yml') }}'
+        echo "normal=fixtures-normal-$hash" >> "$GITHUB_OUTPUT"
+        echo "wasm=fixtures-wasm-$hash" >> "$GITHUB_OUTPUT"
 
     - name: Cache fixtures
       id: cache
@@ -47,16 +66,7 @@ jobs:
     - name: Upload normal fixtures
       uses: actions/upload-artifact@v7
       with:
-        name: fixtures-normal-${{ hashFiles(
-          'crates/generate/src/**',
-          'lib/src/parser.h',
-          'lib/src/array.h',
-          'lib/src/alloc.h',
-          'lib/src/wasm-stdlib/external_scanner_stdlib.h',
-          'crates/loader/wasi-sdk-version',
-          'crates/loader/binaryen-version',
-          'test/fixtures/fixtures.json',
-          '.github/actions/cache/action.yml') }}
+        name: ${{ steps.fixture_artifact_names.outputs.normal }}
         path: test/fixtures/grammars
         if-no-files-found: error
         retention-days: 7
@@ -64,16 +74,7 @@ jobs:
     - name: Upload Wasm fixtures
       uses: actions/upload-artifact@v7
       with:
-        name: fixtures-wasm-${{ hashFiles(
-          'crates/generate/src/**',
-          'lib/src/parser.h',
-          'lib/src/array.h',
-          'lib/src/alloc.h',
-          'lib/src/wasm-stdlib/external_scanner_stdlib.h',
-          'crates/loader/wasi-sdk-version',
-          'crates/loader/binaryen-version',
-          'test/fixtures/fixtures.json',
-          '.github/actions/cache/action.yml') }}
+        name: ${{ steps.fixture_artifact_names.outputs.wasm }}
         path: target/release/tree-sitter-*.wasm
         if-no-files-found: error
         retention-days: 7
@@ -325,32 +326,14 @@ jobs:
       if: inputs.run-test && !matrix.no-run
       uses: actions/download-artifact@v8
       with:
-        name: fixtures-normal-${{ hashFiles(
-          'crates/generate/src/**',
-          'lib/src/parser.h',
-          'lib/src/array.h',
-          'lib/src/alloc.h',
-          'lib/src/wasm-stdlib/external_scanner_stdlib.h',
-          'crates/loader/wasi-sdk-version',
-          'crates/loader/binaryen-version',
-          'test/fixtures/fixtures.json',
-          '.github/actions/cache/action.yml') }}
+        name: ${{ needs.fixtures.outputs.normal-artifact }}
         path: test/fixtures/grammars
 
     - name: Download Wasm fixtures
       if: inputs.run-test && !matrix.no-run && contains(matrix.features, 'wasm') && matrix.run-wasm-test
       uses: actions/download-artifact@v8
       with:
-        name: fixtures-wasm-${{ hashFiles(
-          'crates/generate/src/**',
-          'lib/src/parser.h',
-          'lib/src/array.h',
-          'lib/src/alloc.h',
-          'lib/src/wasm-stdlib/external_scanner_stdlib.h',
-          'crates/loader/wasi-sdk-version',
-          'crates/loader/binaryen-version',
-          'test/fixtures/fixtures.json',
-          '.github/actions/cache/action.yml') }}
+        name: ${{ needs.fixtures.outputs.wasm-artifact }}
         path: target/release
 
     - name: Run main tests
