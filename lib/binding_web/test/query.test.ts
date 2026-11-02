@@ -426,6 +426,46 @@ describe('Query', () => {
         3
       );
     });
+
+    it('preserves any-of predicate membership semantics', () => {
+      tree = parser.parse('alpha; beta; gamma; return; return alpha;')!;
+
+      query = new Query(JavaScript, `
+        ((identifier) @value (#any-of? @value "alpha" "beta" "alpha"))
+      `);
+      expect(formatMatches(query.matches(tree.rootNode))).toEqual([
+        { patternIndex: 0, captures: [{ patternIndex: 0, name: 'value', text: 'alpha' }] },
+        { patternIndex: 0, captures: [{ patternIndex: 0, name: 'value', text: 'beta' }] },
+        { patternIndex: 0, captures: [{ patternIndex: 0, name: 'value', text: 'alpha' }] },
+      ]);
+      query.delete();
+      query = null;
+
+      query = new Query(JavaScript, `
+        ((identifier) @value (#not-any-of? @value "alpha" "beta" "alpha"))
+      `);
+      expect(formatMatches(query.matches(tree.rootNode))).toEqual([
+        { patternIndex: 0, captures: [{ patternIndex: 0, name: 'value', text: 'gamma' }] },
+      ]);
+      query.delete();
+      query = null;
+
+      query = new Query(JavaScript, `
+        (return_statement (identifier)? @value (#any-of? @value "alpha"))
+      `);
+      expect(formatMatches(query.matches(tree.rootNode))).toEqual([
+        { patternIndex: 0, captures: [{ patternIndex: 0, name: 'value', text: 'alpha' }] },
+      ]);
+      query.delete();
+      query = null;
+
+      query = new Query(JavaScript, `
+        (return_statement (identifier)? @value (#not-any-of? @value "alpha"))
+      `);
+      expect(formatMatches(query.matches(tree.rootNode))).toEqual([
+        { patternIndex: 0, captures: [] },
+      ]);
+    });
   });
 
   describe('.predicatesForPattern(index)', () => {
