@@ -37,6 +37,7 @@ jobs:
       run: |
         hash='${{ hashFiles(
         'crates/generate/src/**',
+        'crates/xtask/src/generate.rs',
         'lib/src/parser.h',
         'lib/src/array.h',
         'lib/src/alloc.h',
