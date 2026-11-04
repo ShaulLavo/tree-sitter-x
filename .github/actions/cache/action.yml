@@ -15,15 +15,14 @@ runs:
       with:
         path: |
           test/fixtures/grammars
-          target/release/tree-sitter-*.wasm
-        key: fixtures-${{ join(matrix.*, '_') }}-${{ hashFiles(
+        key: fixtures-${{ hashFiles(
           'crates/generate/src/**',
+          'crates/xtask/src/generate.rs',
           'lib/src/parser.h',
           'lib/src/array.h',
           'lib/src/alloc.h',
           'lib/src/wasm-stdlib/external_scanner_stdlib.h',
           'crates/loader/wasi-sdk-version',
           'crates/loader/binaryen-version',
-          'test/fixtures/grammars/*/**/src/*.c',
           'test/fixtures/fixtures.json',
           '.github/actions/cache/action.yml') }}

@@ -8,8 +8,82 @@ on:
         type: boolean
 
 jobs:
+  fixtures:
+    name: Generate fixtures
+    if: inputs.run-test
+    outputs:
+      normal-artifact: ${{ steps.fixture_artifact_names.outputs.normal }}
+      wasm-artifact: ${{ steps.fixture_artifact_names.outputs.wasm }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+
+    env:
+      CARGO_TERM_COLOR: always
+      RUSTFLAGS: -D warnings
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v7.0.1
+
+    - name: Set up Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v2
+
+    - name: Resolve fixture artifact names
+      id: fixture_artifact_names
+      run: |
+        hash='${{ hashFiles(
+        'crates/generate/src/**',
+        'crates/xtask/src/generate.rs',
+        'lib/src/parser.h',
+        'lib/src/array.h',
+        'lib/src/alloc.h',
+        'lib/src/wasm-stdlib/external_scanner_stdlib.h',
+        'crates/loader/wasi-sdk-version',
+        'crates/loader/binaryen-version',
+        'test/fixtures/fixtures.json',
+        '.github/actions/cache/action.yml') }}'
+        echo "normal=fixtures-normal-$hash" >> "$GITHUB_OUTPUT"
+        echo "wasm=fixtures-wasm-$hash" >> "$GITHUB_OUTPUT"
+
+    - name: Cache fixtures
+      id: cache
+      uses: ./.github/actions/cache
+
+    - name: Fetch fixtures
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: cargo run -p xtask -- fetch-fixtures
+
+    - name: Generate fixtures
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: cargo run -p xtask -- generate-fixtures
+
+    - name: Generate Wasm fixtures
+      run: cargo run -p xtask -- generate-fixtures --wasm
+
+    - name: Upload normal fixtures
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ steps.fixture_artifact_names.outputs.normal }}
+        path: test/fixtures/grammars
+        if-no-files-found: error
+        retention-days: 7
+
+    - name: Upload Wasm fixtures
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ steps.fixture_artifact_names.outputs.wasm }}
+        path: target/release/tree-sitter-*.wasm
+        if-no-files-found: error
+        retention-days: 7
+
   build:
     name: ${{ matrix.platform }} (${{ matrix.target }}) (${{ matrix.os }})
+    needs: fixtures
+    if: always() && (!inputs.run-test || needs.fixtures.result == 'success')
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     strategy:
@@ -330,22 +404,19 @@ jobs:
       env:
         PACKAGE: ${{ matrix.platform == 'wasm32' && '-p tree-sitter' || '' }}
 
-    - name: Cache fixtures
-      id: cache
+    - name: Download normal fixtures
       if: inputs.run-test && !matrix.no-run
-      uses: ./.github/actions/cache
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ needs.fixtures.outputs.normal-artifact }}
+        path: test/fixtures/grammars
 
-    - name: Fetch fixtures
-      if: inputs.run-test && !matrix.no-run
-      run: cargo run -p xtask --target='${{ matrix.target }}' -- fetch-fixtures
-
-    - name: Generate fixtures
-      if: inputs.run-test && !matrix.no-run && steps.cache.outputs.cache-hit != 'true'
-      run: cargo run -p xtask --target='${{ matrix.target }}' -- generate-fixtures
-
-    - name: Generate Wasm fixtures
-      if: inputs.run-test && !matrix.no-run && contains(matrix.features, 'wasm') && matrix.run-wasm-test && steps.cache.outputs.cache-hit != 'true'
-      run: cargo run -p xtask --target='${{ matrix.target }}' -- generate-fixtures --wasm
+    - name: Download Wasm fixtures
+      if: inputs.run-test && !matrix.no-run && contains(matrix.features, 'wasm') && matrix.run-wasm-test
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ needs.fixtures.outputs.wasm-artifact }}
+        path: target/release
 
     - name: Run main tests
       if: inputs.run-test && !matrix.no-run
