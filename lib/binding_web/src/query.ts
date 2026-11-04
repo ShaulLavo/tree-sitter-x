@@ -401,7 +401,7 @@ function parseAnyOfPredicate(
       `Arguments to \`#${operator}\` predicate must be strings.".`,
     );
   }
-  const values = stringSteps.map((s) => s.value);
+  const values = new Set(stringSteps.map((s) => s.value));
 
   textPredicates[index].push((captures, readText) => {
     const nodes = [];
@@ -409,7 +409,7 @@ function parseAnyOfPredicate(
       if (c.name === captureName) nodes.push(readText(c.node));
     }
     if (nodes.length === 0) return !isPositive;
-    return nodes.every((text) => values.includes(text)) === isPositive;
+    return nodes.every((text) => values.has(text)) === isPositive;
   });
 }
 
