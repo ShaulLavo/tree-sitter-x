@@ -1,6 +1,6 @@
 {
   "name": "web-tree-sitter",
-  "version": "0.28.4",
+  "version": "0.28.5",
   "description": "Tree-sitter-x WASI runtime for JavaScript, with shared text buffers and C extensions",
   "repository": {
     "type": "git",
