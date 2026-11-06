@@ -1,24 +1,7 @@
 name: Highlight compatibility
 
 on:
-  pull_request:
-    branches: [master]
-    paths:
-      - 'test/highlight-compat/**'
-      - 'lib/**'
-      - 'crates/xtask/**'
-      - 'crates/loader/**'
-      - 'Cargo.*'
-      - '.github/workflows/highlight-compat.yml'
-  push:
-    branches: [master]
-    paths:
-      - 'test/highlight-compat/**'
-      - 'lib/**'
-      - 'crates/xtask/**'
-      - 'crates/loader/**'
-      - 'Cargo.*'
-      - '.github/workflows/highlight-compat.yml'
+  workflow_call:
 
 permissions:
   contents: read

@@ -259,8 +259,9 @@ pub unsafe extern "C" fn ts_highlight_buffer_line_count(this: *const TSHighlight
 ///
 /// # Safety
 ///
-/// The caller must ensure that `scope_name`, `source_code`, `output`, and `cancellation_flag` are
-/// valid for the lifetime of the [`TSHighlighter`] instance, and are non-null.
+/// `scope_name` and `output` must be valid and non-null for the call. `source_code`
+/// must be valid for `source_code_len` bytes, which may be odd for UTF-16. A non-null
+/// `cancellation_flag` must point to a valid atomic for the call.
 ///
 /// `this` must be a non-null pointer to a [`TSHighlighter`] instance created by
 /// [`ts_highlighter_new`]
@@ -287,8 +288,9 @@ pub unsafe extern "C" fn ts_highlighter_highlight(
 ///
 /// # Safety
 ///
-/// The caller must ensure that `scope_name`, `source_code`, `output`, and `cancellation_flag` are
-/// valid for the lifetime of the [`TSHighlighter`] instance, and are non-null.
+/// `scope_name` and `output` must be valid and non-null for the call. `source_code`
+/// must be valid for `source_code_len` bytes, which may be odd for UTF-16. A non-null
+/// `cancellation_flag` must point to a valid atomic for the call.
 ///
 /// `this` must be a non-null pointer to a [`TSHighlighter`] instance created by
 /// [`ts_highlighter_new`]
@@ -321,8 +323,9 @@ pub unsafe extern "C" fn ts_highlighter_highlight_utf16_le(
 ///
 /// # Safety
 ///
-/// The caller must ensure that `scope_name`, `source_code`, `output`, and `cancellation_flag` are
-/// valid for the lifetime of the [`TSHighlighter`] instance, and are non-null.
+/// `scope_name` and `output` must be valid and non-null for the call. `source_code`
+/// must be valid for `source_code_len` bytes, which may be odd for UTF-16. A non-null
+/// `cancellation_flag` must point to a valid atomic for the call.
 ///
 /// `this` must be a non-null pointer to a [`TSHighlighter`] instance created by
 /// [`ts_highlighter_new`]
@@ -411,9 +414,14 @@ impl TSHighlighter {
             output
                 .renderer
                 .set_carriage_return_highlight(self.carriage_return_index.map(Highlight));
-            let result = output.renderer.render(highlights, source_code, &|s, out| {
-                out.extend(self.attribute_strings[s.0]);
-            });
+            let result = output.renderer.render_with_encoding(
+                highlights,
+                source_code,
+                encoding,
+                &|s, out| {
+                    out.extend(self.attribute_strings[s.0]);
+                },
+            );
             match result {
                 Err(Error::Cancelled | Error::Unknown) => ErrorCode::Timeout,
                 Err(Error::InvalidLanguage(_)) => ErrorCode::InvalidLanguage,
