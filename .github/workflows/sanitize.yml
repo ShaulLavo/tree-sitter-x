@@ -20,6 +20,11 @@ jobs:
       - name: Install UBSAN library
         run: sudo apt-get update -y && sudo apt-get install -y libubsan1
 
+      - name: Test native array assignment with UBSAN
+        run: |
+          cc -std=c11 -Wall -Wextra -Werror -fsanitize=undefined -g test/array_test.c lib/src/alloc.c -o "$RUNNER_TEMP/array-test"
+          UBSAN_OPTIONS=halt_on_error=1 "$RUNNER_TEMP/array-test"
+
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2
 
