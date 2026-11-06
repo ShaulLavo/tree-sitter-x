@@ -3,11 +3,18 @@
 #include <string.h>
 
 static int compare_u32(uint32_t a, uint32_t b) { return (a > b) - (a < b); }
+static int node_span_order(TSNode a, TSNode b) {
+  int order = compare_u32(ts_node_start_byte(a), ts_node_start_byte(b));
+  if (!order) order = compare_u32(ts_node_end_byte(b), ts_node_end_byte(a));
+  return order;
+}
+
 static int interval_order(const void *left, const void *right) {
   const ScInterval *a = left, *b = right;
   int order = compare_u32(a->from, b->from);
   if (!order) order = compare_u32(b->to, a->to);
   if (!order) order = compare_u32(a->range, b->range);
+  if (!order && !a->range && !b->range) order = node_span_order(a->node, b->node);
   if (!order) order = compare_u32(a->nest, b->nest);
   if (!order) order = compare_u32(a->pattern, b->pattern);
   if (!order) order = compare_u32(a->capture, b->capture);
