@@ -3,8 +3,10 @@
 pub mod c_lib;
 use core::slice;
 use std::{
+    borrow::Cow,
+    char::{DecodeUtf16, REPLACEMENT_CHARACTER},
     collections::HashSet,
-    iter,
+    io, iter,
     marker::PhantomData,
     mem::{self, MaybeUninit},
     ops::{self, ControlFlow},
@@ -18,9 +20,219 @@ pub use c_lib as c;
 use streaming_iterator::StreamingIterator;
 use thiserror::Error;
 use tree_sitter::{
-    Language, LossyUtf8, Node, ParseOptions, ParseState, Parser, Point, Query, QueryCapture,
-    QueryCaptures, QueryCursor, QueryError, QueryMatch, Range, TextProvider, Tree, ffi,
+    Decode, Language, LossyUtf8, Node, ParseOptions, ParseState, Parser, Point, Query,
+    QueryCapture, QueryCaptures, QueryCursor, QueryError, QueryMatch, Range, TextProvider, Tree,
+    ffi,
 };
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum SourceEncoding {
+    Utf8,
+    Utf16Le,
+    Utf16Be,
+}
+
+impl SourceEncoding {
+    const fn from_input(encoding: Option<u32>) -> Self {
+        match encoding {
+            Some(ffi::TSInputEncodingUTF16LE) => Self::Utf16Le,
+            Some(ffi::TSInputEncodingUTF16BE) => Self::Utf16Be,
+            _ => Self::Utf8,
+        }
+    }
+    const fn unit(self, pair: [u8; 2]) -> u16 {
+        match self {
+            Self::Utf16Le => u16::from_le_bytes(pair),
+            Self::Utf16Be => u16::from_be_bytes(pair),
+            Self::Utf8 => unreachable!(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+struct SourceText<'a> {
+    bytes: &'a [u8],
+    encoding: SourceEncoding,
+}
+impl<'a> SourceText<'a> {
+    const fn new(bytes: &'a [u8], encoding: Option<u32>) -> Self {
+        Self {
+            bytes,
+            encoding: SourceEncoding::from_input(encoding),
+        }
+    }
+    const fn len(self) -> usize {
+        self.bytes.len()
+    }
+    fn parse(self, parser: &mut Parser, options: ParseOptions) -> Option<Tree> {
+        let read = &mut |offset: usize, _: Point| self.bytes.get(offset..).unwrap_or_default();
+        match self.encoding {
+            SourceEncoding::Utf8 => parser.parse_with_options(read, None, Some(options)),
+            SourceEncoding::Utf16Le => {
+                parser.parse_custom_encoding::<Utf16LeDecode, _, _>(read, None, Some(options))
+            }
+            SourceEncoding::Utf16Be => {
+                parser.parse_custom_encoding::<Utf16BeDecode, _, _>(read, None, Some(options))
+            }
+        }
+    }
+    fn units(self, range: ops::Range<usize>) -> Utf16Units<'a> {
+        Utf16Units {
+            pairs: self.bytes[range].as_chunks::<2>().0.iter(),
+            encoding: self.encoding,
+        }
+    }
+    fn chunks(self, range: ops::Range<usize>) -> SourceChunks<'a> {
+        if self.encoding == SourceEncoding::Utf8 {
+            return SourceChunks::Utf8(Some(&self.bytes[range]));
+        }
+        let odd_tail = !range.len().is_multiple_of(2);
+        SourceChunks::Utf16(LossyUtf16Chars {
+            chars: char::decode_utf16(self.units(range)),
+            odd_tail,
+        })
+    }
+    fn name_bytes(self, range: ops::Range<usize>) -> Option<&'a [u8]> {
+        if self.encoding == SourceEncoding::Utf8 {
+            return str::from_utf8(&self.bytes[range.clone()])
+                .ok()
+                .map(|_| &self.bytes[range]);
+        }
+        if !range.len().is_multiple_of(2)
+            || char::decode_utf16(self.units(range.clone())).any(|c| c.is_err())
+        {
+            return None;
+        }
+        Some(&self.bytes[range])
+    }
+    fn name_str(self, range: ops::Range<usize>) -> Option<Cow<'a, str>> {
+        if self.encoding == SourceEncoding::Utf8 {
+            return str::from_utf8(&self.bytes[range]).ok().map(Cow::Borrowed);
+        }
+        if !range.len().is_multiple_of(2) {
+            return None;
+        }
+        char::decode_utf16(self.units(range))
+            .collect::<Result<String, _>>()
+            .ok()
+            .map(Cow::Owned)
+    }
+}
+
+const DECODED_CHUNK_CAPACITY: usize = 64;
+struct DecodedChunk {
+    bytes: [u8; DECODED_CHUNK_CAPACITY],
+    len: usize,
+}
+enum SourceChunk<'a> {
+    Borrowed(&'a [u8]),
+    Decoded(DecodedChunk),
+}
+impl AsRef<[u8]> for SourceChunk<'_> {
+    fn as_ref(&self) -> &[u8] {
+        match self {
+            Self::Borrowed(bytes) => bytes,
+            Self::Decoded(chunk) => &chunk.bytes[..chunk.len],
+        }
+    }
+}
+enum SourceChunks<'a> {
+    Utf8(Option<&'a [u8]>),
+    Utf16(LossyUtf16Chars<'a>),
+}
+impl<'a> Iterator for SourceChunks<'a> {
+    type Item = SourceChunk<'a>;
+    fn next(&mut self) -> Option<Self::Item> {
+        let Self::Utf16(chars) = self else {
+            let Self::Utf8(bytes) = self else {
+                unreachable!()
+            };
+            return bytes.take().map(SourceChunk::Borrowed);
+        };
+        let mut chunk = DecodedChunk {
+            bytes: [0; DECODED_CHUNK_CAPACITY],
+            len: 0,
+        };
+        while chunk.len + 4 <= DECODED_CHUNK_CAPACITY {
+            let Some(c) = chars.next() else { break };
+            chunk.len += c.encode_utf8(&mut chunk.bytes[chunk.len..]).len();
+        }
+        (chunk.len != 0).then_some(SourceChunk::Decoded(chunk))
+    }
+}
+struct Utf16Units<'a> {
+    pairs: slice::Iter<'a, [u8; 2]>,
+    encoding: SourceEncoding,
+}
+impl Iterator for Utf16Units<'_> {
+    type Item = u16;
+    fn next(&mut self) -> Option<u16> {
+        self.pairs.next().map(|p| self.encoding.unit([p[0], p[1]]))
+    }
+}
+struct LossyUtf16Chars<'a> {
+    chars: DecodeUtf16<Utf16Units<'a>>,
+    odd_tail: bool,
+}
+impl Iterator for LossyUtf16Chars<'_> {
+    type Item = char;
+    fn next(&mut self) -> Option<char> {
+        if let Some(c) = self.chars.next() {
+            return Some(c.unwrap_or(REPLACEMENT_CHARACTER));
+        }
+        mem::take(&mut self.odd_tail).then_some(REPLACEMENT_CHARACTER)
+    }
+}
+impl<'a> TextProvider<SourceChunk<'a>> for SourceText<'a> {
+    type I = SourceChunks<'a>;
+    fn text(&mut self, node: Node) -> Self::I {
+        self.chunks(node.byte_range())
+    }
+}
+struct Utf16LeDecode;
+struct Utf16BeDecode;
+impl Decode for Utf16LeDecode {
+    fn decode(bytes: &[u8]) -> (i32, u32) {
+        decode_utf16_code_point(bytes, SourceEncoding::Utf16Le)
+    }
+}
+impl Decode for Utf16BeDecode {
+    fn decode(bytes: &[u8]) -> (i32, u32) {
+        decode_utf16_code_point(bytes, SourceEncoding::Utf16Be)
+    }
+}
+// Match the native UTF-16 decoder's consumed bytes and lone-surrogate code points.
+fn decode_utf16_code_point(bytes: &[u8], encoding: SourceEncoding) -> (i32, u32) {
+    if bytes.len() < 2 {
+        return (-1, bytes.len() as u32);
+    }
+    let lead = encoding.unit([bytes[0], bytes[1]]);
+    if !(0xd800..=0xdbff).contains(&lead) || bytes.len() < 4 {
+        return (i32::from(lead), 2);
+    }
+    let trail = encoding.unit([bytes[2], bytes[3]]);
+    if !(0xdc00..=0xdfff).contains(&trail) {
+        return (i32::from(lead), 2);
+    }
+    (
+        0x10000 + ((i32::from(lead) - 0xd800) << 10 | (i32::from(trail) - 0xdc00)),
+        4,
+    )
+}
+
+/// Write a source byte range as UTF-8. UTF-16 is decoded lossily, including an odd
+/// trailing byte; UTF-8 bytes pass through unchanged. Ranges index submitted bytes.
+pub fn write_source_utf8(
+    source: &[u8],
+    encoding: Option<u32>,
+    range: ops::Range<usize>,
+    output: &mut impl io::Write,
+) -> io::Result<()> {
+    for chunk in SourceText::new(source, encoding).chunks(range) {
+        output.write_all(chunk.as_ref())?;
+    }
+    Ok(())
+}
 
 const CANCELLATION_CHECK_INTERVAL: usize = 100;
 const BUFFER_HTML_RESERVE_CAPACITY: usize = 10 * 1024;
@@ -149,7 +361,7 @@ pub struct HtmlRenderer {
 
 #[derive(Debug)]
 struct LocalDef<'a> {
-    name: &'a str,
+    name: &'a [u8],
     value_range: ops::Range<usize>,
     highlight: Option<Highlight>,
 }
@@ -165,8 +377,7 @@ struct HighlightIter<'a, F>
 where
     F: FnMut(&str) -> Option<&'a HighlightConfiguration> + 'a,
 {
-    source: &'a [u8],
-    encoding: Option<u32>,
+    source: SourceText<'a>,
     language_name: &'a str,
     byte_offset: usize,
     highlighter: &'a mut Highlighter,
@@ -181,7 +392,7 @@ where
 struct HighlightIterLayer<'a> {
     _tree: Tree,
     cursor: QueryCursor,
-    captures: iter::Peekable<_QueryCaptures<'a, 'a, &'a [u8], &'a [u8]>>,
+    captures: iter::Peekable<_QueryCaptures<'a, 'a, SourceText<'a>, SourceChunk<'a>>>,
     config: &'a HighlightConfiguration,
     highlight_end_stack: Vec<usize>,
     scope_stack: Vec<LocalScope<'a>>,
@@ -290,7 +501,10 @@ impl Highlighter {
         &mut self.parser
     }
 
-    /// Iterate over the highlighted regions for a given slice of source code.
+    /// Iterate over highlighted regions. Source ranges index the submitted bytes,
+    /// including BOM bytes. UTF-16LE/BE use the selected byte order; other encoding
+    /// values mean UTF-8. Malformed UTF-16 is lossy for predicates and display,
+    /// and is excluded from local and injection names.
     pub fn highlight<'a>(
         &'a mut self,
         config: &'a HighlightConfiguration,
@@ -299,9 +513,9 @@ impl Highlighter {
         cancellation_flag: Option<&'a AtomicUsize>,
         mut injection_callback: impl FnMut(&str) -> Option<&'a HighlightConfiguration> + 'a,
     ) -> Result<impl Iterator<Item = Result<HighlightEvent, Error>> + 'a, Error> {
+        let source = SourceText::new(source, encoding);
         let layers = HighlightIterLayer::new(
             source,
-            encoding,
             None,
             self,
             cancellation_flag,
@@ -318,7 +532,6 @@ impl Highlighter {
         assert_ne!(layers.len(), 0);
         let mut result = HighlightIter {
             source,
-            encoding,
             language_name: &config.language_name,
             byte_offset: 0,
             injection_callback,
@@ -526,9 +739,8 @@ impl<'a> HighlightIterLayer<'a> {
         reason = "all parameters are required for layer initialization"
     )]
     fn new<F: FnMut(&str) -> Option<&'a HighlightConfiguration> + 'a>(
-        source: &'a [u8],
-        encoding: Option<u32>,
-        parent_name: Option<&str>,
+        source: SourceText<'a>,
+        parent_name: Option<&'a str>,
         highlighter: &mut Highlighter,
         cancellation_flag: Option<&'a AtomicUsize>,
         injection_callback: &mut F,
@@ -539,163 +751,136 @@ impl<'a> HighlightIterLayer<'a> {
         let mut result = Vec::with_capacity(1);
         let mut queue = Vec::new();
         loop {
-            if highlighter.parser.set_included_ranges(&ranges).is_ok() {
-                highlighter.parser.set_language(&config.language)?;
-
-                let progress_callack = &mut |_: &ParseState| {
-                    if let Some(cancellation_flag) = cancellation_flag {
-                        if cancellation_flag.load(Ordering::SeqCst) != 0 {
-                            ControlFlow::Break(())
-                        } else {
-                            ControlFlow::Continue(())
-                        }
-                    } else {
-                        ControlFlow::Continue(())
-                    }
-                };
-                let parse_opts = ParseOptions::new().progress_callback(progress_callack);
-
-                let tree = match encoding {
-                    Some(encoding) if encoding == ffi::TSInputEncodingUTF16LE => {
-                        let source_code_utf16 = source
-                            .as_chunks::<2>()
-                            .0
-                            .iter()
-                            .map(|&chunk| u16::from_le_bytes(chunk))
-                            .collect::<Vec<_>>();
-                        highlighter
-                            .parser
-                            .parse_utf16_le_with_options(
-                                &mut |i, _| {
-                                    if i < source_code_utf16.len() {
-                                        &source_code_utf16[i..]
-                                    } else {
-                                        &[]
-                                    }
-                                },
-                                None,
-                                Some(parse_opts),
-                            )
-                            .ok_or(Error::Cancelled)?
-                    }
-                    Some(encoding) if encoding == ffi::TSInputEncodingUTF16BE => {
-                        let source_code_utf16 = source
-                            .as_chunks::<2>()
-                            .0
-                            .iter()
-                            .map(|&chunk| u16::from_be_bytes(chunk))
-                            .collect::<Vec<_>>();
-                        highlighter
-                            .parser
-                            .parse_utf16_be_with_options(
-                                &mut |i, _| {
-                                    if i < source_code_utf16.len() {
-                                        &source_code_utf16[i..]
-                                    } else {
-                                        &[]
-                                    }
-                                },
-                                None,
-                                Some(parse_opts),
-                            )
-                            .ok_or(Error::Cancelled)?
-                    }
-                    _ => highlighter
-                        .parser
-                        .parse_with_options(
-                            &mut |i, _| {
-                                if i < source.len() { &source[i..] } else { &[] }
-                            },
-                            None,
-                            Some(parse_opts),
-                        )
-                        .ok_or(Error::Cancelled)?,
-                };
-                let mut cursor = highlighter.cursors.pop().unwrap_or_default();
-
-                // Process combined injections.
-                if let Some(combined_injections_query) = &config.combined_injections_query {
-                    let mut injections_by_pattern_index =
-                        vec![(None, Vec::new(), false); combined_injections_query.pattern_count()];
-                    let mut matches =
-                        cursor.matches(combined_injections_query, tree.root_node(), source);
-                    while let Some(mat) = matches.next() {
-                        let entry = &mut injections_by_pattern_index[mat.pattern_index];
-                        let (language_name, content_node, include_children) = injection_for_match(
-                            config,
-                            parent_name,
-                            combined_injections_query,
-                            mat,
-                            source,
-                        );
-                        if language_name.is_some() {
-                            entry.0 = language_name;
-                        }
-                        if let Some(content_node) = content_node {
-                            entry.1.push(content_node);
-                        }
-                        entry.2 = include_children;
-                    }
-                    for (lang_name, content_nodes, includes_children) in injections_by_pattern_index
-                    {
-                        if let (Some(lang_name), false) = (lang_name, content_nodes.is_empty())
-                            && let Some(next_config) = (injection_callback)(lang_name)
-                        {
-                            let ranges =
-                                Self::intersect_ranges(&ranges, &content_nodes, includes_children);
-                            if !ranges.is_empty() {
-                                queue.push((next_config, depth + 1, ranges));
-                            }
-                        }
-                    }
-                }
-
-                // SAFETY:
-                // The `captures` iterator borrows the `Tree` and the `QueryCursor`, which
-                // prevents them from being moved. But both of these values are really just
-                // pointers, so it's actually ok to move them.
-                let tree_ref = unsafe { mem::transmute::<&Tree, &'static Tree>(&tree) };
-                let cursor_ref = unsafe {
-                    mem::transmute::<&mut QueryCursor, &'static mut QueryCursor>(&mut cursor)
-                };
-                #[expect(
-                    clippy::transmute_undefined_repr,
-                    reason = "intentional transmute between mirror types"
-                )]
-                let captures = unsafe {
-                    std::mem::transmute::<QueryCaptures<_, _>, _QueryCaptures<_, _>>(
-                        cursor_ref.captures(&config.query, tree_ref.root_node(), source),
-                    )
-                }
-                .peekable();
-
-                result.push(HighlightIterLayer {
-                    highlight_end_stack: Vec::new(),
-                    scope_stack: vec![LocalScope {
-                        inherits: false,
-                        range: 0..usize::MAX,
-                        local_defs: Vec::new(),
-                    }],
-                    cursor,
-                    depth,
-                    _tree: tree,
-                    captures,
-                    config,
-                    ranges,
-                });
+            if let Some(layer) = Self::build_layer(
+                source,
+                parent_name,
+                highlighter,
+                cancellation_flag,
+                injection_callback,
+                config,
+                depth,
+                ranges,
+                &mut queue,
+            )? {
+                result.push(layer);
             }
-
             if queue.is_empty() {
                 break;
             }
-
             let (next_config, next_depth, next_ranges) = queue.remove(0);
             config = next_config;
             depth = next_depth;
             ranges = next_ranges;
         }
-
         Ok(result)
+    }
+
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "layer initialization and pending combined injections"
+    )]
+    fn build_layer<F: FnMut(&str) -> Option<&'a HighlightConfiguration>>(
+        source: SourceText<'a>,
+        parent_name: Option<&'a str>,
+        highlighter: &mut Highlighter,
+        cancellation_flag: Option<&'a AtomicUsize>,
+        injection_callback: &mut F,
+        config: &'a HighlightConfiguration,
+        depth: usize,
+        ranges: Vec<Range>,
+        queue: &mut Vec<(&'a HighlightConfiguration, usize, Vec<Range>)>,
+    ) -> Result<Option<Self>, Error> {
+        if highlighter.parser.set_included_ranges(&ranges).is_err() {
+            return Ok(None);
+        }
+        highlighter.parser.set_language(&config.language)?;
+        let progress_callback = &mut |_: &ParseState| {
+            if cancellation_flag.is_some_and(|flag| flag.load(Ordering::SeqCst) != 0) {
+                return ControlFlow::Break(());
+            }
+            ControlFlow::Continue(())
+        };
+        let parse_opts = ParseOptions::new().progress_callback(progress_callback);
+        let tree = source
+            .parse(&mut highlighter.parser, parse_opts)
+            .ok_or(Error::Cancelled)?;
+        let mut cursor = highlighter.cursors.pop().unwrap_or_default();
+        let combined = Self::combined_injections(source, parent_name, config, &mut cursor, &tree);
+        for (language, nodes, includes_children) in combined {
+            let Some(language) = language.filter(|_| !nodes.is_empty()) else {
+                continue;
+            };
+            let Some(next_config) = injection_callback(&language) else {
+                continue;
+            };
+            let next_ranges = Self::intersect_ranges(&ranges, &nodes, includes_children);
+            if !next_ranges.is_empty() {
+                queue.push((next_config, depth + 1, next_ranges));
+            }
+        }
+        // SAFETY:
+        // The `captures` iterator borrows the `Tree` and the `QueryCursor`, which
+        // prevents them from being moved. But both of these values are really just
+        // pointers, so it's actually ok to move them. Both capture types retain
+        // the same SourceText/SourceChunk generics and mirrored fields. Ordinary
+        // captures initializes the options wrapper to None; its pointer and
+        // PhantomData match the existing mirror. No options payload is moved.
+        let tree_ref = unsafe { mem::transmute::<&Tree, &'static Tree>(&tree) };
+        let cursor_ref =
+            unsafe { mem::transmute::<&mut QueryCursor, &'static mut QueryCursor>(&mut cursor) };
+        #[expect(
+            clippy::transmute_undefined_repr,
+            reason = "intentional transmute between mirror types"
+        )]
+        let captures =
+            unsafe {
+                std::mem::transmute::<QueryCaptures<_, _>, _QueryCaptures<_, _>>(
+                    cursor_ref.captures(&config.query, tree_ref.root_node(), source),
+                )
+            }
+            .peekable();
+
+        Ok(Some(HighlightIterLayer {
+            highlight_end_stack: Vec::new(),
+            scope_stack: vec![LocalScope {
+                inherits: false,
+                range: 0..usize::MAX,
+                local_defs: Vec::new(),
+            }],
+            cursor,
+            depth,
+            _tree: tree,
+            captures,
+            config,
+            ranges,
+        }))
+    }
+
+    fn combined_injections<'tree>(
+        source: SourceText<'a>,
+        parent_name: Option<&'a str>,
+        config: &'a HighlightConfiguration,
+        cursor: &mut QueryCursor,
+        tree: &'tree Tree,
+    ) -> Vec<(Option<Cow<'a, str>>, Vec<Node<'tree>>, bool)> {
+        let Some(query) = &config.combined_injections_query else {
+            return Vec::new();
+        };
+        let mut injections = vec![(None, Vec::new(), false); query.pattern_count()];
+        let mut matches = cursor.matches(query, tree.root_node(), source);
+        while let Some(mat) = matches.next() {
+            let entry = &mut injections[mat.pattern_index];
+            let (language, node, include_children) =
+                injection_for_match(config, parent_name, query, mat, source);
+            if language.is_some() {
+                entry.0 = language;
+            }
+            if let Some(node) = node {
+                entry.1.push(node);
+            }
+            entry.2 = include_children;
+        }
+        injections
     }
 
     // Compute the ranges that should be included when parsing an injection.
@@ -969,7 +1154,7 @@ where
                 // If a language is found with the given name, then add a new language layer
                 // to the highlighted document.
                 if let (Some(language_name), Some(content_node)) = (language_name, content_node)
-                    && let Some(config) = (self.injection_callback)(language_name)
+                    && let Some(config) = (self.injection_callback)(&language_name)
                 {
                     let ranges = HighlightIterLayer::intersect_ranges(
                         &self.layers[0].ranges,
@@ -979,7 +1164,6 @@ where
                     if !ranges.is_empty() {
                         match HighlightIterLayer::new(
                             self.source,
-                            self.encoding,
                             Some(self.language_name),
                             self.highlighter,
                             self.cancellation_flag,
@@ -1043,7 +1227,7 @@ where
                         }
                     }
 
-                    if let Ok(name) = str::from_utf8(&self.source[range.clone()]) {
+                    if let Some(name) = self.source.name_bytes(range.clone()) {
                         scope.local_defs.push(LocalDef {
                             name,
                             value_range,
@@ -1059,7 +1243,7 @@ where
                     && definition_highlight.is_none()
                 {
                     definition_highlight = None;
-                    if let Ok(name) = str::from_utf8(&self.source[range.clone()]) {
+                    if let Some(name) = self.source.name_bytes(range.clone()) {
                         for scope in layer.scope_stack.iter().rev() {
                             if let Some(highlight) = scope.local_defs.iter().rev().find_map(|def| {
                                 if def.name == name && range.start >= def.value_range.end {
@@ -1188,6 +1372,22 @@ impl HtmlRenderer {
     where
         F: Fn(Highlight, &mut Vec<u8>),
     {
+        self.render_with_encoding(highlighter, source, None, attribute_callback)
+    }
+
+    /// Render source ranges in their submitted encoding as UTF-8 HTML. Line offsets
+    /// index the rendered HTML; malformed UTF-16 units are replaced with U+FFFD.
+    pub fn render_with_encoding<F>(
+        &mut self,
+        highlighter: impl Iterator<Item = Result<HighlightEvent, Error>>,
+        source: &[u8],
+        encoding: Option<u32>,
+        attribute_callback: &F,
+    ) -> Result<(), Error>
+    where
+        F: Fn(Highlight, &mut Vec<u8>),
+    {
+        let source = SourceText::new(source, encoding);
         let mut highlights = Vec::new();
         for event in highlighter {
             match event {
@@ -1200,7 +1400,7 @@ impl HtmlRenderer {
                     self.end_highlight();
                 }
                 Ok(HighlightEvent::Source { start, end }) => {
-                    self.add_text(&source[start..end], &highlights, &attribute_callback);
+                    self.add_text(source, start..end, &highlights, &attribute_callback);
                 }
                 Err(a) => return Err(a),
             }
@@ -1263,7 +1463,30 @@ impl HtmlRenderer {
         self.html.extend(b"</span>");
     }
 
-    fn add_text<F>(&mut self, src: &[u8], highlights: &[Highlight], attribute_callback: &F)
+    fn add_text<F>(
+        &mut self,
+        source: SourceText,
+        range: ops::Range<usize>,
+        highlights: &[Highlight],
+        attribute_callback: &F,
+    ) where
+        F: Fn(Highlight, &mut Vec<u8>),
+    {
+        for chunk in source.chunks(range) {
+            for part in LossyUtf8::new(chunk.as_ref()) {
+                self.add_text_part(part, highlights, attribute_callback);
+            }
+        }
+    }
+    fn add_text_part<F>(&mut self, part: &str, highlights: &[Highlight], attribute_callback: &F)
+    where
+        F: Fn(Highlight, &mut Vec<u8>),
+    {
+        for c in part.bytes() {
+            self.add_text_byte(c, highlights, attribute_callback);
+        }
+    }
+    fn add_text_byte<F>(&mut self, c: u8, highlights: &[Highlight], attribute_callback: &F)
     where
         F: Fn(Highlight, &mut Vec<u8>),
     {
@@ -1278,45 +1501,43 @@ impl HtmlRenderer {
             }
         }
 
-        for c in LossyUtf8::new(src).flat_map(|p| p.bytes()) {
-            // Don't render carriage return characters, but allow lone carriage returns (not
-            // followed by line feeds) to be styled via the attribute callback.
-            if c == b'\r' {
-                self.last_carriage_return = Some(self.html.len());
-                continue;
-            }
-            if let Some(offset) = self.last_carriage_return.take()
-                && c != b'\n'
-            {
-                self.add_carriage_return(offset, attribute_callback);
-            }
+        // Don't render carriage return characters, but allow lone carriage returns (not
+        // followed by line feeds) to be styled via the attribute callback.
+        if c == b'\r' {
+            self.last_carriage_return = Some(self.html.len());
+            return;
+        }
+        if let Some(offset) = self.last_carriage_return.take()
+            && c != b'\n'
+        {
+            self.add_carriage_return(offset, attribute_callback);
+        }
 
-            // At line boundaries, close and re-open all of the open tags.
-            if c == b'\n' {
-                for _ in highlights {
-                    self.end_highlight();
-                }
-                self.html.push(c);
-                self.line_offsets.push(self.html.len() as u32);
-                for scope in highlights {
-                    self.start_highlight(*scope, attribute_callback);
-                }
-            } else if let Some(escape) = html_escape(c) {
-                self.html.extend_from_slice(escape);
-            } else {
-                self.html.push(c);
+        // At line boundaries, close and re-open all of the open tags.
+        if c == b'\n' {
+            for _ in highlights {
+                self.end_highlight();
             }
+            self.html.push(c);
+            self.line_offsets.push(self.html.len() as u32);
+            for scope in highlights {
+                self.start_highlight(*scope, attribute_callback);
+            }
+        } else if let Some(escape) = html_escape(c) {
+            self.html.extend_from_slice(escape);
+        } else {
+            self.html.push(c);
         }
     }
 }
 
-fn injection_for_match<'a>(
+fn injection_for_match<'a, 'tree>(
     config: &'a HighlightConfiguration,
     parent_name: Option<&'a str>,
     query: &'a Query,
-    query_match: &QueryMatch<'a, 'a>,
-    source: &'a [u8],
-) -> (Option<&'a str>, Option<Node<'a>>, bool) {
+    query_match: &QueryMatch<'_, 'tree>,
+    source: SourceText<'a>,
+) -> (Option<Cow<'a, str>>, Option<Node<'tree>>, bool) {
     let content_capture_index = config.injection_content_capture_index;
     let language_capture_index = config.injection_language_capture_index;
 
@@ -1326,7 +1547,7 @@ fn injection_for_match<'a>(
     for capture in query_match.captures() {
         let index = Some(capture.index);
         if index == language_capture_index {
-            language_name = capture.node.utf8_text(source).ok();
+            language_name = source.name_str(capture.node.byte_range());
         } else if index == content_capture_index {
             content_node = Some(capture.node);
         }
@@ -1339,21 +1560,21 @@ fn injection_for_match<'a>(
             // captured node, it can also be hard-coded via a `#set!` predicate
             // that sets the injection.language key.
             "injection.language" if language_name.is_none() => {
-                language_name = prop.value.as_ref().map(std::convert::AsRef::as_ref);
+                language_name = prop.value.as_deref().map(Cow::Borrowed);
             }
 
             // Setting the `injection.self` key can be used to specify that the
             // language name should be the same as the language of the current
             // layer.
             "injection.self" if language_name.is_none() => {
-                language_name = Some(config.language_name.as_str());
+                language_name = Some(Cow::Borrowed(config.language_name.as_str()));
             }
 
             // Setting the `injection.parent` key can be used to specify that
             // the language name should be the same as the language of the
             // parent layer
             "injection.parent" if language_name.is_none() => {
-                language_name = parent_name;
+                language_name = parent_name.map(Cow::Borrowed);
             }
 
             // By default, injections do not include the *children* of an
@@ -1374,4 +1595,112 @@ fn shrink_and_clear<T>(vec: &mut Vec<T>, capacity: usize) {
         vec.shrink_to_fit();
     }
     vec.clear();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn unit_bytes(units: &[u16], encoding: SourceEncoding) -> Vec<u8> {
+        units
+            .iter()
+            .flat_map(|u| match encoding {
+                SourceEncoding::Utf16Le => u.to_le_bytes(),
+                _ => u.to_be_bytes(),
+            })
+            .collect()
+    }
+
+    #[test]
+    fn decode_utf16_code_point_matches_native_decoder() {
+        let cases: &[(&[u16], (i32, u32))] = &[
+            (&[0x00e9], (0xe9, 2)),
+            (&[0xd83d, 0xde00], (0x1f600, 4)),
+            (&[0xd800], (0xd800, 2)),
+            (&[0xd800, 0x61], (0xd800, 2)),
+            (&[0xdc00], (0xdc00, 2)),
+            (&[], (-1, 0)),
+        ];
+        for encoding in [SourceEncoding::Utf16Le, SourceEncoding::Utf16Be] {
+            for (units, expected) in cases {
+                assert_eq!(
+                    decode_utf16_code_point(&unit_bytes(units, encoding), encoding),
+                    *expected
+                );
+            }
+            assert_eq!(decode_utf16_code_point(&[0x61], encoding), (-1, 1));
+        }
+    }
+
+    fn decoded(bytes: &[u8], encoding: u32) -> String {
+        let mut output = String::new();
+        for chunk in SourceText::new(bytes, Some(encoding)).chunks(0..bytes.len()) {
+            output.push_str(str::from_utf8(chunk.as_ref()).unwrap());
+        }
+        output
+    }
+
+    #[test]
+    fn utf16_chunks_are_lossy_and_never_split_chars() {
+        let text = format!("{}é", "😀".repeat(40));
+        for (order, encoding) in [
+            (SourceEncoding::Utf16Le, ffi::TSInputEncodingUTF16LE),
+            (SourceEncoding::Utf16Be, ffi::TSInputEncodingUTF16BE),
+        ] {
+            let mut bytes = unit_bytes(&text.encode_utf16().collect::<Vec<_>>(), order);
+            assert_eq!(decoded(&bytes, encoding), text);
+            bytes.extend(unit_bytes(&[0xd800], order));
+            bytes.push(0);
+            assert_eq!(decoded(&bytes, encoding), format!("{text}��"));
+        }
+    }
+
+    #[test]
+    fn names_are_strict() {
+        let invalid = SourceText::new(b"\xff", None);
+        assert!(invalid.name_bytes(0..1).is_none());
+        assert!(invalid.name_str(0..1).is_none());
+        assert!(matches!(
+            SourceText::new(b"html", None).name_str(0..4),
+            Some(Cow::Borrowed("html"))
+        ));
+        for (order, encoding) in [
+            (SourceEncoding::Utf16Le, ffi::TSInputEncodingUTF16LE),
+            (SourceEncoding::Utf16Be, ffi::TSInputEncodingUTF16BE),
+        ] {
+            check_utf16_names(order, encoding);
+        }
+    }
+
+    fn check_utf16_names(order: SourceEncoding, encoding: u32) {
+        for units in [&[0xd800][..], &[0xdc00, 0xd800]] {
+            let bytes = unit_bytes(units, order);
+            let source = SourceText::new(&bytes, Some(encoding));
+            assert!(source.name_bytes(0..bytes.len()).is_none());
+            assert!(source.name_str(0..bytes.len()).is_none());
+        }
+        let bytes = unit_bytes(&[0x68, 0x74, 0x6d, 0x6c], order);
+        let source = SourceText::new(&bytes, Some(encoding));
+        assert_eq!(source.name_bytes(0..bytes.len()), Some(bytes.as_slice()));
+        assert!(matches!(source.name_str(0..bytes.len()), Some(Cow::Owned(s)) if s == "html"));
+        assert!(source.name_str(0..bytes.len() - 1).is_none());
+        assert!(source.name_bytes(0..bytes.len() - 1).is_none());
+    }
+
+    #[test]
+    fn write_source_utf8_passes_utf8_through_and_transcodes_utf16() {
+        let mut output = Vec::new();
+        write_source_utf8(b"a\xff", None, 0..2, &mut output).unwrap();
+        assert_eq!(output, b"a\xff");
+        for (order, encoding) in [
+            (SourceEncoding::Utf16Le, ffi::TSInputEncodingUTF16LE),
+            (SourceEncoding::Utf16Be, ffi::TSInputEncodingUTF16BE),
+        ] {
+            let mut bytes = unit_bytes(&[0xe9, 0xd83d, 0xde00], order);
+            bytes.push(0);
+            output.clear();
+            write_source_utf8(&bytes, Some(encoding), 0..bytes.len(), &mut output).unwrap();
+            assert_eq!(output, "é😀�".as_bytes());
+        }
+    }
 }

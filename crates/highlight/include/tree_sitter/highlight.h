@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 #include <stdint.h>
+#include "tree_sitter/api.h"
 
 typedef enum {
   TSHighlightOk,
@@ -52,9 +53,31 @@ TSHighlightError ts_highlighter_add_language(
   uint32_t locals_query_len
 );
 
-// Compute syntax highlighting for a given document. You must first
-// create a `TSHighlightBuffer` to hold the output.
+// Highlight submitted bytes, detecting a UTF-16 BOM, otherwise using UTF-8.
+// The source is read only during the call. Lengths count bytes; odd UTF-16
+// tails and unpaired surrogates render as U+FFFD. Output is UTF-8 HTML;
+// line offsets index that HTML. BOM characters remain in the output.
 TSHighlightError ts_highlighter_highlight(
+  const TSHighlighter *self,
+  const char *scope_name,
+  const char *source_code,
+  uint32_t source_code_len,
+  TSHighlightBuffer *output,
+  const size_t *cancellation_flag
+);
+
+// Explicit UTF-16 byte order, without BOM detection. The same byte-length,
+// source lifetime, malformed-input and UTF-8 output rules apply.
+TSHighlightError ts_highlighter_highlight_utf16_le(
+  const TSHighlighter *self,
+  const char *scope_name,
+  const char *source_code,
+  uint32_t source_code_len,
+  TSHighlightBuffer *output,
+  const size_t *cancellation_flag
+);
+
+TSHighlightError ts_highlighter_highlight_utf16_be(
   const TSHighlighter *self,
   const char *scope_name,
   const char *source_code,

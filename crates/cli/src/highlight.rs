@@ -1,8 +1,7 @@
 use std::{
     collections::{BTreeMap, HashSet},
     fmt::Write,
-    fs,
-    io::{self, Write as _},
+    fs, io,
     path::{self, Path, PathBuf},
     sync::{Arc, atomic::AtomicUsize},
     time::Instant,
@@ -446,7 +445,27 @@ pub fn highlight(
     }
 
     let source = fs::read(path)?;
+    let stdout = io::stdout();
+    highlight_source(
+        loader,
+        &source,
+        name,
+        config,
+        print_name,
+        opts,
+        &mut stdout.lock(),
+    )
+}
 
+pub(crate) fn highlight_source(
+    loader: &Loader,
+    source: &[u8],
+    name: &str,
+    config: &HighlightConfiguration,
+    print_name: bool,
+    opts: &HighlightOptions,
+    out: &mut impl io::Write,
+) -> Result<()> {
     fn is_utf16_le_bom(bom_bytes: &[u8]) -> bool {
         bom_bytes == [0xFF, 0xFE]
     }
@@ -468,13 +487,11 @@ pub fn highlight(
         _ => opts.encoding,
     };
 
-    let stdout = io::stdout();
-    let mut stdout = stdout.lock();
     let time = Instant::now();
     let mut highlighter = Highlighter::new();
     let events = highlighter.highlight(
         config,
-        &source,
+        source,
         encoding,
         Some(&opts.cancellation_flag),
         |string| loader.highlight_config_for_injection_string(string),
@@ -486,98 +503,155 @@ pub fn highlight(
         .html
         .is_some_and(|(layout, _)| layout == HtmlOutput::Fragment);
     if !opts.quiet && print_name && !html_fragment {
-        writeln!(&mut stdout, "{name}")?;
+        writeln!(out, "{name}")?;
     }
 
     if let Some((layout, style)) = opts.html {
-        if !opts.quiet && layout != HtmlOutput::Fragment {
-            writeln!(&mut stdout, "{HTML_HEAD_HEADER}")?;
-            if layout == HtmlOutput::NumberedDocument {
-                writeln!(&mut stdout, "{HTML_LINE_NUMBER_STYLE}")?;
-            }
-            if style == HtmlStyling::Classes {
-                for (name, style) in theme.highlight_names.iter().zip(&theme.styles) {
-                    if let Some(css) = &style.css {
-                        writeln!(&mut stdout, "    .{name} {{ {css}; }}")?;
-                    }
-                }
-            }
-            writeln!(&mut stdout, "  </style>")?;
-            writeln!(&mut stdout, "{HTML_BODY_HEADER}")?;
-        }
-
-        let mut renderer = HtmlRenderer::new();
-        renderer.render(events, &source, &move |highlight, output| {
-            if style == HtmlStyling::Inline {
-                output.extend(b"style='");
-                output.extend(
-                    theme.styles[highlight.0]
-                        .css
-                        .as_ref()
-                        .map_or_else(|| "".as_bytes(), |css_style| css_style.as_bytes()),
-                );
-            } else {
-                output.extend(b"class='");
-                let mut parts = theme.highlight_names[highlight.0].split('.').peekable();
-                while let Some(part) = parts.next() {
-                    output.extend(part.as_bytes());
-                    if parts.peek().is_some() {
-                        output.extend(b" ");
-                    }
-                }
-            }
-            output.extend(b"'");
-        })?;
-
-        if !opts.quiet {
-            if layout == HtmlOutput::NumberedDocument {
-                writeln!(&mut stdout, "<table>")?;
-                for (i, line) in renderer.lines().enumerate() {
-                    writeln!(
-                        &mut stdout,
-                        "<tr><td class=line-number>{}</td><td class=line>{line}</td></tr>",
-                        i + 1,
-                    )?;
-                }
-                writeln!(&mut stdout, "</table>")?;
-            } else {
-                let mut body = renderer.lines().collect::<String>();
-                if body.ends_with('\n') {
-                    body.pop();
-                }
-                writeln!(
-                    &mut stdout,
-                    "<div class=\"highlight\">\n<pre><code>{body}</code></pre>\n</div>",
-                )?;
-            }
-            if layout != HtmlOutput::Fragment {
-                writeln!(&mut stdout, "{HTML_FOOTER}")?;
-            }
-        }
+        write_highlight_html(events, source, encoding, opts, layout, style, out)?;
     } else {
-        let mut style_stack = vec![theme.default_style().ansi];
-        for event in events {
-            match event? {
-                HighlightEvent::HighlightStart(highlight) => {
-                    style_stack.push(theme.styles[highlight.0].ansi);
-                }
-                HighlightEvent::HighlightEnd => {
-                    style_stack.pop();
-                }
-                HighlightEvent::Source { start, end } => {
-                    let style = style_stack.last().unwrap();
-                    write!(&mut stdout, "{style}").unwrap();
-                    stdout.write_all(&source[start..end])?;
-                    write!(&mut stdout, "{style:#}").unwrap();
-                }
-            }
-        }
+        write_highlight_terminal(events, source, encoding, theme, out)?;
     }
 
     if opts.print_time {
         info!("Time: {}ms", time.elapsed().as_millis());
     }
 
+    Ok(())
+}
+
+fn write_highlight_html(
+    events: impl Iterator<Item = Result<HighlightEvent, tree_sitter_highlight::Error>>,
+    source: &[u8],
+    encoding: Option<u32>,
+    opts: &HighlightOptions,
+    layout: HtmlOutput,
+    style: HtmlStyling,
+    out: &mut impl io::Write,
+) -> Result<()> {
+    if !opts.quiet && layout != HtmlOutput::Fragment {
+        write_html_header(&opts.theme, layout, style, out)?;
+    }
+    let mut renderer = HtmlRenderer::new();
+    renderer.render_with_encoding(events, source, encoding, &|highlight, output| {
+        write_html_attribute(&opts.theme, style, highlight, output);
+    })?;
+    if opts.quiet {
+        return Ok(());
+    }
+    write_html_body(&renderer, layout, out)?;
+    if layout != HtmlOutput::Fragment {
+        writeln!(out, "{HTML_FOOTER}")?;
+    }
+    Ok(())
+}
+
+fn write_html_header(
+    theme: &Theme,
+    layout: HtmlOutput,
+    style: HtmlStyling,
+    out: &mut impl io::Write,
+) -> Result<()> {
+    writeln!(out, "{HTML_HEAD_HEADER}")?;
+    if layout == HtmlOutput::NumberedDocument {
+        writeln!(out, "{HTML_LINE_NUMBER_STYLE}")?;
+    }
+    if style == HtmlStyling::Classes {
+        write_html_classes(theme, out)?;
+    }
+    writeln!(out, "  </style>")?;
+    writeln!(out, "{HTML_BODY_HEADER}")?;
+    Ok(())
+}
+
+fn write_html_classes(theme: &Theme, out: &mut impl io::Write) -> Result<()> {
+    for (name, style) in theme.highlight_names.iter().zip(&theme.styles) {
+        if let Some(css) = &style.css {
+            writeln!(out, "    .{name} {{ {css}; }}")?;
+        }
+    }
+    Ok(())
+}
+
+fn write_html_attribute(
+    theme: &Theme,
+    style: HtmlStyling,
+    highlight: tree_sitter_highlight::Highlight,
+    output: &mut Vec<u8>,
+) {
+    if style == HtmlStyling::Inline {
+        output.extend(b"style='");
+        output.extend(
+            theme.styles[highlight.0]
+                .css
+                .as_ref()
+                .map_or_else(|| "".as_bytes(), |css| css.as_bytes()),
+        );
+        output.extend(b"'");
+        return;
+    }
+    output.extend(b"class='");
+    let mut parts = theme.highlight_names[highlight.0].split('.').peekable();
+    while let Some(part) = parts.next() {
+        output.extend(part.as_bytes());
+        if parts.peek().is_some() {
+            output.extend(b" ");
+        }
+    }
+    output.extend(b"'");
+}
+
+fn write_html_body(
+    renderer: &HtmlRenderer,
+    layout: HtmlOutput,
+    out: &mut impl io::Write,
+) -> Result<()> {
+    if layout == HtmlOutput::NumberedDocument {
+        writeln!(out, "<table>")?;
+        for (i, line) in renderer.lines().enumerate() {
+            writeln!(
+                out,
+                "<tr><td class=line-number>{}</td><td class=line>{line}</td></tr>",
+                i + 1
+            )?;
+        }
+        writeln!(out, "</table>")?;
+        return Ok(());
+    }
+    let mut body = renderer.lines().collect::<String>();
+    if body.ends_with('\n') {
+        body.pop();
+    }
+    writeln!(
+        out,
+        "<div class=\"highlight\">\n<pre><code>{body}</code></pre>\n</div>"
+    )?;
+    Ok(())
+}
+
+fn write_highlight_terminal(
+    events: impl Iterator<Item = Result<HighlightEvent, tree_sitter_highlight::Error>>,
+    source: &[u8],
+    encoding: Option<u32>,
+    theme: &Theme,
+    out: &mut impl io::Write,
+) -> Result<()> {
+    let mut style_stack = vec![theme.default_style().ansi];
+    for event in events {
+        match event? {
+            HighlightEvent::HighlightStart(highlight) => {
+                style_stack.push(theme.styles[highlight.0].ansi);
+            }
+            HighlightEvent::HighlightEnd => {
+                style_stack.pop();
+            }
+            HighlightEvent::Source { start, end } => {
+                let style = style_stack.last().unwrap();
+                write!(out, "{style}")?;
+                tree_sitter_highlight::write_source_utf8(source, encoding, start..end, out)?;
+                write!(out, "{style:#}")?;
+            }
+        }
+    }
     Ok(())
 }
 
