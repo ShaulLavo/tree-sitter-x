@@ -6,56 +6,14 @@ on:
     branches:
       - 'master'
       - 'release-[0-9]+.[0-9]+'
-    paths:
-      - '.cargo/**'
-      - '.github/**'
-      - 'crates/**'
-      - 'lib/**'
-      - 'test/**'
-      - '**.toml'
-      - 'docs/src/assets/js/playground.js'
-      - '.editorconfig'
-      - '.envrc'
-      - '.gitattributes'
-      - '.gitignore'
-      - '.taplo.toml'
-      - 'CMakeLists.txt'
-      - 'Cargo.lock'
-      - 'Cargo.toml'
-      - 'FUNDING.json'
-      - 'LICENSE'
-      - 'Makefile'
-      - 'build.zig'
-      - 'build.zig.zon'
-      - 'flake.lock'
-      - 'flake.nix'
   pull_request:
     branches:
       - 'master'
       - 'release-[0-9]+.[0-9]+'
-    paths:
-      - '.cargo/**'
-      - '.github/**'
-      - 'crates/**'
-      - 'lib/**'
-      - 'test/**'
-      - '**.toml'
-      - 'docs/src/assets/js/playground.js'
-      - '.editorconfig'
-      - '.envrc'
-      - '.gitattributes'
-      - '.gitignore'
-      - '.taplo.toml'
-      - 'CMakeLists.txt'
-      - 'Cargo.lock'
-      - 'Cargo.toml'
-      - 'FUNDING.json'
-      - 'LICENSE'
-      - 'Makefile'
-      - 'build.zig'
-      - 'build.zig.zon'
-      - 'flake.lock'
-      - 'flake.nix'
+
+permissions:
+  contents: read
+  pull-requests: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -66,6 +24,10 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       native: ${{ steps.paths.outputs.native }}
+      bindgen: ${{ steps.extra-paths.outputs.bindgen }}
+      wasm-exports: ${{ steps.extra-paths.outputs.wasm-exports }}
+      package-types: ${{ steps.extra-paths.outputs.package-types }}
+      highlight-compat: ${{ steps.extra-paths.outputs.highlight-compat }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -92,6 +54,36 @@ jobs:
             bash .github/scripts/native-ci-paths.sh)
           echo "native=$native" >> "$GITHUB_OUTPUT"
           echo "Native CI inputs changed: $native" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: dorny/paths-filter@v3
+        id: extra-paths
+        with:
+          base: ${{ github.ref }}
+          filters: |
+            bindgen:
+              - 'lib/include/tree_sitter/api.h'
+              - 'lib/binding_rust/bindings.rs'
+              - 'lib/src/*.def'
+              - 'crates/xtask/src/generate.rs'
+              - '.github/**'
+            wasm-exports:
+              - 'lib/include/tree_sitter/api.h'
+              - 'lib/binding_rust/bindings.rs'
+              - 'lib/binding_web/**'
+              - 'xtask/src/**'
+              - 'crates/xtask/src/**'
+              - 'CMakeLists.txt'
+              - '.github/**'
+            package-types:
+              - 'lib/binding_web/**'
+              - '.github/**'
+            highlight-compat:
+              - 'test/highlight-compat/**'
+              - 'lib/**'
+              - 'crates/xtask/**'
+              - 'crates/loader/**'
+              - 'Cargo.*'
+              - '.github/**'
 
   checks:
     needs: changes
@@ -138,6 +130,8 @@ jobs:
         run: make lint-web
 
   consistency:
+    needs: changes
+    if: needs.changes.outputs.native == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -202,3 +196,35 @@ jobs:
           for result in "$CHECKS" "$SANITIZE" "$BUILD" "$WASM_STDLIB"; do
             [[ "$result" == "$expected" ]] || exit 1
           done
+
+  bindgen:
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.bindgen == 'true'
+    uses: ./.github/workflows/bindgen.yml
+
+  wasm-exports:
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.wasm-exports == 'true'
+    uses: ./.github/workflows/wasm_exports.yml
+
+  package-types:
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.package-types == 'true'
+    uses: ./.github/workflows/package-types.yml
+
+  highlight-compat:
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.highlight-compat == 'true'
+    uses: ./.github/workflows/highlight-compat.yml
+
+  gate:
+    name: Complete CI gate
+    if: always()
+    needs: [changes, checks, consistency, sanitize, build, check-wasm-stdlib, native-ci, bindgen, wasm-exports, package-types, highlight-compat]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reject failed or cancelled CI jobs
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS" | jq -e 'all(.[]; .result == "success" or .result == "skipped")'

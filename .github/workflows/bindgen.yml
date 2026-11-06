@@ -1,19 +1,7 @@
 name: Check Bindgen Output
 
 on:
-  pull_request:
-    paths:
-      - lib/include/tree_sitter/api.h
-      - lib/binding_rust/bindings.rs
-      - lib/src/*.def
-      - crates/xtask/src/generate.rs
-  push:
-    branches: [master]
-    paths:
-      - lib/include/tree_sitter/api.h
-      - lib/binding_rust/bindings.rs
-      - lib/src/*.def
-      - crates/xtask/src/generate.rs
+  workflow_call:
 
 jobs:
   check-bindgen:

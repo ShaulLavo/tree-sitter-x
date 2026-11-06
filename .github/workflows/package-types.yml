@@ -1,12 +1,7 @@
 name: Package types
 
 on:
-  pull_request:
-    branches: [master]
-    paths: ['lib/binding_web/**', '.github/workflows/package-types.yml']
-  push:
-    branches: [master]
-    paths: ['lib/binding_web/**', '.github/workflows/package-types.yml']
+  workflow_call:
 
 permissions:
   contents: read
