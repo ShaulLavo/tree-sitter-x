@@ -1,7 +1,6 @@
 use std::{
     iter,
     path::{Component, Path, PathBuf},
-    sync::{LazyLock, Mutex},
 };
 
 use log::{error, info, warn};
@@ -9,7 +8,6 @@ use rquickjs::{
     Context, Ctx, Function, Module, Object, Runtime, Type, Value,
     loader::{FileResolver, ScriptLoader},
 };
-use rustc_hash::FxHashMap;
 
 use super::{IoError, JSError, JSResult};
 
@@ -50,28 +48,11 @@ fn format_js_exception(v: Value) -> JSError {
     }
 }
 
-static FILE_CACHE: LazyLock<Mutex<FxHashMap<String, String>>> =
-    LazyLock::new(|| Mutex::new(FxHashMap::default()));
-
 #[rquickjs::function]
 fn load_file(path: String) -> rquickjs::Result<String> {
-    {
-        let cache = FILE_CACHE.lock().unwrap();
-        if let Some(cached) = cache.get(&path) {
-            return Ok(cached.clone());
-        }
-    }
-
-    let content = std::fs::read_to_string(&path).map_err(|e| {
+    std::fs::read_to_string(path).map_err(|e| {
         rquickjs::Error::new_from_js_message("IOError", "FileReadError", e.to_string())
-    })?;
-
-    {
-        let mut cache = FILE_CACHE.lock().unwrap();
-        cache.insert(path, content.clone());
-    }
-
-    Ok(content)
+    })
 }
 
 #[rquickjs::class]
@@ -374,36 +355,190 @@ pub fn execute_native_runtime(grammar_path: &Path) -> JSResult<String> {
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        fs,
-        sync::{Arc, Mutex, OnceLock},
-    };
+    use std::{fs, sync::Mutex};
 
     use tempfile::TempDir;
 
     use super::*;
 
-    static TEST_MUTEX: OnceLock<Arc<Mutex<()>>> = OnceLock::new();
+    static TEST_MUTEX: Mutex<()> = Mutex::new(());
 
     fn with_test_lock<F, R>(test: F) -> R
     where
         F: FnOnce() -> R,
     {
-        let _guard = TEST_MUTEX.get_or_init(|| Arc::new(Mutex::new(()))).lock();
-        let result = test();
-        cleanup_runtime_state();
-        result
+        let _guard = TEST_MUTEX
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        test()
     }
 
-    fn cleanup_runtime_state() {
-        FILE_CACHE.lock().unwrap().clear();
+    struct TestDirectory {
+        original_cwd: PathBuf,
+        directory: TempDir,
+    }
+
+    impl TestDirectory {
+        fn new() -> Self {
+            let original_cwd = std::env::current_dir().unwrap();
+            let directory = TempDir::new().unwrap();
+            std::env::set_current_dir(directory.path()).unwrap();
+            Self {
+                original_cwd,
+                directory,
+            }
+        }
+
+        fn path(&self) -> &Path {
+            self.directory.path()
+        }
+    }
+
+    impl Drop for TestDirectory {
+        fn drop(&mut self) {
+            std::env::set_current_dir(&self.original_cwd).unwrap();
+        }
+    }
+
+    fn importing_grammar(directory: &Path, dependency: &str) -> PathBuf {
+        let path = directory.join("grammar.js");
+        fs::write(
+            &path,
+            format!(
+                "const dependency = require('{dependency}');
+                module.exports = grammar({{
+                  name: 'reload_test',
+                  rules: {{ source_file: $ => dependency }}
+                }});"
+            ),
+        )
+        .unwrap();
+        path
+    }
+
+    fn assert_source_rule(grammar_path: &Path, expected: &str) {
+        let output = execute_native_runtime(grammar_path).unwrap();
+        let grammar: serde_json::Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(grammar["rules"]["source_file"]["value"], expected);
+    }
+
+    #[test]
+    fn test_reloads_javascript_dependency_between_evaluations() {
+        with_test_lock(|| {
+            let directory = TestDirectory::new();
+            let dependency = directory.path().join("dependency.js");
+            let grammar = importing_grammar(directory.path(), "./dependency");
+
+            fs::write(&dependency, "module.exports = 'before';").unwrap();
+            assert_source_rule(&grammar, "before");
+            fs::write(&dependency, "module.exports = 'after';").unwrap();
+            assert_source_rule(&grammar, "after");
+        });
+    }
+
+    #[test]
+    fn test_reloads_json_dependency_between_evaluations() {
+        with_test_lock(|| {
+            let directory = TestDirectory::new();
+            let dependency = directory.path().join("dependency.json");
+            let grammar = importing_grammar(directory.path(), "./dependency.json");
+
+            fs::write(&dependency, r#""before""#).unwrap();
+            assert_source_rule(&grammar, "before");
+            fs::write(&dependency, r#""after""#).unwrap();
+            assert_source_rule(&grammar, "after");
+        });
+    }
+
+    fn assert_failed_dependency_can_be_fixed(extension: &str, broken: &str, fixed: &str) {
+        let directory = TestDirectory::new();
+        let dependency = directory.path().join(format!("dependency.{extension}"));
+        let grammar = importing_grammar(directory.path(), &format!("./dependency.{extension}"));
+
+        fs::write(&dependency, broken).unwrap();
+        assert!(execute_native_runtime(&grammar).is_err());
+        fs::write(&dependency, fixed).unwrap();
+        assert_source_rule(&grammar, "fixed");
+    }
+
+    #[test]
+    fn test_reloads_javascript_dependency_after_failed_evaluation() {
+        with_test_lock(|| {
+            assert_failed_dependency_can_be_fixed(
+                "js",
+                "throw new Error('broken dependency');",
+                "module.exports = 'fixed';",
+            );
+        });
+    }
+
+    #[test]
+    fn test_reloads_json_dependency_after_failed_evaluation() {
+        with_test_lock(|| {
+            assert_failed_dependency_can_be_fixed("json", "{invalid", r#""fixed""#);
+        });
+    }
+
+    fn nested_grammar(directory: &Path, value: &str) -> PathBuf {
+        fs::create_dir_all(directory.join("nested")).unwrap();
+        fs::write(
+            directory.join("nested/index.js"),
+            "module.exports = require('./value');",
+        )
+        .unwrap();
+        fs::write(
+            directory.join("nested/value.js"),
+            format!("module.exports = '{value}';"),
+        )
+        .unwrap();
+        importing_grammar(directory, "./nested")
+    }
+
+    #[test]
+    fn test_independent_nested_dependencies_between_evaluations() {
+        with_test_lock(|| {
+            let directory = TestDirectory::new();
+            let first = nested_grammar(&directory.path().join("first"), "first");
+            let second = nested_grammar(&directory.path().join("second"), "second");
+
+            assert_source_rule(&first, "first");
+            assert_source_rule(&second, "second");
+            fs::write(
+                directory.path().join("first/nested/value.js"),
+                "module.exports = 'updated';",
+            )
+            .unwrap();
+            assert_source_rule(&first, "updated");
+            assert_source_rule(&second, "second");
+        });
+    }
+
+    #[test]
+    fn test_restores_cwd_after_panic_and_error() {
+        with_test_lock(|| {
+            let original_cwd = std::env::current_dir().unwrap();
+            let panic = std::panic::catch_unwind(|| {
+                let _directory = TestDirectory::new();
+                panic!("test panic");
+            });
+            assert!(panic.is_err());
+            assert_eq!(std::env::current_dir().unwrap(), original_cwd);
+
+            let error = (|| {
+                let directory = TestDirectory::new();
+                let grammar = importing_grammar(directory.path(), "./missing");
+                execute_native_runtime(&grammar)?;
+                Ok::<_, JSError>(())
+            })();
+            assert!(error.is_err());
+            assert_eq!(std::env::current_dir().unwrap(), original_cwd);
+        });
     }
 
     #[test]
     fn test_basic_grammar_execution() {
         with_test_lock(|| {
-            let temp_dir = TempDir::new().unwrap();
-            std::env::set_current_dir(temp_dir.path()).unwrap();
+            let temp_dir = TestDirectory::new();
 
             let grammar_path = temp_dir.path().join("grammar.js");
             fs::write(
@@ -431,8 +566,7 @@ mod tests {
     #[test]
     fn test_module_imports() {
         with_test_lock(|| {
-            let temp_dir = TempDir::new().unwrap();
-            std::env::set_current_dir(temp_dir.path()).unwrap();
+            let temp_dir = TestDirectory::new();
 
             fs::write(
                 temp_dir.path().join("common.js"),
@@ -463,8 +597,7 @@ mod tests {
     #[test]
     fn test_json_module_loading() {
         with_test_lock(|| {
-            let temp_dir = TempDir::new().unwrap();
-            std::env::set_current_dir(temp_dir.path()).unwrap();
+            let temp_dir = TestDirectory::new();
 
             fs::write(
                 temp_dir.path().join("package.json"),
@@ -494,8 +627,7 @@ mod tests {
     #[test]
     fn test_resource_limits() {
         with_test_lock(|| {
-            let temp_dir = TempDir::new().unwrap();
-            std::env::set_current_dir(temp_dir.path()).unwrap();
+            let temp_dir = TestDirectory::new();
 
             fs::write(
                 temp_dir.path().join("grammar.js"),
