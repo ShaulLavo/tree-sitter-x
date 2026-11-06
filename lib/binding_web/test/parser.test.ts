@@ -1,7 +1,45 @@
-import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import helper, { type LanguageName } from './helper';
-import type { ParseState, Tree } from '../src';
-import { Parser, Language } from '../src';
+import type { ParseState, Tree, Range } from '../src';
+import { Parser, Language, TextBuffer } from '../src';
+import { C } from '../src/constants';
+
+function includedRange(startIndex: number, endIndex: number): Range {
+  return { startIndex, endIndex, startPosition: { row: 0, column: startIndex }, endPosition: { row: 0, column: endIndex } };
+}
+
+const invalidRanges: Range[][] = [
+  [includedRange(3, 1)],
+  [includedRange(0, 3), includedRange(2, 4)],
+  [includedRange(2, 3), includedRange(0, 1)],
+].concat([NaN, Infinity, -Infinity, -1, 0.5, Number.MAX_SAFE_INTEGER + 1, 0x80000000].flatMap(value => [
+    [{ ...includedRange(0, 4), startIndex: value }],
+    [{ ...includedRange(0, 4), endIndex: value }],
+    [{ ...includedRange(0, 4), startPosition: { row: 0, column: value } }],
+    [{ ...includedRange(0, 4), endPosition: { row: 0, column: value } }],
+  ]), [NaN, Infinity, -Infinity, -1, 0.5, Number.MAX_SAFE_INTEGER + 1, 0x100000000].flatMap(value => [
+    [{ ...includedRange(0, 4), startPosition: { row: value, column: 0 } }],
+    [{ ...includedRange(0, 4), endPosition: { row: value, column: 4 } }],
+  ]), [
+  [{ ...includedRange(0, 4), startPosition: { row: 2, column: 0 }, endPosition: { row: 1, column: 4 } }],
+  [{ ...includedRange(0, 4), startPosition: { row: 1, column: 5 }, endPosition: { row: 1, column: 4 } }],
+]);
+
+function assertRejectedRanges(parser: Parser, input: Parameters<Parser['parse']>[0], previousRanges: Range[]) {
+  for (const includedRanges of invalidRanges) {
+    expect(() => parser.parse(input, null, { includedRanges })?.delete()).toThrow(RangeError);
+    expect(parser.getIncludedRanges()).toEqual(previousRanges);
+  }
+}
+
+function parseSelectedRange(parser: Parser, input: Parameters<Parser['parse']>[0], includedRanges: Range[]) {
+  const tree = parser.parse(input, null, { includedRanges })!;
+  try {
+    expect(tree.rootNode.text).toBe('水;');
+  } finally {
+    tree.delete();
+  }
+}
 
 let JavaScript: Language;
 let HTML: Language;
@@ -21,6 +59,45 @@ describe('Parser', () => {
 
   afterEach(() => {
     parser.delete();
+  });
+
+  it.each((['string', 'callback', 'buffer'] as const).flatMap(kind => [
+    { kind, selected: false }, { kind, selected: true },
+  ]))('rejects invalid included ranges atomically for $kind input, selected=$selected', ({ kind, selected }) => {
+    parser.setLanguage(JavaScript);
+    const text = 'a;水;';
+    const buffer = kind === 'buffer' ? new TextBuffer(text) : null;
+    const input = buffer ?? (kind === 'callback' ? (index: number) => text.slice(index) : text);
+    const initial = parser.getIncludedRanges();
+    const valid = [includedRange(2, 4)];
+    const previousParse = C.currentParseCallback;
+    const previousLog = C.currentLogCallback;
+    const previousProgress = C.currentProgressCallback;
+    const parseCallback = () => 'previous';
+    const logCallback = () => {};
+    const progressCallback = () => {};
+    const calloc = vi.spyOn(C, '_calloc');
+    C.currentParseCallback = parseCallback;
+    C.currentLogCallback = logCallback;
+    C.currentProgressCallback = progressCallback;
+    try {
+      if (selected) parseSelectedRange(parser, input, valid);
+      calloc.mockClear();
+      assertRejectedRanges(parser, input, selected ? valid : initial);
+      expect(calloc).not.toHaveBeenCalled();
+      expect(C.currentParseCallback).toBe(parseCallback);
+      expect(C.currentLogCallback).toBe(logCallback);
+      expect(C.currentProgressCallback).toBe(progressCallback);
+      const recovered = parser.parse(input)!;
+      expect(recovered.rootNode.text).toBe(text);
+      recovered.delete();
+    } finally {
+      calloc.mockRestore();
+      C.currentParseCallback = previousParse;
+      C.currentLogCallback = previousLog;
+      C.currentProgressCallback = previousProgress;
+      buffer?.delete();
+    }
   });
 
   describe('.setLanguage', () => {

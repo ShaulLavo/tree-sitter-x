@@ -18,6 +18,38 @@ function point(text: string, index: number) {
 }
 
 describe('TextBuffer', () => {
+  it.each([
+    [NaN, 1], [0, NaN], [Infinity, 1], [0, Infinity], [-Infinity, 1],
+    [0.5, 1], [0, 1.5], [-1, 1], [2, 1], [0, 5],
+    [Number.MAX_SAFE_INTEGER + 1, Number.MAX_SAFE_INTEGER + 1],
+  ])('rejects edit [%s, %s) without changing the buffer', (start, end) => {
+    const buffer = new TextBuffer('a😀b');
+    const address = buffer[0];
+    try {
+      expect(() => buffer.edit(start, end, 'replacement')).toThrow(RangeError);
+      expect(buffer[0]).toBe(address);
+      expect(buffer.length).toBe(4);
+      expect(buffer.slice()).toBe('a😀b');
+      expect(buffer.read(0)).toBe('a😀b');
+    } finally {
+      buffer.delete();
+    }
+  });
+
+  it('allows edits between the code units of a surrogate pair', () => {
+    const buffer = new TextBuffer('a😀b');
+    try {
+      buffer.edit(2, 2, 'x');
+      expect(buffer.slice()).toBe('a\ud83dx\ude00b');
+      buffer.edit(2, 3, '');
+      expect(buffer.slice()).toBe('a😀b');
+      buffer.edit(1, 2, '');
+      expect(buffer.slice()).toBe('a\ude00b');
+    } finally {
+      buffer.delete();
+    }
+  });
+
   it('rebuilds allocation views after realloc and matches a fresh parse across growth', () => {
     const parser = new Parser().setLanguage(JavaScript);
     const source = 'const café = "水😀";\n';
