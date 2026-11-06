@@ -22,7 +22,7 @@ jobs:
 
       - name: Test native array assignment with UBSAN
         run: |
-          cc -std=c11 -Wall -Wextra -Werror -fsanitize=undefined -g test/array_test.c lib/src/alloc.c -o "$RUNNER_TEMP/array-test"
+          cc -std=c11 -Wall -Wextra -Werror -fsanitize=undefined -g -Ilib/include test/array_test.c lib/src/alloc.c -o "$RUNNER_TEMP/array-test"
           UBSAN_OPTIONS=halt_on_error=1 "$RUNNER_TEMP/array-test"
 
       - name: Set up Rust
