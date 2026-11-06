@@ -212,19 +212,16 @@ void ts_parser_enable_logger_wasm(TSParser *self, bool should_log) {
   ts_parser_set_logger(self, logger);
 }
 
-static void set_included_ranges(TSParser *self, TSRange *ranges, uint32_t range_count) {
-  if (range_count) {
-    for (unsigned i = 0; i < range_count; i++) {
-      unmarshal_range(&ranges[i]);
-    }
-    ts_parser_set_included_ranges(self, ranges, range_count);
-    free(ranges);
-  } else {
-    ts_parser_set_included_ranges(self, NULL, 0);
+// The caller owns ranges, including when native validation rejects them.
+static bool set_included_ranges(TSParser *self, TSRange *ranges, uint32_t range_count) {
+  for (unsigned i = 0; i < range_count; i++) {
+    unmarshal_range(&ranges[i]);
   }
+  return ts_parser_set_included_ranges(self, ranges, range_count);
 }
 
-TSTree *ts_parser_parse_wasm(
+// -1 is distinct from an aligned tree pointer or NULL.
+intptr_t ts_parser_parse_wasm(
   TSParser *self,
   char *input_buffer,
   const TSTree *old_tree,
@@ -237,11 +234,11 @@ TSTree *ts_parser_parse_wasm(
     TSInputEncodingUTF16LE,
     NULL,
   };
-  set_included_ranges(self, ranges, range_count);
+  if (!set_included_ranges(self, ranges, range_count)) return -1;
 
   TSParseOptions options = {.payload = NULL, .progress_callback = progress_callback};
 
-  return ts_parser_parse_with_options(self, old_tree, input, options);
+  return (intptr_t)ts_parser_parse_with_options(self, old_tree, input, options);
 }
 
 typedef struct {
@@ -267,7 +264,7 @@ static const char *read_text_input(
 
 // Parses UTF-16 text already in the module's memory, with no call back into JS
 // for input. `length` is in bytes.
-TSTree *ts_parser_parse_utf16_wasm(
+intptr_t ts_parser_parse_utf16_wasm(
   TSParser *self,
   const char *text,
   uint32_t length,
@@ -277,11 +274,11 @@ TSTree *ts_parser_parse_utf16_wasm(
 ) {
   TextInput text_input = {text, length};
   TSInput input = {&text_input, read_text_input, TSInputEncodingUTF16LE, NULL};
-  set_included_ranges(self, ranges, range_count);
+  if (!set_included_ranges(self, ranges, range_count)) return -1;
 
   TSParseOptions options = {.payload = NULL, .progress_callback = progress_callback};
 
-  return ts_parser_parse_with_options(self, old_tree, input, options);
+  return (intptr_t)ts_parser_parse_with_options(self, old_tree, input, options);
 }
 
 void ts_parser_included_ranges_wasm(TSParser *self) {

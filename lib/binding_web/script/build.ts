@@ -30,4 +30,4 @@ async function build() {
   await fs.copyFile('lib/web-tree-sitter.wasm', `${debug ? 'debug/' : ''}web-tree-sitter.wasm`);
 }
 
-build().catch(console.error);
+await build();
