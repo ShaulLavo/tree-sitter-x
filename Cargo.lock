@@ -2393,6 +2393,7 @@ dependencies = [
  "schemars",
  "semver",
  "serde_json",
+ "sha2",
  "tree-sitter-cli",
  "tree-sitter-loader",
 ]

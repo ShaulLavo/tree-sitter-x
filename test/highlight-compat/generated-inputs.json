@@ -19,6 +19,52 @@
         "../../lib/binding_web/lib",
         "../../crates/xtask/src"
       ]
+    },
+    {
+      "path": "../../lib/scope-compat/build/scope-compat.wasm",
+      "command": "cargo xtask build-scope-compat",
+      "sources": [
+        "../../lib/scope-compat/src",
+        "../../lib/scope-compat/include",
+        "../../lib/scope-compat/imports.txt",
+        "../../lib/include/tree_sitter/api.h",
+        "../../crates/loader/wasi-sdk-version",
+        "../../crates/xtask/src",
+        "../../crates/xtask/Cargo.toml",
+        "../../Cargo.toml",
+        "../../Cargo.lock",
+        "../../lib/binding_web/lib/exports.txt",
+        "../../lib/binding_web/lib/extra-exports.txt",
+        "../../lib/src/wasm-stdlib/imports.txt"
+      ]
+    },
+    {
+      "path": "../../lib/scope-compat/build/scope-compat.manifest.json",
+      "command": "cargo xtask build-scope-compat",
+      "sources": [
+        "../../lib/scope-compat/src",
+        "../../lib/scope-compat/include",
+        "../../lib/scope-compat/imports.txt",
+        "../../lib/include/tree_sitter/api.h",
+        "../../crates/loader/wasi-sdk-version",
+        "../../crates/xtask/src",
+        "../../crates/xtask/Cargo.toml",
+        "../../Cargo.toml",
+        "../../Cargo.lock",
+        "../../lib/binding_web/lib/exports.txt",
+        "../../lib/binding_web/lib/extra-exports.txt",
+        "../../lib/src/wasm-stdlib/imports.txt"
+      ]
+    },
+    {
+      "path": "../../lib/scope-compat/build/scope-test-observer.wasm",
+      "command": "cargo xtask build-scope-compat",
+      "sources": [
+        "../../lib/scope-compat/test/observer.c",
+        "../../lib/include/tree_sitter/api.h",
+        "../../crates/xtask/src/build_wasm.rs",
+        "../../crates/loader/wasi-sdk-version"
+      ]
     }
   ]
 }

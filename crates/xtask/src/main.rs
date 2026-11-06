@@ -25,6 +25,11 @@ enum Commands {
     /// Compile the Tree-sitter Wasm library. This will create two files in the
     /// `lib/binding_web` directory: `web-tree-sitter.js` and `web-tree-sitter.wasm`.
     BuildWasm(BuildWasm),
+    /// Build the optional experimental scope component, or run its host sanitizers.
+    BuildScopeCompat {
+        #[arg(long)]
+        native_test: bool,
+    },
     /// Compile the Tree-sitter Wasm standard library.
     BuildWasmStdlib,
     /// Bumps the version of the workspace.
@@ -210,6 +215,7 @@ fn run() -> Result<()> {
     match command {
         Commands::Benchmark(benchmark_options) => benchmark::run(&benchmark_options)?,
         Commands::BuildWasm(build_wasm_options) => build_wasm::run_wasm(&build_wasm_options)?,
+        Commands::BuildScopeCompat { native_test } => build_wasm::run_scope_compat(native_test)?,
         Commands::BuildWasmStdlib => build_wasm::run_wasm_stdlib()?,
         Commands::BumpVersion(bump_options) => bump::run(bump_options)?,
         Commands::CheckRegexErrorKinds => check_regex_error_kinds::run()?,

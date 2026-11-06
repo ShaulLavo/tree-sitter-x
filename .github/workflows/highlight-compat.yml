@@ -33,13 +33,21 @@ jobs:
         with:
           toolchain: 1.98.1
 
-      - name: Build checkout web binding
+      - name: Build checkout web binding and scope component
         working-directory: .
         run: |
           cargo xtask build-wasm
+          cargo xtask build-scope-compat
           cd lib/binding_web
           npm ci
           npm run build:ts
+
+      - name: Share the built task runner with native safety checks
+        uses: actions/upload-artifact@v7
+        with:
+          name: scope-compat-xtask
+          path: target/debug/xtask
+          retention-days: 1
 
       - name: Install dependencies
         run: npm ci
@@ -59,3 +67,20 @@ jobs:
       - name: Check tests left the checkout unchanged
         if: always()
         run: node scripts/check-tracked-imports.ts --check-clean
+
+  scope-compat-native:
+    needs: harness
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/download-artifact@v8
+        with:
+          name: scope-compat-xtask
+          path: target/debug
+      - name: Fetch native JSON grammar
+        run: |
+          chmod +x target/debug/xtask
+          target/debug/xtask fetch-fixtures
+      - name: Run native scope sanitizers
+        run: target/debug/xtask build-scope-compat --native-test
