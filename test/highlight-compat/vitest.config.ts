@@ -6,6 +6,7 @@ export const PLATFORM_TESTS = 'manifest/**/*.platform.test.mjs'
 
 export default defineConfig({
   test: {
+    execArgv: ['--experimental-import-meta-resolve'],
     include: DEFAULT_INCLUDE,
     exclude: [PLATFORM_TESTS, '**/node_modules/**'],
   },
