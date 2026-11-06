@@ -272,12 +272,34 @@ fn remove_scope_outputs() -> Result<()> {
     for path in [
         "lib/scope-compat/build/scope-compat.wasm",
         "lib/scope-compat/build/scope-compat.manifest.json",
+        "lib/scope-compat/build/scope-test-observer.wasm",
     ] {
         if Path::new(path).exists() {
             fs::remove_file(path)?;
         }
     }
     Ok(())
+}
+
+fn scope_observer(clang: &Path) -> Result<()> {
+    fs::write(
+        "lib/scope-compat/build/observer-imports.txt",
+        "malloc\ncalloc\nrealloc\nfree\nts_set_allocator\n",
+    )?;
+    let output = Command::new(clang)
+        .args(
+            SCOPE_FLAGS
+                .iter()
+                .filter(|flag| !flag.starts_with("-Wl,--allow-undefined-file=")),
+        )
+        .args([
+            "-Wl,--allow-undefined-file=lib/scope-compat/build/observer-imports.txt",
+            "lib/scope-compat/test/observer.c",
+            "-o",
+            "lib/scope-compat/build/scope-test-observer.wasm",
+        ])
+        .output()?;
+    bail_on_err(&output, "Failed to build test-only allocation observer")
 }
 
 pub fn run_scope_compat(native_test: bool) -> Result<()> {
@@ -311,6 +333,7 @@ pub fn run_scope_compat(native_test: bool) -> Result<()> {
             "Failed to build scope component",
         )?;
         scope_manifest(&clang, output)?;
+        scope_observer(&clang)?;
         let status = Command::new("node")
             .args([
                 "test/highlight-compat/src/native/component-inputs.ts",

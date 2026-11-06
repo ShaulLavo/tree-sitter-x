@@ -55,6 +55,16 @@
         "../../lib/binding_web/lib/extra-exports.txt",
         "../../lib/src/wasm-stdlib/imports.txt"
       ]
+    },
+    {
+      "path": "../../lib/scope-compat/build/scope-test-observer.wasm",
+      "command": "cargo xtask build-scope-compat",
+      "sources": [
+        "../../lib/scope-compat/test/observer.c",
+        "../../lib/include/tree_sitter/api.h",
+        "../../crates/xtask/src/build_wasm.rs",
+        "../../crates/loader/wasi-sdk-version"
+      ]
     }
   ]
 }
