@@ -61,8 +61,8 @@ export class Tree {
 
   /** Delete the syntax tree, freeing its resources. */
   delete(): void {
-    finalizer?.unregister(this);
     C._ts_tree_delete(this[0]);
+    finalizer?.unregister(this);
     this[0] = 0;
   }
 
