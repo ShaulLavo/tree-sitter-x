@@ -1,7 +1,6 @@
 use std::{
     iter,
     path::{Component, Path, PathBuf},
-    sync::{LazyLock, Mutex},
 };
 
 use log::{error, info, warn};
@@ -9,7 +8,6 @@ use rquickjs::{
     Context, Ctx, Function, Module, Object, Runtime, Type, Value,
     loader::{FileResolver, ScriptLoader},
 };
-use rustc_hash::FxHashMap;
 
 use super::{IoError, JSError, JSResult};
 
@@ -50,28 +48,11 @@ fn format_js_exception(v: Value) -> JSError {
     }
 }
 
-static FILE_CACHE: LazyLock<Mutex<FxHashMap<String, String>>> =
-    LazyLock::new(|| Mutex::new(FxHashMap::default()));
-
 #[rquickjs::function]
 fn load_file(path: String) -> rquickjs::Result<String> {
-    {
-        let cache = FILE_CACHE.lock().unwrap();
-        if let Some(cached) = cache.get(&path) {
-            return Ok(cached.clone());
-        }
-    }
-
-    let content = std::fs::read_to_string(&path).map_err(|e| {
+    std::fs::read_to_string(path).map_err(|e| {
         rquickjs::Error::new_from_js_message("IOError", "FileReadError", e.to_string())
-    })?;
-
-    {
-        let mut cache = FILE_CACHE.lock().unwrap();
-        cache.insert(path, content.clone());
-    }
-
-    Ok(content)
+    })
 }
 
 #[rquickjs::class]
@@ -389,13 +370,7 @@ mod tests {
         let _guard = TEST_MUTEX
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        let result = test();
-        cleanup_runtime_state();
-        result
-    }
-
-    fn cleanup_runtime_state() {
-        FILE_CACHE.lock().unwrap().clear();
+        test()
     }
 
     struct TestDirectory {
