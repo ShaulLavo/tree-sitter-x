@@ -37,6 +37,41 @@ function expected(query: Query, tree: ReturnType<typeof fixture>['tree'], option
   })));
 }
 
+it.each(['any-of?', 'not-any-of?'])('checks %s membership for every repeated capture', operator => {
+  const parser = new Parser();
+  parser.setLanguage(JavaScript);
+  dispose.push(() => { parser.delete(); });
+  const source = '[alpha, alpha]; [beta, gamma]; [alpha, beta];';
+  const tree = parser.parse(source)!;
+  dispose.push(() => { tree.delete(); });
+  const query = new Query(JavaScript, `
+    ((array (identifier) @value (identifier) @value)
+      (#${operator} @value "alpha" "alpha"))
+  `);
+  dispose.push(() => { query.delete(); });
+  const wanted = operator === 'any-of?' ? ['alpha', 'alpha'] : ['beta', 'gamma'];
+  expect(query.matches(tree.rootNode).flatMap(match => match.captures.map(capture => capture.node.text)))
+    .toEqual(wanted);
+  expect(query.captures(tree.rootNode).map(capture => capture.node.text)).toEqual(wanted);
+  expect(query.captureRanges(tree.rootNode).map(capture => source.slice(capture.startIndex, capture.endIndex)))
+    .toEqual(wanted);
+});
+
+it.each(['any-of?', 'not-any-of?'])('preserves absent capture semantics for %s', operator => {
+  const parser = new Parser();
+  parser.setLanguage(JavaScript);
+  dispose.push(() => { parser.delete(); });
+  const tree = parser.parse('return;')!;
+  dispose.push(() => { tree.delete(); });
+  const query = new Query(JavaScript, `
+    (return_statement (identifier)? @value (#${operator} @value "alpha"))
+  `);
+  dispose.push(() => { query.delete(); });
+  expect(query.matches(tree.rootNode)).toHaveLength(operator === 'any-of?' ? 0 : 1);
+  expect(query.captures(tree.rootNode)).toEqual([]);
+  expect(query.captureRanges(tree.rootNode)).toEqual([]);
+});
+
 describe('capture ranges', () => {
   it.each([
     {},

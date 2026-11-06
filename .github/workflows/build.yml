@@ -392,6 +392,20 @@ jobs:
         npm run build
         npm run build:debug
 
+    - name: Check fresh packed web runtime
+      if: contains(matrix.features, 'wasm') && (matrix.run-wasm-test || !inputs.run-test)
+      shell: bash
+      working-directory: lib/binding_web
+      run: |
+        set -euo pipefail
+        npm run build:dts
+        node script/check-artifacts-fresh.ts
+        work=$(mktemp -d "$RUNNER_TEMP/package-runtime-XXXXXX")
+        trap 'rm -rf "$work"' EXIT INT TERM
+        npm pack --pack-destination "$work"
+        tar xzf "$work"/*.tgz -C "$work"
+        node script/check-package-types.ts "$work/package" --runtime-only
+
     - name: Check no_std builds
       if: inputs.run-test && !matrix.no-run
       working-directory: lib

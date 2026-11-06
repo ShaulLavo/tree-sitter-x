@@ -4,6 +4,7 @@ import { marshalNode, unmarshalCaptures } from './marshal';
 import { TRANSFER_BUFFER } from './parser';
 import { Language } from './language';
 import { newFinalizer } from './finalization_registry';
+import { withQueryCursor, checkQueryProgress } from './wasi-module';
 
 const PREDICATE_STEP_TYPE_CAPTURE = 1;
 
@@ -409,7 +410,7 @@ function parseAnyOfPredicate(
       if (c.name === captureName) nodes.push(readText(c.node));
     }
     if (nodes.length === 0) return !isPositive;
-    return nodes.every((text) => values.has(text)) === isPositive;
+    return nodes.every((text) => values.has(text) === isPositive);
   });
 }
 
@@ -538,6 +539,134 @@ const finalizer = newFinalizer((address: number) => {
   C._ts_query_delete(address);
 });
 
+function throwQueryError(source: string, sourceAddress: number): never {
+  const errorId = C.getValue(TRANSFER_BUFFER + SIZE_OF_INT, 'i32') as QueryErrorKind;
+  const errorByte = C.getValue(TRANSFER_BUFFER, 'i32');
+  const errorIndex = C.UTF8ToString(sourceAddress, errorByte).length;
+  const suffix = source.slice(errorIndex, errorIndex + 100).split('\n')[0];
+  const word = suffix.match(QUERY_WORD_REGEX)?.[0] ?? '';
+
+  switch (errorId) {
+    case QueryErrorKind.Syntax:
+      throw new QueryError(QueryErrorKind.Syntax, { suffix: `${errorIndex}: '${suffix}'...` }, errorIndex, 0);
+    case QueryErrorKind.NodeName:
+      throw new QueryError(errorId, { word }, errorIndex, word.length);
+    case QueryErrorKind.FieldName:
+      throw new QueryError(errorId, { word }, errorIndex, word.length);
+    case QueryErrorKind.CaptureName:
+      throw new QueryError(errorId, { word }, errorIndex, word.length);
+    case QueryErrorKind.PatternStructure:
+      throw new QueryError(errorId, { suffix: `${errorIndex}: '${suffix}'...` }, errorIndex, 0);
+  }
+  throw new Error('Unknown query error');
+}
+
+function readQuery(address: number) {
+  const stringCount = C._ts_query_string_count(address);
+  const captureCount = C._ts_query_capture_count(address);
+  const patternCount = C._ts_query_pattern_count(address);
+  const captureNames = new Array<string>(captureCount);
+  const captureQuantifiers = new Array<CaptureQuantifier[]>(patternCount);
+  const stringValues = new Array<string>(stringCount);
+
+  // Fill in the capture names
+  for (let i = 0; i < captureCount; i++) {
+    const nameAddress = C._ts_query_capture_name_for_id(
+      address,
+      i,
+      TRANSFER_BUFFER
+    );
+    const nameLength = C.getValue(TRANSFER_BUFFER, 'i32');
+    captureNames[i] = C.UTF8ToString(nameAddress, nameLength);
+  }
+
+  // Fill in the capture quantifiers
+  for (let i = 0; i < patternCount; i++) {
+    const captureQuantifiersArray = new Array<CaptureQuantifier>(captureCount);
+    for (let j = 0; j < captureCount; j++) {
+      const quantifier = C._ts_query_capture_quantifier_for_id(address, i, j);
+      captureQuantifiersArray[j] = quantifier as CaptureQuantifier;
+    }
+    captureQuantifiers[i] = captureQuantifiersArray;
+  }
+
+  // Fill in the string values
+  for (let i = 0; i < stringCount; i++) {
+    const valueAddress = C._ts_query_string_value_for_id(
+      address,
+      i,
+      TRANSFER_BUFFER
+    );
+    const nameLength = C.getValue(TRANSFER_BUFFER, 'i32');
+    stringValues[i] = C.UTF8ToString(valueAddress, nameLength);
+  }
+
+  const setProperties = new Array<QueryProperties>(patternCount);
+  const assertedProperties = new Array<QueryProperties>(patternCount);
+  const refutedProperties = new Array<QueryProperties>(patternCount);
+  const predicates = new Array<QueryPredicate[]>(patternCount);
+  const textPredicates = new Array<TextPredicate[]>(patternCount);
+
+  // Parse the predicates, and add the appropriate predicates or properties
+  for (let i = 0; i < patternCount; i++) {
+    const predicatesAddress = C._ts_query_predicates_for_pattern(address, i, TRANSFER_BUFFER);
+    const stepCount = C.getValue(TRANSFER_BUFFER, 'i32');
+
+    predicates[i] = [];
+    textPredicates[i] = [];
+
+    const steps = new Array<PredicateStep>();
+
+    let stepAddress = predicatesAddress;
+    for (let j = 0; j < stepCount; j++) {
+      const stepType = C.getValue(stepAddress, 'i32');
+      stepAddress += SIZE_OF_INT;
+
+      const stepValueId = C.getValue(stepAddress, 'i32');
+      stepAddress += SIZE_OF_INT;
+
+      parsePattern(
+        i,
+        stepType,
+        stepValueId,
+        captureNames,
+        stringValues,
+        steps,
+        textPredicates,
+        predicates,
+        setProperties,
+        assertedProperties,
+        refutedProperties,
+      );
+    }
+
+    Object.freeze(textPredicates[i]);
+    Object.freeze(predicates[i]);
+    Object.freeze(setProperties[i]);
+    Object.freeze(assertedProperties[i]);
+    Object.freeze(refutedProperties[i]);
+  }
+
+  return { captureNames, captureQuantifiers, textPredicates, predicates, setProperties, assertedProperties, refutedProperties };
+}
+
+function createQuery(language: Language, source: string) {
+  const sourceLength = C.lengthBytesUTF8(source);
+  const sourceAddress = C._malloc(sourceLength + 1);
+  let address = 0;
+  try {
+    C.stringToUTF8(source, sourceAddress, sourceLength + 1);
+    address = C._ts_query_new(language[0], sourceAddress, sourceLength, TRANSFER_BUFFER, TRANSFER_BUFFER + SIZE_OF_INT);
+    if (!address) throwQueryError(source, sourceAddress);
+    return { address, ...readQuery(address) };
+  } catch (error) {
+    if (address) C._ts_query_delete(address);
+    throw error;
+  } finally {
+    C._free(sourceAddress);
+  }
+}
+
 export class Query {
   /** @internal */
   private [0] = 0; // Internal handle for Wasm
@@ -592,144 +721,24 @@ export class Query {
    * @link {@see https://tree-sitter.github.io/tree-sitter/using-parsers/queries}
    */
   constructor(language: Language, source: string) {
-    const sourceLength = C.lengthBytesUTF8(source);
-    const sourceAddress = C._malloc(sourceLength + 1);
-    C.stringToUTF8(source, sourceAddress, sourceLength + 1);
-    const address = C._ts_query_new(
-      language[0],
-      sourceAddress,
-      sourceLength,
-      TRANSFER_BUFFER,
-      TRANSFER_BUFFER + SIZE_OF_INT
-    );
-
-    if (!address) {
-      const errorId = C.getValue(TRANSFER_BUFFER + SIZE_OF_INT, 'i32') as QueryErrorKind;
-      const errorByte = C.getValue(TRANSFER_BUFFER, 'i32');
-      const errorIndex = C.UTF8ToString(sourceAddress, errorByte).length;
-      const suffix = source.slice(errorIndex, errorIndex + 100).split('\n')[0];
-      const word = suffix.match(QUERY_WORD_REGEX)?.[0] ?? '';
-      C._free(sourceAddress);
-
-      switch (errorId) {
-        case QueryErrorKind.Syntax:
-          throw new QueryError(QueryErrorKind.Syntax, { suffix: `${errorIndex}: '${suffix}'...` }, errorIndex, 0);
-        case QueryErrorKind.NodeName:
-          throw new QueryError(errorId, { word }, errorIndex, word.length);
-        case QueryErrorKind.FieldName:
-          throw new QueryError(errorId, { word }, errorIndex, word.length);
-        case QueryErrorKind.CaptureName:
-          throw new QueryError(errorId, { word }, errorIndex, word.length);
-        case QueryErrorKind.PatternStructure:
-          throw new QueryError(errorId, { suffix: `${errorIndex}: '${suffix}'...` }, errorIndex, 0);
-      }
-    }
-
-    const stringCount = C._ts_query_string_count(address);
-    const captureCount = C._ts_query_capture_count(address);
-    const patternCount = C._ts_query_pattern_count(address);
-    const captureNames = new Array<string>(captureCount);
-    const captureQuantifiers = new Array<CaptureQuantifier[]>(patternCount);
-    const stringValues = new Array<string>(stringCount);
-
-    // Fill in the capture names
-    for (let i = 0; i < captureCount; i++) {
-      const nameAddress = C._ts_query_capture_name_for_id(
-        address,
-        i,
-        TRANSFER_BUFFER
-      );
-      const nameLength = C.getValue(TRANSFER_BUFFER, 'i32');
-      captureNames[i] = C.UTF8ToString(nameAddress, nameLength);
-    }
-
-    // Fill in the capture quantifiers
-    for (let i = 0; i < patternCount; i++) {
-      const captureQuantifiersArray = new Array<CaptureQuantifier>(captureCount);
-      for (let j = 0; j < captureCount; j++) {
-        const quantifier = C._ts_query_capture_quantifier_for_id(address, i, j);
-        captureQuantifiersArray[j] = quantifier as CaptureQuantifier;
-      }
-      captureQuantifiers[i] = captureQuantifiersArray;
-    }
-
-    // Fill in the string values
-    for (let i = 0; i < stringCount; i++) {
-      const valueAddress = C._ts_query_string_value_for_id(
-        address,
-        i,
-        TRANSFER_BUFFER
-      );
-      const nameLength = C.getValue(TRANSFER_BUFFER, 'i32');
-      stringValues[i] = C.UTF8ToString(valueAddress, nameLength);
-    }
-
-    const setProperties = new Array<QueryProperties>(patternCount);
-    const assertedProperties = new Array<QueryProperties>(patternCount);
-    const refutedProperties = new Array<QueryProperties>(patternCount);
-    const predicates = new Array<QueryPredicate[]>(patternCount);
-    const textPredicates = new Array<TextPredicate[]>(patternCount);
-
-    // Parse the predicates, and add the appropriate predicates or properties
-    for (let i = 0; i < patternCount; i++) {
-      const predicatesAddress = C._ts_query_predicates_for_pattern(address, i, TRANSFER_BUFFER);
-      const stepCount = C.getValue(TRANSFER_BUFFER, 'i32');
-
-      predicates[i] = [];
-      textPredicates[i] = [];
-
-      const steps = new Array<PredicateStep>();
-
-      let stepAddress = predicatesAddress;
-      for (let j = 0; j < stepCount; j++) {
-        const stepType = C.getValue(stepAddress, 'i32');
-        stepAddress += SIZE_OF_INT;
-
-        const stepValueId = C.getValue(stepAddress, 'i32');
-        stepAddress += SIZE_OF_INT;
-
-        parsePattern(
-          i,
-          stepType,
-          stepValueId,
-          captureNames,
-          stringValues,
-          steps,
-          textPredicates,
-          predicates,
-          setProperties,
-          assertedProperties,
-          refutedProperties,
-        );
-      }
-
-      Object.freeze(textPredicates[i]);
-      Object.freeze(predicates[i]);
-      Object.freeze(setProperties[i]);
-      Object.freeze(assertedProperties[i]);
-      Object.freeze(refutedProperties[i]);
-    }
-
-    C._free(sourceAddress);
-
-
-    this[0] = address;
-    this.captureNames = captureNames;
-    this.captureQuantifiers = captureQuantifiers;
-    this.textPredicates = textPredicates;
+    const data = createQuery(language, source);
+    this[0] = data.address;
+    this.captureNames = data.captureNames;
+    this.captureQuantifiers = data.captureQuantifiers;
+    this.textPredicates = data.textPredicates;
+    this.predicates = data.predicates;
+    this.setProperties = data.setProperties;
+    this.assertedProperties = data.assertedProperties;
+    this.refutedProperties = data.refutedProperties;
     this.source = source;
-    this.predicates = predicates;
-    this.setProperties = setProperties;
-    this.assertedProperties = assertedProperties;
-    this.refutedProperties = refutedProperties;
     this.exceededMatchLimit = false;
-    finalizer?.register(this, address, this);
+    finalizer?.register(this, data.address, this);
   }
 
   /** Delete the query, freeing its resources. */
   delete(): void {
-    finalizer?.unregister(this);
     C._ts_query_delete(this[0]);
+    finalizer?.unregister(this);
     this[0] = 0;
   }
 
@@ -749,39 +758,47 @@ export class Query {
     node: Node,
     options: QueryOptions = {}
   ): QueryMatch[] {
-    const [rawCount, startAddress] = this.executeMatches(node, options);
-    const result = new Array<QueryMatch>(rawCount);
+    return withQueryCursor(C, this[0], node.tree[0], options.progressCallback ?? null,
+      () => this.matchesWithCursor(node, options));
+  }
 
+  private matchesWithCursor(node: Node, options: QueryOptions): QueryMatch[] {
+    const [rawCount, startAddress] = this.execute(node, options);
     try {
-      const readText = createQueryTextReader();
-      let filteredCount = 0;
-      let address = startAddress;
-      for (let i = 0; i < rawCount; i++) {
-        const patternIndex = C.getValue(address, 'i32');
-        address += SIZE_OF_INT;
-        const captureCount = C.getValue(address, 'i32');
-        address += SIZE_OF_INT;
-
-        const captures = new Array<QueryCapture>(captureCount);
-        address = unmarshalCaptures(this, node.tree, address, patternIndex, captures);
-
-        if (this.textPredicates[patternIndex].every((p) => p(captures, readText))) {
-          result[filteredCount] = { patternIndex, captures };
-          const setProperties = this.setProperties[patternIndex];
-          result[filteredCount].setProperties = setProperties;
-          const assertedProperties = this.assertedProperties[patternIndex];
-          result[filteredCount].assertedProperties = assertedProperties;
-          const refutedProperties = this.refutedProperties[patternIndex];
-          result[filteredCount].refutedProperties = refutedProperties;
-          filteredCount++;
-        }
-      }
-      result.length = filteredCount;
-
-      return result;
+      return this.readMatches(node, rawCount, startAddress);
     } finally {
       C._free(startAddress);
     }
+  }
+
+  private readMatches(node: Node, rawCount: number, startAddress: number): QueryMatch[] {
+    const result = new Array<QueryMatch>(rawCount);
+    const readText = createQueryTextReader();
+    let filteredCount = 0;
+    let address = startAddress;
+    for (let i = 0; i < rawCount; i++) {
+      const patternIndex = C.getValue(address, 'i32');
+      address += SIZE_OF_INT;
+      const captureCount = C.getValue(address, 'i32');
+      address += SIZE_OF_INT;
+
+      const captures = new Array<QueryCapture>(captureCount);
+      address = unmarshalCaptures(this, node.tree, address, patternIndex, captures);
+
+      if (this.textPredicates[patternIndex].every((p) => p(captures, readText))) {
+        result[filteredCount] = { patternIndex, captures };
+        const setProperties = this.setProperties[patternIndex];
+        result[filteredCount].setProperties = setProperties;
+        const assertedProperties = this.assertedProperties[patternIndex];
+        result[filteredCount].assertedProperties = assertedProperties;
+        const refutedProperties = this.refutedProperties[patternIndex];
+        result[filteredCount].refutedProperties = refutedProperties;
+        filteredCount++;
+      }
+    }
+    result.length = filteredCount;
+
+    return result;
   }
 
   /**
@@ -790,51 +807,63 @@ export class Query {
    * execution options have the same meaning as in `matches`.
    */
   captureRanges(node: Node, options: QueryOptions = {}): QueryCaptureRange[] {
-    const [rawCount, startAddress] = this.executeMatches(node, options);
-    const result: QueryCaptureRange[] = [];
-    const scratch: QueryCapture[] = [];
-    const readText = createQueryTextReader();
-    let address = startAddress;
+    return withQueryCursor(C, this[0], node.tree[0], options.progressCallback ?? null,
+      () => this.captureRangesWithCursor(node, options));
+  }
+
+  private captureRangesWithCursor(node: Node, options: QueryOptions): QueryCaptureRange[] {
+    const [rawCount, startAddress] = this.execute(node, options);
     try {
-      for (let i = 0; i < rawCount; i++) {
-        const patternIndex = C.getValue(address, 'i32');
-        const captureCount = C.getValue(address + SIZE_OF_INT, 'i32');
-        address += 2 * SIZE_OF_INT;
-        const capturesAddress = address;
-        address += captureCount * (SIZE_OF_INT + SIZE_OF_NODE);
-        const predicates = this.textPredicates[patternIndex];
-        if (predicates.length) {
-          scratch.length = captureCount;
-          unmarshalCaptures(this, node.tree, capturesAddress, patternIndex, scratch);
-          if (!predicates.every(predicate => predicate(scratch, readText))) continue;
-        }
-        let captureAddress = capturesAddress;
-        for (let j = 0; j < captureCount; j++) {
-          const captureIndex = C.getValue(captureAddress, 'i32');
-          const nodeAddress = (captureAddress + SIZE_OF_INT) >>> 0;
-          const startIndex = C.getValue(nodeAddress + SIZE_OF_INT, 'i32');
-          // Use the native node record directly; public Node and Point objects are unnecessary.
-          C.HEAPU8.copyWithin(TRANSFER_BUFFER, nodeAddress, nodeAddress + SIZE_OF_NODE);
-          const endIndex = C._ts_node_end_index_wasm(node.tree[0]);
-          result.push({
-            patternIndex,
-            name: this.captureNames[captureIndex],
-            startIndex,
-            endIndex,
-            setProperties: this.setProperties[patternIndex],
-            assertedProperties: this.assertedProperties[patternIndex],
-            refutedProperties: this.refutedProperties[patternIndex],
-          });
-          captureAddress += SIZE_OF_INT + SIZE_OF_NODE;
-        }
-      }
-      return result;
+      return this.readCaptureRanges(node, rawCount, startAddress);
     } finally {
       C._free(startAddress);
     }
   }
 
-  private executeMatches(node: Node, options: QueryOptions): [number, number] {
+  private readCaptureRanges(node: Node, rawCount: number, startAddress: number): QueryCaptureRange[] {
+    const result: QueryCaptureRange[] = [];
+    const scratch: QueryCapture[] = [];
+    const readText = createQueryTextReader();
+    let address = startAddress;
+    for (let i = 0; i < rawCount; i++) {
+      const patternIndex = C.getValue(address, 'i32');
+      const captureCount = C.getValue(address + SIZE_OF_INT, 'i32');
+      address += 2 * SIZE_OF_INT;
+      const capturesAddress = address;
+      address += captureCount * (SIZE_OF_INT + SIZE_OF_NODE);
+      if (!this.acceptsRangeMatch(node, patternIndex, capturesAddress, captureCount, scratch, readText)) continue;
+      let captureAddress = capturesAddress;
+      for (let j = 0; j < captureCount; j++) {
+        const captureIndex = C.getValue(captureAddress, 'i32');
+        const nodeAddress = (captureAddress + SIZE_OF_INT) >>> 0;
+        const startIndex = C.getValue(nodeAddress + SIZE_OF_INT, 'i32');
+        // Use the native node record directly; public Node and Point objects are unnecessary.
+        C.HEAPU8.copyWithin(TRANSFER_BUFFER, nodeAddress, nodeAddress + SIZE_OF_NODE);
+        const endIndex = C._ts_node_end_index_wasm(node.tree[0]);
+        result.push({
+          patternIndex,
+          name: this.captureNames[captureIndex],
+          startIndex,
+          endIndex,
+          setProperties: this.setProperties[patternIndex],
+          assertedProperties: this.assertedProperties[patternIndex],
+          refutedProperties: this.refutedProperties[patternIndex],
+        });
+        captureAddress += SIZE_OF_INT + SIZE_OF_NODE;
+      }
+    }
+    return result;
+  }
+
+  private acceptsRangeMatch(node: Node, patternIndex: number, address: number, count: number, scratch: QueryCapture[], readText: ReturnType<typeof createQueryTextReader>): boolean {
+    const predicates = this.textPredicates[patternIndex];
+    if (!predicates.length) return true;
+    scratch.length = count;
+    unmarshalCaptures(this, node.tree, address, patternIndex, scratch);
+    return predicates.every(predicate => predicate(scratch, readText));
+  }
+
+  private execute(node: Node, options: QueryOptions, captures = false): [number, number] {
     const startPosition = options.startPosition ?? ZERO_POINT;
     const endPosition = options.endPosition ?? ZERO_POINT;
     const startIndex = options.startIndex ?? 0;
@@ -845,7 +874,6 @@ export class Query {
     const endContainingIndex = options.endContainingIndex ?? 0;
     const matchLimit = options.matchLimit ?? 0xFFFFFFFF;
     const maxStartDepth = options.maxStartDepth ?? 0xFFFFFFFF;
-    const progressCallback = options.progressCallback;
 
     if (typeof matchLimit !== 'number') {
       throw new Error('Arguments must be numbers');
@@ -875,38 +903,37 @@ export class Query {
       throw new Error('`startContainingPosition` cannot be greater than `endContainingPosition`');
     }
 
-    C.currentQueryProgressCallback = progressCallback ?? null;
-
     marshalNode(node);
 
-    try {
-      C._ts_query_matches_wasm(
-        this[0],
-        node.tree[0],
-        startPosition.row,
-        startPosition.column,
-        endPosition.row,
-        endPosition.column,
-        startIndex,
-        endIndex,
-        startContainingPosition.row,
-        startContainingPosition.column,
-        endContainingPosition.row,
-        endContainingPosition.column,
-        startContainingIndex,
-        endContainingIndex,
-        matchLimit,
-        maxStartDepth,
-      );
-    } finally {
-      C.currentQueryProgressCallback = null;
-    }
-
+    C[captures ? '_ts_query_captures_wasm' : '_ts_query_matches_wasm'](
+      this[0],
+      node.tree[0],
+      startPosition.row,
+      startPosition.column,
+      endPosition.row,
+      endPosition.column,
+      startIndex,
+      endIndex,
+      startContainingPosition.row,
+      startContainingPosition.column,
+      endContainingPosition.row,
+      endContainingPosition.column,
+      startContainingIndex,
+      endContainingIndex,
+      matchLimit,
+      maxStartDepth,
+    );
     const rawCount = C.getValue(TRANSFER_BUFFER, 'i32');
     const startAddress = C.getValue(TRANSFER_BUFFER + SIZE_OF_INT, 'i32');
     const didExceedMatchLimit = C.getValue(TRANSFER_BUFFER + 2 * SIZE_OF_INT, 'i32');
     this.exceededMatchLimit = Boolean(didExceedMatchLimit);
-    return [rawCount, startAddress];
+    try {
+      checkQueryProgress(C);
+      return [rawCount, startAddress];
+    } catch (error) {
+      C._free(startAddress);
+      throw error;
+    }
   }
 
 
@@ -925,80 +952,23 @@ export class Query {
     node: Node,
     options: QueryOptions = {}
   ): QueryCapture[] {
-    const startPosition = options.startPosition ?? ZERO_POINT;
-    const endPosition = options.endPosition ?? ZERO_POINT;
-    const startIndex = options.startIndex ?? 0;
-    const endIndex = options.endIndex ?? 0;
-    const startContainingPosition = options.startContainingPosition ?? ZERO_POINT;
-    const endContainingPosition = options.endContainingPosition ?? ZERO_POINT;
-    const startContainingIndex = options.startContainingIndex ?? 0;
-    const endContainingIndex = options.endContainingIndex ?? 0;
-    const matchLimit = options.matchLimit ?? 0xFFFFFFFF;
-    const maxStartDepth = options.maxStartDepth ?? 0xFFFFFFFF;
-    const progressCallback = options.progressCallback;
+    return withQueryCursor(C, this[0], node.tree[0], options.progressCallback ?? null,
+      () => this.capturesWithCursor(node, options));
+  }
 
-    if (typeof matchLimit !== 'number') {
-      throw new Error('Arguments must be numbers');
+  private capturesWithCursor(node: Node, options: QueryOptions): QueryCapture[] {
+    const [count, startAddress] = this.execute(node, options, true);
+    try {
+      return this.readCaptures(node, count, startAddress);
+    } finally {
+      C._free(startAddress);
     }
-    this.matchLimit = matchLimit;
+  }
 
-    if (endIndex !== 0 && startIndex > endIndex) {
-      throw new Error('`startIndex` cannot be greater than `endIndex`');
-    }
-
-    if (endPosition !== ZERO_POINT && (
-      startPosition.row > endPosition.row ||
-      (startPosition.row === endPosition.row && startPosition.column > endPosition.column)
-    )) {
-      throw new Error('`startPosition` cannot be greater than `endPosition`');
-    }
-
-    if (endContainingIndex !== 0 && startContainingIndex > endContainingIndex) {
-      throw new Error('`startContainingIndex` cannot be greater than `endContainingIndex`');
-    }
-
-    if (endContainingPosition !== ZERO_POINT && (
-      startContainingPosition.row > endContainingPosition.row ||
-      (startContainingPosition.row === endContainingPosition.row &&
-        startContainingPosition.column > endContainingPosition.column)
-    )) {
-      throw new Error('`startContainingPosition` cannot be greater than `endContainingPosition`');
-    }
-
-    if (progressCallback) {
-      C.currentQueryProgressCallback = progressCallback;
-    }
-
-    marshalNode(node);
-
-    C._ts_query_captures_wasm(
-      this[0],
-      node.tree[0],
-      startPosition.row,
-      startPosition.column,
-      endPosition.row,
-      endPosition.column,
-      startIndex,
-      endIndex,
-      startContainingPosition.row,
-      startContainingPosition.column,
-      endContainingPosition.row,
-      endContainingPosition.column,
-      startContainingIndex,
-      endContainingIndex,
-      matchLimit,
-      maxStartDepth,
-    );
-
-    const count = C.getValue(TRANSFER_BUFFER, 'i32');
-    const startAddress = C.getValue(TRANSFER_BUFFER + SIZE_OF_INT, 'i32');
-    const didExceedMatchLimit = C.getValue(TRANSFER_BUFFER + 2 * SIZE_OF_INT, 'i32');
+  private readCaptures(node: Node, count: number, address: number): QueryCapture[] {
     const result = new Array<QueryCapture>();
-    this.exceededMatchLimit = Boolean(didExceedMatchLimit);
-
     const readText = createQueryTextReader();
     const captures = new Array<QueryCapture>();
-    let address = startAddress;
     for (let i = 0; i < count; i++) {
       const patternIndex = C.getValue(address, 'i32');
       address += SIZE_OF_INT;
@@ -1022,8 +992,6 @@ export class Query {
       }
     }
 
-    C._free(startAddress);
-    C.currentQueryProgressCallback = null;
     return result;
   }
 

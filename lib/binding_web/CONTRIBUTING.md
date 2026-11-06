@@ -81,7 +81,7 @@ and writes a module-scoped `web-tree-sitter.d.cts` with a declaration source map
 that bundle, so ESM, CommonJS and `/debug` consumers share types without ambient declarations.
 
 This TypeScript code is then compiled into a single JavaScript file with `esbuild`. The build configuration for this can
-be found in [`script/build.js`][build.js], but this shouldn't need to be updated. This step is responsible for emitting
+be found in [`script/build.ts`][build.ts], but this shouldn't need to be updated. This step is responsible for emitting
 the final JS and Wasm files that are shipped with the library, as well as their sourcemaps.
 
 ### Testing
@@ -133,7 +133,7 @@ file mentioned earlier, namely in the `run_wasm` function.
 [bindings.ts]: src/bindings.ts
 [wasi-module.ts]: src/wasi-module.ts
 [wasi-sdk]: https://github.com/WebAssembly/wasi-sdk
-[build.js]: script/build.js
+[build.ts]: script/build.ts
 [covenant]: https://www.contributor-covenant.org/version/1/4/code-of-conduct
 [dts-buddy]: https://github.com/Rich-Harris/dts-buddy
 [exports.txt]: lib/exports.txt
