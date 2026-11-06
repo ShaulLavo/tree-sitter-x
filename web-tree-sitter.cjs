@@ -330,8 +330,8 @@ var Tree = class _Tree {
   }
   /** Delete the syntax tree, freeing its resources. */
   delete() {
-    finalizer2?.unregister(this);
     C._ts_tree_delete(this[0]);
+    finalizer2?.unregister(this);
     this[0] = 0;
   }
   /** Get the root node of the syntax tree. */
@@ -1346,6 +1346,27 @@ function unmarshalLanguageMetadata(address) {
 __name(unmarshalLanguageMetadata, "unmarshalLanguageMetadata");
 
 // src/wasi-module.ts
+var queryExecutions = /* @__PURE__ */ new WeakMap();
+function withQueryCursor(module2, query, tree, callback, action) {
+  if (queryExecutions.has(module2)) throw new Error("A query is already running");
+  if (!query) throw new Error("Cannot execute a deleted query");
+  if (!tree) throw new Error("Cannot execute on a deleted tree");
+  const previous = module2.currentQueryProgressCallback;
+  queryExecutions.set(module2, { query, tree, failure: null });
+  module2.currentQueryProgressCallback = callback;
+  try {
+    return action();
+  } finally {
+    module2.currentQueryProgressCallback = previous;
+    queryExecutions.delete(module2);
+  }
+}
+__name(withQueryCursor, "withQueryCursor");
+function checkQueryProgress(module2) {
+  const failure = queryExecutions.get(module2)?.failure;
+  if (failure) throw failure.error;
+}
+__name(checkQueryProgress, "checkQueryProgress");
 var ERRNO_BADF = 8;
 var ERRNO_NOSYS = 52;
 function wasiImports(module2) {
@@ -1369,37 +1390,88 @@ var INPUT_BUFFER_SIZE = 10 * 1024;
 var UTF16_CHUNK_SIZE = 4096;
 function readLeb(bytes, cursor) {
   let result = 0;
-  let shift = 0;
-  let byte;
-  do {
-    byte = bytes[cursor.at++];
-    result |= (byte & 127) << shift;
-    shift += 7;
-  } while (byte & 128);
-  return result >>> 0;
+  for (let shift = 0; shift <= 28; shift += 7) {
+    if (cursor.at >= bytes.length) throw new Error("Truncated dylink.0 integer");
+    const byte = bytes[cursor.at++];
+    if (shift === 28 && byte > 15) throw new Error("dylink.0 integer overflow");
+    result += (byte & 127) * 2 ** shift;
+    if (!(byte & 128)) return result;
+  }
+  throw new Error("dylink.0 integer overflow");
 }
 __name(readLeb, "readLeb");
 function dylinkInfo(module2) {
-  const info = { memorySize: 0, memoryAlign: 0, tableSize: 0, tableAlign: 0 };
   const sections = WebAssembly.Module.customSections(module2, "dylink.0");
   if (sections.length === 0) throw new Error("Language module has no dylink.0 section");
+  if (sections.length !== 1) throw new Error("Duplicate dylink.0 sections");
+  let info;
   const bytes = new Uint8Array(sections[0]);
   const cursor = { at: 0 };
   while (cursor.at < bytes.length) {
     const type = bytes[cursor.at++];
     const size = readLeb(bytes, cursor);
     const end = cursor.at + size;
+    if (end > bytes.length) throw new Error("Truncated dylink.0 subsection");
     if (type === 1) {
-      info.memorySize = readLeb(bytes, cursor);
-      info.memoryAlign = readLeb(bytes, cursor);
-      info.tableSize = readLeb(bytes, cursor);
-      info.tableAlign = readLeb(bytes, cursor);
+      if (info) throw new Error("Duplicate dylink.0 memory info");
+      const record = bytes.subarray(cursor.at, end);
+      const position = { at: 0 };
+      info = {
+        memorySize: readLeb(record, position),
+        memoryAlign: readLeb(record, position),
+        tableSize: readLeb(record, position),
+        tableAlign: readLeb(record, position)
+      };
+      if (position.at !== record.length) throw new Error("Invalid dylink.0 memory info size");
+      if (info.memoryAlign > 31 || info.tableAlign > 31) throw new Error("Invalid dylink.0 alignment");
+      if (info.memorySize + Math.max(16, 2 ** info.memoryAlign) - 1 > 4294967295) throw new Error("dylink.0 allocation size overflow");
     }
     cursor.at = end;
   }
+  if (!info) throw new Error("Missing dylink.0 memory info");
   return info;
 }
 __name(dylinkInfo, "dylinkInfo");
+function sideImports(wasmModule, exports2) {
+  const env = /* @__PURE__ */ Object.create(null);
+  Object.assign(env, { memory: exports2.memory, __indirect_function_table: exports2.__indirect_function_table, __stack_pointer: exports2.__stack_pointer });
+  const kinds = {
+    memory: "memory",
+    __indirect_function_table: "table",
+    __stack_pointer: "global",
+    __memory_base: "global",
+    __table_base: "global"
+  };
+  const symbols = new Map(WebAssembly.Module.exports(wasmModule).map((symbol) => [symbol.name, symbol.kind]));
+  const memoryGot = /* @__PURE__ */ new Map();
+  const functionGot = /* @__PURE__ */ new Map();
+  const got = {
+    "GOT.mem": /* @__PURE__ */ Object.create(null),
+    "GOT.func": /* @__PURE__ */ Object.create(null)
+  };
+  for (const { module: from, name, kind } of WebAssembly.Module.imports(wasmModule)) {
+    if (from === "env" && Object.hasOwn(kinds, name) && kinds[name] === kind) continue;
+    const runtimeSymbol = Object.hasOwn(exports2, name) ? exports2[name] : void 0;
+    if (from === "env" && !Object.hasOwn(kinds, name) && kind === "function" && typeof runtimeSymbol === "function") {
+      env[name] = runtimeSymbol;
+      continue;
+    }
+    if (from !== "GOT.mem" && from !== "GOT.func" || kind !== "global") throw new Error(`Language module imports unsupported ${from}.${name} (${kind})`);
+    const expected = from === "GOT.mem" ? "global" : "function";
+    const symbol = symbols.get(name);
+    if (symbol !== expected && !(from === "GOT.func" && symbol === void 0 && typeof runtimeSymbol === "function")) throw new Error(`Language module has no ${expected} symbol ${name}`);
+    const slots = from === "GOT.mem" ? memoryGot : functionGot;
+    if (slots.has(name)) continue;
+    const slot = new WebAssembly.Global({ value: "i32", mutable: true }, 0);
+    got[from][name] = slot;
+    slots.set(name, slot);
+  }
+  for (const name of ["__wasm_apply_data_relocs", "__wasm_call_ctors"]) {
+    if (symbols.has(name) && symbols.get(name) !== "function") throw new Error(`Invalid language module function ${name}`);
+  }
+  return { env, got, memoryGot, functionGot };
+}
+__name(sideImports, "sideImports");
 function isFileInput(input) {
   if (typeof input !== "string") return input.protocol === "file:";
   return /^[a-z]:/i.test(input) || !/^[a-z][a-z\d+.-]*:/i.test(input);
@@ -1546,8 +1618,15 @@ async function createModule(options = {}) {
         return Number(!!cancel);
       },
       tree_sitter_query_progress_callback(currentOffset) {
-        const cancel = module2.currentQueryProgressCallback?.({ currentOffset });
-        return Number(!!cancel);
+        const execution = queryExecutions.get(module2);
+        if (execution?.failure) return 1;
+        try {
+          const cancel = module2.currentQueryProgressCallback?.({ currentOffset });
+          return Number(!!cancel);
+        } catch (error) {
+          if (execution) execution.failure = { error };
+          return 1;
+        }
       }
     }
   };
@@ -1573,55 +1652,114 @@ async function createModule(options = {}) {
   }
   __name(refreshHeap, "refreshHeap");
   exports2._initialize();
-  function link(wasmModule) {
-    const info = dylinkInfo(wasmModule);
-    const align = Math.max(2 ** info.memoryAlign, 16);
-    const memoryBase = info.memorySize ? Math.ceil((exports2.malloc(info.memorySize + align) >>> 0) / align) * align : 0;
-    refreshHeap();
-    if (info.memorySize) heapU8.fill(0, memoryBase, memoryBase + info.memorySize);
+  const freeTableRanges = [];
+  function planTable(size, alignment) {
     const table = exports2.__indirect_function_table;
-    const tableBase = table.grow(info.tableSize);
-    const env = {
-      memory: exports2.memory,
-      __indirect_function_table: table,
-      __stack_pointer: exports2.__stack_pointer,
-      __memory_base: new WebAssembly.Global({ value: "i32", mutable: false }, memoryBase),
-      __table_base: new WebAssembly.Global({ value: "i32", mutable: false }, tableBase)
-    };
-    const memoryGot = /* @__PURE__ */ new Map();
-    const functionGot = /* @__PURE__ */ new Map();
-    const got = { "GOT.mem": {}, "GOT.func": {} };
-    for (const { module: from, name, kind } of WebAssembly.Module.imports(wasmModule)) {
-      if (from === "env") {
-        if (name in env) continue;
-        if (kind !== "function" || typeof exports2[name] !== "function") {
-          throw new Error(`Language module imports ${name}, which the runtime does not provide`);
-        }
-        env[name] = exports2[name];
-      } else if (from === "GOT.mem" || from === "GOT.func") {
-        const slot = new WebAssembly.Global({ value: "i32", mutable: true }, 0);
-        got[from][name] = slot;
-        (from === "GOT.mem" ? memoryGot : functionGot).set(name, slot);
-      } else {
-        throw new Error(`Language module imports ${from}.${name}, which the runtime does not provide`);
+    const available = freeTableRanges.findIndex((range) => Math.ceil(range.start / alignment) * alignment + size <= range.end);
+    const start = available === -1 ? table.length : freeTableRanges[available].start;
+    const base = Math.ceil(start / alignment) * alignment;
+    const end = base + size;
+    if (end > 4294967295) throw new Error("dylink.0 table offset overflow");
+    return { start, end: size === 0 ? start : end, base, available };
+  }
+  __name(planTable, "planTable");
+  function reserveTable(reservation) {
+    const { start, end, available } = reservation;
+    if (start === end) return reservation;
+    if (available === -1) exports2.__indirect_function_table.grow(end - start);
+    else {
+      const range = freeTableRanges[available];
+      freeTableRanges.splice(available, 1);
+      if (range.end > end) freeTableRanges.splice(available, 0, { start: end, end: range.end });
+    }
+    return reservation;
+  }
+  __name(reserveTable, "reserveTable");
+  function releaseTable(reservation) {
+    const { start, end } = reservation;
+    if (start === end) return;
+    for (let index = start; index < end; index++) exports2.__indirect_function_table.set(index, null);
+    freeTableRanges.push({ start, end });
+    freeTableRanges.sort((a, b) => a.start - b.start);
+    for (let index = 1; index < freeTableRanges.length; ) {
+      const previous = freeTableRanges[index - 1];
+      const current = freeTableRanges[index];
+      if (previous.end !== current.start) {
+        index++;
+        continue;
       }
+      previous.end = current.end;
+      freeTableRanges.splice(index, 1);
     }
-    const side = new WebAssembly.Instance(wasmModule, { env, ...got }).exports;
-    for (const [name, slot] of memoryGot) {
+  }
+  __name(releaseTable, "releaseTable");
+  function relocate(side, memoryBase, tableBase, imports2) {
+    for (const [name, slot] of imports2.memoryGot) {
       const symbol = side[name];
-      if (!(symbol instanceof WebAssembly.Global)) throw new Error(`Language module has no data symbol ${name}`);
-      slot.value = memoryBase + symbol.value;
+      if (!(symbol instanceof WebAssembly.Global) || typeof symbol.value !== "number") throw new Error(`Language module has no data symbol ${name}`);
+      const address = memoryBase + (symbol.value >>> 0);
+      if (address > 4294967295) throw new Error("dylink.0 data symbol offset overflow");
+      slot.value = address;
     }
-    for (const [name, slot] of functionGot) {
+    let index = tableBase;
+    for (const [name, slot] of imports2.functionGot) {
       const fn = side[name] ?? exports2[name];
       if (typeof fn !== "function") throw new Error(`Language module has no function ${name}`);
-      const index = table.grow(1);
-      table.set(index, fn);
-      slot.value = index;
+      exports2.__indirect_function_table.set(index, fn);
+      slot.value = index++;
     }
     side.__wasm_apply_data_relocs?.();
     side.__wasm_call_ctors?.();
-    return side;
+  }
+  __name(relocate, "relocate");
+  function rollbackLink(allocation, reservation, stack, imports2) {
+    try {
+      for (const slot of imports2.memoryGot.values()) slot.value = 0;
+      for (const slot of imports2.functionGot.values()) slot.value = 0;
+      if (reservation) releaseTable(reservation);
+    } finally {
+      try {
+        if (allocation) exports2.free(allocation);
+      } finally {
+        exports2.__stack_pointer.value = stack;
+      }
+    }
+  }
+  __name(rollbackLink, "rollbackLink");
+  function link(wasmModule) {
+    const info = dylinkInfo(wasmModule);
+    const imports2 = sideImports(wasmModule, exports2);
+    const tableSize = info.tableSize + imports2.functionGot.size;
+    if (tableSize > 4294967295) throw new Error("dylink.0 table size overflow");
+    const tablePlan = planTable(tableSize, 2 ** info.tableAlign);
+    const alignment = Math.max(2 ** info.memoryAlign, 16);
+    const stack = exports2.__stack_pointer.value;
+    let allocation = 0;
+    let reservation;
+    try {
+      let memoryBase = 0;
+      if (info.memorySize) {
+        const size = info.memorySize + alignment - 1;
+        allocation = exports2.malloc(size) >>> 0;
+        if (!allocation) throw new Error("Language module allocation failed");
+        memoryBase = Math.ceil(allocation / alignment) * alignment;
+        refreshHeap();
+        if (allocation + size > 2 ** 32 || memoryBase + info.memorySize > heapU8.length) throw new Error("Language module allocation overflow or out of bounds");
+        heapU8.fill(0, memoryBase, memoryBase + info.memorySize);
+      }
+      reservation = reserveTable(tablePlan);
+      imports2.env.__memory_base = new WebAssembly.Global({ value: "i32", mutable: false }, memoryBase);
+      imports2.env.__table_base = new WebAssembly.Global({ value: "i32", mutable: false }, reservation.base);
+      const side = new WebAssembly.Instance(wasmModule, { env: imports2.env, ...imports2.got }).exports;
+      relocate(side, memoryBase, reservation.base + info.tableSize, imports2);
+      return side;
+    } catch (error) {
+      try {
+        rollbackLink(allocation, reservation, stack, imports2);
+      } catch {
+      }
+      throw error;
+    }
   }
   __name(link, "link");
   function loadWebAssemblyModule(binary, flags) {
@@ -1648,6 +1786,20 @@ async function createModule(options = {}) {
   } });
   for (const [name, value] of Object.entries(exports2)) {
     if (typeof value === "function") module2[`_${name}`] = value;
+  }
+  const deleteQuery = exports2.ts_query_delete;
+  if (deleteQuery) {
+    module2._ts_query_delete = (address) => {
+      if (queryExecutions.get(module2)?.query === address) throw new Error("Cannot delete an active query");
+      deleteQuery(address);
+    };
+  }
+  const deleteTree = exports2.ts_tree_delete;
+  if (deleteTree) {
+    module2._ts_tree_delete = (address) => {
+      if (queryExecutions.get(module2)?.tree === address) throw new Error("Cannot delete an active tree");
+      deleteTree(address);
+    };
   }
   return module2;
 }
@@ -1921,6 +2073,14 @@ var finalizer4 = newFinalizer((address) => {
   C._free(address);
 });
 var DECODE_CHUNK = 4096;
+var MAX_CODE_UNITS = 2147483647;
+function textBufferByteLength(length) {
+  if (!Number.isSafeInteger(length) || length < 0 || length > MAX_CODE_UNITS) {
+    throw new RangeError(`Invalid text buffer length ${length}`);
+  }
+  return length * 2;
+}
+__name(textBufferByteLength, "textBufferByteLength");
 var TextBuffer = class {
   static {
     __name(this, "TextBuffer");
@@ -1943,10 +2103,10 @@ var TextBuffer = class {
   }
   /** Replace the code units in `[startIndex, oldEndIndex)` with `text`. */
   edit(startIndex, oldEndIndex, text) {
-    if (startIndex < 0 || oldEndIndex < startIndex || oldEndIndex > this.length) {
+    if (!Number.isSafeInteger(startIndex) || !Number.isSafeInteger(oldEndIndex) || startIndex < 0 || oldEndIndex < startIndex || oldEndIndex > this.length) {
       throw new RangeError(`Invalid edit [${startIndex}, ${oldEndIndex}) of a buffer of length ${this.length}`);
     }
-    const length = this.length + text.length - (oldEndIndex - startIndex);
+    const length = this.length - (oldEndIndex - startIndex) + text.length;
     this.reserve(length);
     const units = this.units(Math.max(length, this.length));
     units.copyWithin(startIndex + text.length, oldEndIndex, this.length);
@@ -1993,9 +2153,10 @@ var TextBuffer = class {
     for (let i = 0; i < text.length; i++) units[at + i] = text.charCodeAt(i);
   }
   reserve(length) {
+    textBufferByteLength(length);
     if (length <= this.capacity && this[0]) return;
-    const capacity = Math.max(length, this.capacity * 2, 64);
-    const address = C._realloc(this[0], capacity * 2);
+    const capacity = Math.min(MAX_CODE_UNITS, Math.max(length, this.capacity * 2, 64));
+    const address = C._realloc(this[0], textBufferByteLength(capacity));
     if (!address) throw new Error(`Failed to allocate a text buffer of ${capacity} code units`);
     finalizer4?.unregister(this);
     this[0] = address >>> 0;
@@ -2012,6 +2173,28 @@ var finalizer5 = newFinalizer((addresses) => {
   C._ts_parser_delete(addresses[0]);
   C._free(addresses[1]);
 });
+function isUnsignedInteger(value, maximum) {
+  return Number.isSafeInteger(value) && value >= 0 && value <= maximum;
+}
+__name(isUnsignedInteger, "isUnsignedInteger");
+function validateIncludedRanges(ranges) {
+  if (ranges.length > Math.floor(4294967295 / SIZE_OF_RANGE)) throw new RangeError("Too many included ranges");
+  let previousIndex = 0;
+  let previousPosition = { row: 0, column: 0 };
+  for (const range of ranges) {
+    const { startIndex, endIndex, startPosition, endPosition } = range;
+    if (!isUnsignedInteger(startIndex, 2147483647) || !isUnsignedInteger(endIndex, 2147483647) || !isUnsignedInteger(startPosition.row, 4294967295) || !isUnsignedInteger(endPosition.row, 4294967295) || !isUnsignedInteger(startPosition.column, 2147483647) || !isUnsignedInteger(endPosition.column, 2147483647) || startIndex < previousIndex || endIndex < startIndex || positionBefore(startPosition, previousPosition) || positionBefore(endPosition, startPosition)) {
+      throw new RangeError("Invalid included ranges");
+    }
+    previousIndex = endIndex;
+    previousPosition = endPosition;
+  }
+}
+__name(validateIncludedRanges, "validateIncludedRanges");
+function positionBefore(left, right) {
+  return left.row < right.row || left.row === right.row && left.column < right.column;
+}
+__name(positionBefore, "positionBefore");
 var Parser = class {
   static {
     __name(this, "Parser");
@@ -2107,11 +2290,16 @@ var Parser = class {
    * @returns {Tree | null} A {@link Tree} if parsing succeeded, or `null` if:
    *  - The parser has not yet had a language assigned with {@link Parser#setLanguage}.
    *  - The progress callback returned true.
+   * @throws {RangeError} If included ranges have invalid coordinates, are reversed, or overlap.
    */
   parse(callback, oldTree, options) {
+    const ranges = options?.includedRanges ?? [];
+    validateIncludedRanges(ranges);
+    const byteLength = callback instanceof TextBuffer ? textBufferByteLength(callback.length) : 0;
     const previousParseCallback = C.currentParseCallback;
     const previousLogCallback = C.currentLogCallback;
     const previousProgressCallback = C.currentProgressCallback;
+    let rangeAddress = 0;
     try {
       if (callback instanceof TextBuffer) {
         C.currentParseCallback = callback.read;
@@ -2134,16 +2322,16 @@ var Parser = class {
         C.currentLogCallback = null;
         C._ts_parser_enable_logger_wasm(this[0], 0);
       }
-      const ranges = options?.includedRanges ?? [];
       const rangeCount = ranges.length;
-      const rangeAddress = rangeCount ? C._calloc(rangeCount, SIZE_OF_RANGE) : 0;
+      rangeAddress = rangeCount ? C._calloc(rangeCount, SIZE_OF_RANGE) : 0;
+      if (rangeCount && !rangeAddress) throw new Error("Failed to allocate included ranges");
       for (let i = 0; i < rangeCount; i++) {
         marshalRange(rangeAddress + i * SIZE_OF_RANGE, ranges[i]);
       }
       const treeAddress = callback instanceof TextBuffer ? C._ts_parser_parse_utf16_wasm(
         this[0],
         callback[0],
-        callback.length * 2,
+        byteLength,
         oldTree ? oldTree[0] : 0,
         rangeAddress,
         rangeCount
@@ -2154,6 +2342,7 @@ var Parser = class {
         rangeAddress,
         rangeCount
       );
+      if (treeAddress === -1) throw new RangeError("Invalid included ranges");
       if (!treeAddress) {
         return null;
       }
@@ -2163,6 +2352,7 @@ var Parser = class {
       const result = new Tree(INTERNAL, treeAddress, this.language, C.currentParseCallback);
       return result;
     } finally {
+      C._free(rangeAddress);
       C.currentParseCallback = previousParseCallback;
       C.currentLogCallback = previousLogCallback;
       C.currentProgressCallback = previousProgressCallback;
@@ -2389,7 +2579,7 @@ function parseAnyOfPredicate(steps, index, operator, textPredicates) {
       if (c.name === captureName) nodes.push(readText(c.node));
     }
     if (nodes.length === 0) return !isPositive;
-    return nodes.every((text) => values.has(text)) === isPositive;
+    return nodes.every((text) => values.has(text) === isPositive);
   });
 }
 __name(parseAnyOfPredicate, "parseAnyOfPredicate");
@@ -2469,6 +2659,117 @@ __name(indexForByteOffset, "indexForByteOffset");
 var finalizer6 = newFinalizer((address) => {
   C._ts_query_delete(address);
 });
+function throwQueryError(source, sourceAddress) {
+  const errorId = C.getValue(TRANSFER_BUFFER + SIZE_OF_INT, "i32");
+  const errorByte = C.getValue(TRANSFER_BUFFER, "i32");
+  const errorIndex = C.UTF8ToString(sourceAddress, errorByte).length;
+  const suffix = source.slice(errorIndex, errorIndex + 100).split("\n")[0];
+  const word = suffix.match(QUERY_WORD_REGEX)?.[0] ?? "";
+  switch (errorId) {
+    case QueryErrorKind.Syntax:
+      throw new QueryError(QueryErrorKind.Syntax, { suffix: `${errorIndex}: '${suffix}'...` }, errorIndex, 0);
+    case QueryErrorKind.NodeName:
+      throw new QueryError(errorId, { word }, errorIndex, word.length);
+    case QueryErrorKind.FieldName:
+      throw new QueryError(errorId, { word }, errorIndex, word.length);
+    case QueryErrorKind.CaptureName:
+      throw new QueryError(errorId, { word }, errorIndex, word.length);
+    case QueryErrorKind.PatternStructure:
+      throw new QueryError(errorId, { suffix: `${errorIndex}: '${suffix}'...` }, errorIndex, 0);
+  }
+  throw new Error("Unknown query error");
+}
+__name(throwQueryError, "throwQueryError");
+function readQuery(address) {
+  const stringCount = C._ts_query_string_count(address);
+  const captureCount = C._ts_query_capture_count(address);
+  const patternCount = C._ts_query_pattern_count(address);
+  const captureNames = new Array(captureCount);
+  const captureQuantifiers = new Array(patternCount);
+  const stringValues = new Array(stringCount);
+  for (let i = 0; i < captureCount; i++) {
+    const nameAddress = C._ts_query_capture_name_for_id(
+      address,
+      i,
+      TRANSFER_BUFFER
+    );
+    const nameLength = C.getValue(TRANSFER_BUFFER, "i32");
+    captureNames[i] = C.UTF8ToString(nameAddress, nameLength);
+  }
+  for (let i = 0; i < patternCount; i++) {
+    const captureQuantifiersArray = new Array(captureCount);
+    for (let j = 0; j < captureCount; j++) {
+      const quantifier = C._ts_query_capture_quantifier_for_id(address, i, j);
+      captureQuantifiersArray[j] = quantifier;
+    }
+    captureQuantifiers[i] = captureQuantifiersArray;
+  }
+  for (let i = 0; i < stringCount; i++) {
+    const valueAddress = C._ts_query_string_value_for_id(
+      address,
+      i,
+      TRANSFER_BUFFER
+    );
+    const nameLength = C.getValue(TRANSFER_BUFFER, "i32");
+    stringValues[i] = C.UTF8ToString(valueAddress, nameLength);
+  }
+  const setProperties = new Array(patternCount);
+  const assertedProperties = new Array(patternCount);
+  const refutedProperties = new Array(patternCount);
+  const predicates = new Array(patternCount);
+  const textPredicates = new Array(patternCount);
+  for (let i = 0; i < patternCount; i++) {
+    const predicatesAddress = C._ts_query_predicates_for_pattern(address, i, TRANSFER_BUFFER);
+    const stepCount = C.getValue(TRANSFER_BUFFER, "i32");
+    predicates[i] = [];
+    textPredicates[i] = [];
+    const steps = new Array();
+    let stepAddress = predicatesAddress;
+    for (let j = 0; j < stepCount; j++) {
+      const stepType = C.getValue(stepAddress, "i32");
+      stepAddress += SIZE_OF_INT;
+      const stepValueId = C.getValue(stepAddress, "i32");
+      stepAddress += SIZE_OF_INT;
+      parsePattern(
+        i,
+        stepType,
+        stepValueId,
+        captureNames,
+        stringValues,
+        steps,
+        textPredicates,
+        predicates,
+        setProperties,
+        assertedProperties,
+        refutedProperties
+      );
+    }
+    Object.freeze(textPredicates[i]);
+    Object.freeze(predicates[i]);
+    Object.freeze(setProperties[i]);
+    Object.freeze(assertedProperties[i]);
+    Object.freeze(refutedProperties[i]);
+  }
+  return { captureNames, captureQuantifiers, textPredicates, predicates, setProperties, assertedProperties, refutedProperties };
+}
+__name(readQuery, "readQuery");
+function createQuery(language, source) {
+  const sourceLength = C.lengthBytesUTF8(source);
+  const sourceAddress = C._malloc(sourceLength + 1);
+  let address = 0;
+  try {
+    C.stringToUTF8(source, sourceAddress, sourceLength + 1);
+    address = C._ts_query_new(language[0], sourceAddress, sourceLength, TRANSFER_BUFFER, TRANSFER_BUFFER + SIZE_OF_INT);
+    if (!address) throwQueryError(source, sourceAddress);
+    return { address, ...readQuery(address) };
+  } catch (error) {
+    if (address) C._ts_query_delete(address);
+    throw error;
+  } finally {
+    C._free(sourceAddress);
+  }
+}
+__name(createQuery, "createQuery");
 var Query = class {
   static {
     __name(this, "Query");
@@ -2516,122 +2817,23 @@ var Query = class {
    * @link {@see https://tree-sitter.github.io/tree-sitter/using-parsers/queries}
    */
   constructor(language, source) {
-    const sourceLength = C.lengthBytesUTF8(source);
-    const sourceAddress = C._malloc(sourceLength + 1);
-    C.stringToUTF8(source, sourceAddress, sourceLength + 1);
-    const address = C._ts_query_new(
-      language[0],
-      sourceAddress,
-      sourceLength,
-      TRANSFER_BUFFER,
-      TRANSFER_BUFFER + SIZE_OF_INT
-    );
-    if (!address) {
-      const errorId = C.getValue(TRANSFER_BUFFER + SIZE_OF_INT, "i32");
-      const errorByte = C.getValue(TRANSFER_BUFFER, "i32");
-      const errorIndex = C.UTF8ToString(sourceAddress, errorByte).length;
-      const suffix = source.slice(errorIndex, errorIndex + 100).split("\n")[0];
-      const word = suffix.match(QUERY_WORD_REGEX)?.[0] ?? "";
-      C._free(sourceAddress);
-      switch (errorId) {
-        case QueryErrorKind.Syntax:
-          throw new QueryError(QueryErrorKind.Syntax, { suffix: `${errorIndex}: '${suffix}'...` }, errorIndex, 0);
-        case QueryErrorKind.NodeName:
-          throw new QueryError(errorId, { word }, errorIndex, word.length);
-        case QueryErrorKind.FieldName:
-          throw new QueryError(errorId, { word }, errorIndex, word.length);
-        case QueryErrorKind.CaptureName:
-          throw new QueryError(errorId, { word }, errorIndex, word.length);
-        case QueryErrorKind.PatternStructure:
-          throw new QueryError(errorId, { suffix: `${errorIndex}: '${suffix}'...` }, errorIndex, 0);
-      }
-    }
-    const stringCount = C._ts_query_string_count(address);
-    const captureCount = C._ts_query_capture_count(address);
-    const patternCount = C._ts_query_pattern_count(address);
-    const captureNames = new Array(captureCount);
-    const captureQuantifiers = new Array(patternCount);
-    const stringValues = new Array(stringCount);
-    for (let i = 0; i < captureCount; i++) {
-      const nameAddress = C._ts_query_capture_name_for_id(
-        address,
-        i,
-        TRANSFER_BUFFER
-      );
-      const nameLength = C.getValue(TRANSFER_BUFFER, "i32");
-      captureNames[i] = C.UTF8ToString(nameAddress, nameLength);
-    }
-    for (let i = 0; i < patternCount; i++) {
-      const captureQuantifiersArray = new Array(captureCount);
-      for (let j = 0; j < captureCount; j++) {
-        const quantifier = C._ts_query_capture_quantifier_for_id(address, i, j);
-        captureQuantifiersArray[j] = quantifier;
-      }
-      captureQuantifiers[i] = captureQuantifiersArray;
-    }
-    for (let i = 0; i < stringCount; i++) {
-      const valueAddress = C._ts_query_string_value_for_id(
-        address,
-        i,
-        TRANSFER_BUFFER
-      );
-      const nameLength = C.getValue(TRANSFER_BUFFER, "i32");
-      stringValues[i] = C.UTF8ToString(valueAddress, nameLength);
-    }
-    const setProperties = new Array(patternCount);
-    const assertedProperties = new Array(patternCount);
-    const refutedProperties = new Array(patternCount);
-    const predicates = new Array(patternCount);
-    const textPredicates = new Array(patternCount);
-    for (let i = 0; i < patternCount; i++) {
-      const predicatesAddress = C._ts_query_predicates_for_pattern(address, i, TRANSFER_BUFFER);
-      const stepCount = C.getValue(TRANSFER_BUFFER, "i32");
-      predicates[i] = [];
-      textPredicates[i] = [];
-      const steps = new Array();
-      let stepAddress = predicatesAddress;
-      for (let j = 0; j < stepCount; j++) {
-        const stepType = C.getValue(stepAddress, "i32");
-        stepAddress += SIZE_OF_INT;
-        const stepValueId = C.getValue(stepAddress, "i32");
-        stepAddress += SIZE_OF_INT;
-        parsePattern(
-          i,
-          stepType,
-          stepValueId,
-          captureNames,
-          stringValues,
-          steps,
-          textPredicates,
-          predicates,
-          setProperties,
-          assertedProperties,
-          refutedProperties
-        );
-      }
-      Object.freeze(textPredicates[i]);
-      Object.freeze(predicates[i]);
-      Object.freeze(setProperties[i]);
-      Object.freeze(assertedProperties[i]);
-      Object.freeze(refutedProperties[i]);
-    }
-    C._free(sourceAddress);
-    this[0] = address;
-    this.captureNames = captureNames;
-    this.captureQuantifiers = captureQuantifiers;
-    this.textPredicates = textPredicates;
+    const data = createQuery(language, source);
+    this[0] = data.address;
+    this.captureNames = data.captureNames;
+    this.captureQuantifiers = data.captureQuantifiers;
+    this.textPredicates = data.textPredicates;
+    this.predicates = data.predicates;
+    this.setProperties = data.setProperties;
+    this.assertedProperties = data.assertedProperties;
+    this.refutedProperties = data.refutedProperties;
     this.source = source;
-    this.predicates = predicates;
-    this.setProperties = setProperties;
-    this.assertedProperties = assertedProperties;
-    this.refutedProperties = refutedProperties;
     this.exceededMatchLimit = false;
-    finalizer6?.register(this, address, this);
+    finalizer6?.register(this, data.address, this);
   }
   /** Delete the query, freeing its resources. */
   delete() {
-    finalizer6?.unregister(this);
     C._ts_query_delete(this[0]);
+    finalizer6?.unregister(this);
     this[0] = 0;
   }
   /**
@@ -2647,35 +2849,47 @@ var Query = class {
    * @param {QueryOptions} options - Options for query execution.
    */
   matches(node, options = {}) {
-    const [rawCount, startAddress] = this.executeMatches(node, options);
-    const result = new Array(rawCount);
+    return withQueryCursor(
+      C,
+      this[0],
+      node.tree[0],
+      options.progressCallback ?? null,
+      () => this.matchesWithCursor(node, options)
+    );
+  }
+  matchesWithCursor(node, options) {
+    const [rawCount, startAddress] = this.execute(node, options);
     try {
-      const readText = createQueryTextReader();
-      let filteredCount = 0;
-      let address = startAddress;
-      for (let i = 0; i < rawCount; i++) {
-        const patternIndex = C.getValue(address, "i32");
-        address += SIZE_OF_INT;
-        const captureCount = C.getValue(address, "i32");
-        address += SIZE_OF_INT;
-        const captures = new Array(captureCount);
-        address = unmarshalCaptures(this, node.tree, address, patternIndex, captures);
-        if (this.textPredicates[patternIndex].every((p) => p(captures, readText))) {
-          result[filteredCount] = { patternIndex, captures };
-          const setProperties = this.setProperties[patternIndex];
-          result[filteredCount].setProperties = setProperties;
-          const assertedProperties = this.assertedProperties[patternIndex];
-          result[filteredCount].assertedProperties = assertedProperties;
-          const refutedProperties = this.refutedProperties[patternIndex];
-          result[filteredCount].refutedProperties = refutedProperties;
-          filteredCount++;
-        }
-      }
-      result.length = filteredCount;
-      return result;
+      return this.readMatches(node, rawCount, startAddress);
     } finally {
       C._free(startAddress);
     }
+  }
+  readMatches(node, rawCount, startAddress) {
+    const result = new Array(rawCount);
+    const readText = createQueryTextReader();
+    let filteredCount = 0;
+    let address = startAddress;
+    for (let i = 0; i < rawCount; i++) {
+      const patternIndex = C.getValue(address, "i32");
+      address += SIZE_OF_INT;
+      const captureCount = C.getValue(address, "i32");
+      address += SIZE_OF_INT;
+      const captures = new Array(captureCount);
+      address = unmarshalCaptures(this, node.tree, address, patternIndex, captures);
+      if (this.textPredicates[patternIndex].every((p) => p(captures, readText))) {
+        result[filteredCount] = { patternIndex, captures };
+        const setProperties = this.setProperties[patternIndex];
+        result[filteredCount].setProperties = setProperties;
+        const assertedProperties = this.assertedProperties[patternIndex];
+        result[filteredCount].assertedProperties = assertedProperties;
+        const refutedProperties = this.refutedProperties[patternIndex];
+        result[filteredCount].refutedProperties = refutedProperties;
+        filteredCount++;
+      }
+    }
+    result.length = filteredCount;
+    return result;
   }
   /**
    * Return accepted captures in flattened `matches` order as UTF-16 ranges.
@@ -2683,118 +2897,63 @@ var Query = class {
    * execution options have the same meaning as in `matches`.
    */
   captureRanges(node, options = {}) {
-    const [rawCount, startAddress] = this.executeMatches(node, options);
-    const result = [];
-    const scratch = [];
-    const readText = createQueryTextReader();
-    let address = startAddress;
+    return withQueryCursor(
+      C,
+      this[0],
+      node.tree[0],
+      options.progressCallback ?? null,
+      () => this.captureRangesWithCursor(node, options)
+    );
+  }
+  captureRangesWithCursor(node, options) {
+    const [rawCount, startAddress] = this.execute(node, options);
     try {
-      for (let i = 0; i < rawCount; i++) {
-        const patternIndex = C.getValue(address, "i32");
-        const captureCount = C.getValue(address + SIZE_OF_INT, "i32");
-        address += 2 * SIZE_OF_INT;
-        const capturesAddress = address;
-        address += captureCount * (SIZE_OF_INT + SIZE_OF_NODE);
-        const predicates = this.textPredicates[patternIndex];
-        if (predicates.length) {
-          scratch.length = captureCount;
-          unmarshalCaptures(this, node.tree, capturesAddress, patternIndex, scratch);
-          if (!predicates.every((predicate) => predicate(scratch, readText))) continue;
-        }
-        let captureAddress = capturesAddress;
-        for (let j = 0; j < captureCount; j++) {
-          const captureIndex = C.getValue(captureAddress, "i32");
-          const nodeAddress = captureAddress + SIZE_OF_INT >>> 0;
-          const startIndex = C.getValue(nodeAddress + SIZE_OF_INT, "i32");
-          C.HEAPU8.copyWithin(TRANSFER_BUFFER, nodeAddress, nodeAddress + SIZE_OF_NODE);
-          const endIndex = C._ts_node_end_index_wasm(node.tree[0]);
-          result.push({
-            patternIndex,
-            name: this.captureNames[captureIndex],
-            startIndex,
-            endIndex,
-            setProperties: this.setProperties[patternIndex],
-            assertedProperties: this.assertedProperties[patternIndex],
-            refutedProperties: this.refutedProperties[patternIndex]
-          });
-          captureAddress += SIZE_OF_INT + SIZE_OF_NODE;
-        }
-      }
-      return result;
+      return this.readCaptureRanges(node, rawCount, startAddress);
     } finally {
       C._free(startAddress);
     }
   }
-  executeMatches(node, options) {
-    const startPosition = options.startPosition ?? ZERO_POINT;
-    const endPosition = options.endPosition ?? ZERO_POINT;
-    const startIndex = options.startIndex ?? 0;
-    const endIndex = options.endIndex ?? 0;
-    const startContainingPosition = options.startContainingPosition ?? ZERO_POINT;
-    const endContainingPosition = options.endContainingPosition ?? ZERO_POINT;
-    const startContainingIndex = options.startContainingIndex ?? 0;
-    const endContainingIndex = options.endContainingIndex ?? 0;
-    const matchLimit = options.matchLimit ?? 4294967295;
-    const maxStartDepth = options.maxStartDepth ?? 4294967295;
-    const progressCallback = options.progressCallback;
-    if (typeof matchLimit !== "number") {
-      throw new Error("Arguments must be numbers");
+  readCaptureRanges(node, rawCount, startAddress) {
+    const result = [];
+    const scratch = [];
+    const readText = createQueryTextReader();
+    let address = startAddress;
+    for (let i = 0; i < rawCount; i++) {
+      const patternIndex = C.getValue(address, "i32");
+      const captureCount = C.getValue(address + SIZE_OF_INT, "i32");
+      address += 2 * SIZE_OF_INT;
+      const capturesAddress = address;
+      address += captureCount * (SIZE_OF_INT + SIZE_OF_NODE);
+      if (!this.acceptsRangeMatch(node, patternIndex, capturesAddress, captureCount, scratch, readText)) continue;
+      let captureAddress = capturesAddress;
+      for (let j = 0; j < captureCount; j++) {
+        const captureIndex = C.getValue(captureAddress, "i32");
+        const nodeAddress = captureAddress + SIZE_OF_INT >>> 0;
+        const startIndex = C.getValue(nodeAddress + SIZE_OF_INT, "i32");
+        C.HEAPU8.copyWithin(TRANSFER_BUFFER, nodeAddress, nodeAddress + SIZE_OF_NODE);
+        const endIndex = C._ts_node_end_index_wasm(node.tree[0]);
+        result.push({
+          patternIndex,
+          name: this.captureNames[captureIndex],
+          startIndex,
+          endIndex,
+          setProperties: this.setProperties[patternIndex],
+          assertedProperties: this.assertedProperties[patternIndex],
+          refutedProperties: this.refutedProperties[patternIndex]
+        });
+        captureAddress += SIZE_OF_INT + SIZE_OF_NODE;
+      }
     }
-    this.matchLimit = matchLimit;
-    if (endIndex !== 0 && startIndex > endIndex) {
-      throw new Error("`startIndex` cannot be greater than `endIndex`");
-    }
-    if (endPosition !== ZERO_POINT && (startPosition.row > endPosition.row || startPosition.row === endPosition.row && startPosition.column > endPosition.column)) {
-      throw new Error("`startPosition` cannot be greater than `endPosition`");
-    }
-    if (endContainingIndex !== 0 && startContainingIndex > endContainingIndex) {
-      throw new Error("`startContainingIndex` cannot be greater than `endContainingIndex`");
-    }
-    if (endContainingPosition !== ZERO_POINT && (startContainingPosition.row > endContainingPosition.row || startContainingPosition.row === endContainingPosition.row && startContainingPosition.column > endContainingPosition.column)) {
-      throw new Error("`startContainingPosition` cannot be greater than `endContainingPosition`");
-    }
-    C.currentQueryProgressCallback = progressCallback ?? null;
-    marshalNode(node);
-    try {
-      C._ts_query_matches_wasm(
-        this[0],
-        node.tree[0],
-        startPosition.row,
-        startPosition.column,
-        endPosition.row,
-        endPosition.column,
-        startIndex,
-        endIndex,
-        startContainingPosition.row,
-        startContainingPosition.column,
-        endContainingPosition.row,
-        endContainingPosition.column,
-        startContainingIndex,
-        endContainingIndex,
-        matchLimit,
-        maxStartDepth
-      );
-    } finally {
-      C.currentQueryProgressCallback = null;
-    }
-    const rawCount = C.getValue(TRANSFER_BUFFER, "i32");
-    const startAddress = C.getValue(TRANSFER_BUFFER + SIZE_OF_INT, "i32");
-    const didExceedMatchLimit = C.getValue(TRANSFER_BUFFER + 2 * SIZE_OF_INT, "i32");
-    this.exceededMatchLimit = Boolean(didExceedMatchLimit);
-    return [rawCount, startAddress];
+    return result;
   }
-  /**
-   * Iterate over all of the individual captures in the order that they
-   * appear.
-   *
-   * This is useful if you don't care about which pattern matched, and just
-   * want a single, ordered sequence of captures.
-   *
-   * @param {Node} node - The node to execute the query on.
-   *
-   * @param {QueryOptions} options - Options for query execution.
-   */
-  captures(node, options = {}) {
+  acceptsRangeMatch(node, patternIndex, address, count, scratch, readText) {
+    const predicates = this.textPredicates[patternIndex];
+    if (!predicates.length) return true;
+    scratch.length = count;
+    unmarshalCaptures(this, node.tree, address, patternIndex, scratch);
+    return predicates.every((predicate) => predicate(scratch, readText));
+  }
+  execute(node, options, captures = false) {
     const startPosition = options.startPosition ?? ZERO_POINT;
     const endPosition = options.endPosition ?? ZERO_POINT;
     const startIndex = options.startIndex ?? 0;
@@ -2805,7 +2964,6 @@ var Query = class {
     const endContainingIndex = options.endContainingIndex ?? 0;
     const matchLimit = options.matchLimit ?? 4294967295;
     const maxStartDepth = options.maxStartDepth ?? 4294967295;
-    const progressCallback = options.progressCallback;
     if (typeof matchLimit !== "number") {
       throw new Error("Arguments must be numbers");
     }
@@ -2822,11 +2980,8 @@ var Query = class {
     if (endContainingPosition !== ZERO_POINT && (startContainingPosition.row > endContainingPosition.row || startContainingPosition.row === endContainingPosition.row && startContainingPosition.column > endContainingPosition.column)) {
       throw new Error("`startContainingPosition` cannot be greater than `endContainingPosition`");
     }
-    if (progressCallback) {
-      C.currentQueryProgressCallback = progressCallback;
-    }
     marshalNode(node);
-    C._ts_query_captures_wasm(
+    C[captures ? "_ts_query_captures_wasm" : "_ts_query_matches_wasm"](
       this[0],
       node.tree[0],
       startPosition.row,
@@ -2844,14 +2999,50 @@ var Query = class {
       matchLimit,
       maxStartDepth
     );
-    const count = C.getValue(TRANSFER_BUFFER, "i32");
+    const rawCount = C.getValue(TRANSFER_BUFFER, "i32");
     const startAddress = C.getValue(TRANSFER_BUFFER + SIZE_OF_INT, "i32");
     const didExceedMatchLimit = C.getValue(TRANSFER_BUFFER + 2 * SIZE_OF_INT, "i32");
-    const result = new Array();
     this.exceededMatchLimit = Boolean(didExceedMatchLimit);
+    try {
+      checkQueryProgress(C);
+      return [rawCount, startAddress];
+    } catch (error) {
+      C._free(startAddress);
+      throw error;
+    }
+  }
+  /**
+   * Iterate over all of the individual captures in the order that they
+   * appear.
+   *
+   * This is useful if you don't care about which pattern matched, and just
+   * want a single, ordered sequence of captures.
+   *
+   * @param {Node} node - The node to execute the query on.
+   *
+   * @param {QueryOptions} options - Options for query execution.
+   */
+  captures(node, options = {}) {
+    return withQueryCursor(
+      C,
+      this[0],
+      node.tree[0],
+      options.progressCallback ?? null,
+      () => this.capturesWithCursor(node, options)
+    );
+  }
+  capturesWithCursor(node, options) {
+    const [count, startAddress] = this.execute(node, options, true);
+    try {
+      return this.readCaptures(node, count, startAddress);
+    } finally {
+      C._free(startAddress);
+    }
+  }
+  readCaptures(node, count, address) {
+    const result = new Array();
     const readText = createQueryTextReader();
     const captures = new Array();
-    let address = startAddress;
     for (let i = 0; i < count; i++) {
       const patternIndex = C.getValue(address, "i32");
       address += SIZE_OF_INT;
@@ -2872,8 +3063,6 @@ var Query = class {
         result.push(capture);
       }
     }
-    C._free(startAddress);
-    C.currentQueryProgressCallback = null;
     return result;
   }
   /** Get the predicates for a given pattern. */

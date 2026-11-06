@@ -191,6 +191,7 @@
 		 * @returns A {@link Tree} if parsing succeeded, or `null` if:
 		 *  - The parser has not yet had a language assigned with {@link Parser#setLanguage}.
 		 *  - The progress callback returned true.
+		 * @throws {RangeError} If included ranges have invalid coordinates, are reversed, or overlap.
 		 */
 		parse(callback: string | ParseCallback | TextBuffer, oldTree?: Tree | null, options?: ParseOptions): Tree | null;
 		/**
@@ -996,13 +997,18 @@
 		 * @param options - Options for query execution.
 		 */
 		matches(node: Node, options?: QueryOptions): QueryMatch[];
+		private matchesWithCursor;
+		private readMatches;
 		/**
 		 * Return accepted captures in flattened `matches` order as UTF-16 ranges.
 		 * Text predicates see every capture in their match. Query properties and
 		 * execution options have the same meaning as in `matches`.
 		 */
 		captureRanges(node: Node, options?: QueryOptions): QueryCaptureRange[];
-		private executeMatches;
+		private captureRangesWithCursor;
+		private readCaptureRanges;
+		private acceptsRangeMatch;
+		private execute;
 		/**
 		 * Iterate over all of the individual captures in the order that they
 		 * appear.
@@ -1015,6 +1021,8 @@
 		 * @param options - Options for query execution.
 		 */
 		captures(node: Node, options?: QueryOptions): QueryCapture[];
+		private capturesWithCursor;
+		private readCaptures;
 		/** Get the predicates for a given pattern. */
 		predicatesForPattern(patternIndex: number): QueryPredicate[];
 		/**
