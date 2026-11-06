@@ -13,6 +13,7 @@ use notify::{
     event::{AccessKind, AccessMode},
 };
 use notify_debouncer_full::new_debouncer;
+use sha2::{Digest as _, Sha256};
 use tree_sitter_loader::{IoError, LoaderError, WasmToolError};
 
 use crate::{BuildWasm, bail_on_err, watch_wasm};
@@ -103,6 +104,229 @@ pub fn run_wasm(args: &BuildWasm) -> Result<()> {
         build()?;
     }
     Ok(())
+}
+
+const SCOPE_FLAGS: &[&str] = &[
+    "--target=wasm32-wasip1",
+    "-O2",
+    "-std=c11",
+    "-Wall",
+    "-Wextra",
+    "-Wpedantic",
+    "-Werror",
+    "-fvisibility=hidden",
+    "-fPIC",
+    "-shared",
+    "-nostdlib",
+    "-Wl,--no-entry",
+    "-Ilib/include",
+    "-Ilib/scope-compat/include",
+    "-Wl,--allow-undefined-file=lib/scope-compat/build/allowed-imports.txt",
+];
+
+fn scope_sources() -> Result<Vec<PathBuf>> {
+    let mut paths = fs::read_dir("lib/scope-compat/src")?
+        .map(|entry| entry.map(|e| e.path()))
+        .collect::<std::io::Result<Vec<_>>>()?;
+    paths.retain(|p| p.extension().is_some_and(|ext| ext == "c"));
+    paths.sort();
+    Ok(paths)
+}
+
+fn scope_inputs(directory: &Path, paths: &mut Vec<String>) -> Result<()> {
+    for entry in fs::read_dir(directory)? {
+        let path = entry?.path();
+        if path.is_dir() {
+            scope_inputs(&path, paths)?;
+            continue;
+        }
+        paths.push(path.to_string_lossy().replace('\\', "/"));
+    }
+    Ok(())
+}
+
+fn scope_manifest(clang: &Path, output: &str) -> Result<()> {
+    let mut paths = vec![
+        "lib/include/tree_sitter/api.h".to_string(),
+        "lib/scope-compat/imports.txt".to_string(),
+        "crates/loader/wasi-sdk-version".to_string(),
+        "crates/xtask/Cargo.toml".to_string(),
+        "Cargo.toml".to_string(),
+        "Cargo.lock".to_string(),
+        "lib/src/wasm-stdlib/imports.txt".to_string(),
+        "lib/binding_web/lib/exports.txt".to_string(),
+        "lib/binding_web/lib/extra-exports.txt".to_string(),
+    ];
+    for directory in [
+        "lib/scope-compat/src",
+        "lib/scope-compat/include",
+        "crates/xtask/src",
+    ] {
+        scope_inputs(Path::new(directory), &mut paths)?;
+    }
+    paths.sort();
+    let inputs = paths
+        .into_iter()
+        .map(|path| {
+            let sha256 = format!("{:x}", Sha256::digest(fs::read(&path)?));
+            Ok(serde_json::json!({"path": path, "sha256": sha256}))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let bytes = fs::read(output)?;
+    let compiler = Command::new(clang).arg("--version").output()?;
+    bail_on_err(&compiler, "Failed to identify scope compiler")?;
+    let manifest = serde_json::json!({
+        "abi": 1, "wasm": {"sha256": format!("{:x}", Sha256::digest(&bytes)), "size": bytes.len()},
+        "compiler": String::from_utf8(compiler.stdout)?, "flags": SCOPE_FLAGS, "inputs": inputs,
+    });
+    fs::write(
+        "lib/scope-compat/build/scope-compat.manifest.json",
+        serde_json::to_string_pretty(&manifest)? + "\n",
+    )?;
+    Ok(())
+}
+
+fn scope_sanitizer_control(binary: &str, mode: &str, markers: &[&str]) -> Result<()> {
+    let control = Command::new(binary)
+        .arg(mode)
+        .env("ASAN_OPTIONS", "detect_leaks=1:halt_on_error=1")
+        .env("UBSAN_OPTIONS", "halt_on_error=1:print_stacktrace=1")
+        .output()?;
+    let diagnostic = String::from_utf8_lossy(&control.stderr);
+    anyhow::ensure!(
+        !control.status.success() && markers.iter().all(|marker| diagnostic.contains(marker)),
+        "Sanitizer positive control {mode} was not detected: {diagnostic}"
+    );
+    println!("Sanitizer positive control detected: {mode}");
+    Ok(())
+}
+
+fn scope_host_test() -> Result<()> {
+    let grammar = "test/fixtures/grammars/json/src/parser.c";
+    anyhow::ensure!(
+        Path::new(grammar).is_file(),
+        "Missing JSON grammar; run cargo xtask fetch-fixtures first"
+    );
+    let binary = "lib/scope-compat/build/native_test";
+    let result = (|| {
+        let mut command = Command::new(std::env::var_os("CC").unwrap_or_else(|| "clang".into()));
+        command
+            .args([
+                "-std=c11",
+                "-D_POSIX_C_SOURCE=200112L",
+                "-D_DEFAULT_SOURCE",
+                "-Wall",
+                "-Wextra",
+                "-Wpedantic",
+                "-Werror",
+                "-g",
+                "-O1",
+                "-fno-omit-frame-pointer",
+                "-fsanitize=address,undefined",
+                "-fno-sanitize-recover=all",
+                "-DSCOPE_COMPAT_TESTING",
+                "-Ilib/include",
+                "-Ilib/src",
+                "-Ilib/scope-compat/include",
+            ])
+            .args(scope_sources()?)
+            .args([
+                "lib/scope-compat/test/native_test.c",
+                "lib/src/lib.c",
+                grammar,
+                "-o",
+                binary,
+            ]);
+        bail_on_err(
+            &command.output()?,
+            "Failed to compile scope sanitizer controls",
+        )?;
+        let status = Command::new(binary)
+            .env("ASAN_OPTIONS", "detect_leaks=1:halt_on_error=1")
+            .env("UBSAN_OPTIONS", "halt_on_error=1:print_stacktrace=1")
+            .status()?;
+        anyhow::ensure!(
+            status.success(),
+            "Scope sanitizer controls failed: {status}"
+        );
+        scope_sanitizer_control(binary, "--leak-core", &["LeakSanitizer", "ts_query_new"])?;
+        scope_sanitizer_control(
+            binary,
+            "--asan-control",
+            &["AddressSanitizer", "heap-buffer-overflow"],
+        )?;
+        scope_sanitizer_control(
+            binary,
+            "--ubsan-control",
+            &["UndefinedBehaviorSanitizer", "signed integer overflow"],
+        )?;
+        Ok(())
+    })();
+    if Path::new(binary).exists() {
+        fs::remove_file(binary)?;
+    }
+    result
+}
+
+fn remove_scope_outputs() -> Result<()> {
+    for path in [
+        "lib/scope-compat/build/scope-compat.wasm",
+        "lib/scope-compat/build/scope-compat.manifest.json",
+    ] {
+        if Path::new(path).exists() {
+            fs::remove_file(path)?;
+        }
+    }
+    Ok(())
+}
+
+pub fn run_scope_compat(native_test: bool) -> Result<()> {
+    fs::create_dir_all("lib/scope-compat/build")?;
+    if native_test {
+        return scope_host_test();
+    }
+    let exports = runtime_exports()?;
+    let imports = fs::read_to_string("lib/scope-compat/imports.txt")?;
+    for name in imports.lines() {
+        anyhow::ensure!(
+            exports.iter().any(|export| export == name),
+            "Scope import is not a runtime export: {name}"
+        );
+        anyhow::ensure!(
+            !name.starts_with("ts_parser_")
+                && !matches!(name, "ts_tree_edit" | "ts_tree_copy" | "ts_tree_delete"),
+            "Forbidden scope import: {name}"
+        );
+    }
+    fs::write("lib/scope-compat/build/allowed-imports.txt", imports)?;
+    let clang = ensure_wasi_sdk_exists()?;
+    let output = "lib/scope-compat/build/scope-compat.wasm";
+    let result = (|| {
+        bail_on_err(
+            &Command::new(&clang)
+                .args(SCOPE_FLAGS)
+                .args(scope_sources()?)
+                .args(["-o", output])
+                .output()?,
+            "Failed to build scope component",
+        )?;
+        scope_manifest(&clang, output)?;
+        let status = Command::new("node")
+            .args([
+                "test/highlight-compat/src/native/component-inputs.ts",
+                "--check",
+            ])
+            .status()?;
+        anyhow::ensure!(
+            status.success(),
+            "Scope import/freshness check failed: {status}"
+        );
+        Ok(())
+    })();
+    if result.is_err() {
+        remove_scope_outputs()?;
+    }
+    result
 }
 
 /// Names the runtime exports: libc for grammars (`wasm-stdlib/imports.txt`) and for published
