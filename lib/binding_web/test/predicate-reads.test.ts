@@ -264,6 +264,7 @@ it('returns real native allocations to a warm baseline after repeated failures',
   C._free = release;
   let baseline: number | undefined;
   try {
+    assertNativeAllocationObserver(outstanding);
     warmQueries(q, tree);
     baseline = outstanding();
     for (let attempt = 0; attempt < 10; attempt++) {
@@ -280,6 +281,17 @@ it('returns real native allocations to a warm baseline after repeated failures',
     stop();
   }
 }, 30_000);
+
+function assertNativeAllocationObserver(outstanding: () => number) {
+  const baseline = outstanding();
+  const probe = new Query(JavaScript, '(identifier) @probe');
+  try {
+    expect(outstanding()).toBeGreaterThan(baseline);
+  } finally {
+    probe.delete();
+  }
+  expect(outstanding()).toBe(baseline);
+}
 
 function warmQueries(q: Query, tree: Tree) {
   for (const method of ['matches', 'captures', 'captureRanges'] as const) q[method](tree.rootNode);
