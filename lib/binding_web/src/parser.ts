@@ -4,7 +4,7 @@ import { marshalRange, unmarshalRange } from './marshal';
 import { checkModule, initializeBinding } from './bindings';
 import type { ModuleOptions } from './wasi-module';
 import { Tree } from './tree';
-import { TextBuffer } from './text_buffer';
+import { TextBuffer, textBufferByteLength } from './text_buffer';
 import { newFinalizer } from './finalization_registry';
 
 /**
@@ -89,6 +89,32 @@ const finalizer = newFinalizer((addresses: number[]) => {
   C._ts_parser_delete(addresses[0]);
   C._free(addresses[1]);
 });
+
+function isUnsignedInteger(value: number, maximum: number): boolean {
+  return Number.isSafeInteger(value) && value >= 0 && value <= maximum;
+}
+
+function validateIncludedRanges(ranges: Range[]): void {
+  if (ranges.length > Math.floor(0xffffffff / SIZE_OF_RANGE)) throw new RangeError('Too many included ranges');
+  let previousIndex = 0;
+  let previousPosition = { row: 0, column: 0 };
+  for (const range of ranges) {
+    const { startIndex, endIndex, startPosition, endPosition } = range;
+    if (!isUnsignedInteger(startIndex, 0x7fffffff) || !isUnsignedInteger(endIndex, 0x7fffffff)
+      || !isUnsignedInteger(startPosition.row, 0xffffffff) || !isUnsignedInteger(endPosition.row, 0xffffffff)
+      || !isUnsignedInteger(startPosition.column, 0x7fffffff) || !isUnsignedInteger(endPosition.column, 0x7fffffff)
+      || startIndex < previousIndex || endIndex < startIndex
+      || positionBefore(startPosition, previousPosition) || positionBefore(endPosition, startPosition)) {
+      throw new RangeError('Invalid included ranges');
+    }
+    previousIndex = endIndex;
+    previousPosition = endPosition;
+  }
+}
+
+function positionBefore(left: Range['startPosition'], right: Range['startPosition']): boolean {
+  return left.row < right.row || (left.row === right.row && left.column < right.column);
+}
 
 /**
  * A stateful object that is used to produce a {@link Tree} based on some
@@ -195,15 +221,20 @@ export class Parser {
    * @returns {Tree | null} A {@link Tree} if parsing succeeded, or `null` if:
    *  - The parser has not yet had a language assigned with {@link Parser#setLanguage}.
    *  - The progress callback returned true.
+   * @throws {RangeError} If included ranges have invalid coordinates, are reversed, or overlap.
    */
   parse(
     callback: string | ParseCallback | TextBuffer,
     oldTree?: Tree | null,
     options?: ParseOptions,
   ): Tree | null {
+    const ranges = options?.includedRanges ?? [];
+    validateIncludedRanges(ranges);
+    const byteLength = callback instanceof TextBuffer ? textBufferByteLength(callback.length) : 0;
     const previousParseCallback = C.currentParseCallback;
     const previousLogCallback = C.currentLogCallback;
     const previousProgressCallback = C.currentProgressCallback;
+    let rangeAddress = 0;
     try {
       if (callback instanceof TextBuffer) {
         C.currentParseCallback = callback.read;
@@ -229,9 +260,9 @@ export class Parser {
         C._ts_parser_enable_logger_wasm(this[0], 0);
       }
 
-      const ranges = options?.includedRanges ?? [];
       const rangeCount = ranges.length;
-      const rangeAddress = rangeCount ? C._calloc(rangeCount, SIZE_OF_RANGE) : 0;
+      rangeAddress = rangeCount ? C._calloc(rangeCount, SIZE_OF_RANGE) : 0;
+      if (rangeCount && !rangeAddress) throw new Error('Failed to allocate included ranges');
       for (let i = 0; i < rangeCount; i++) {
         marshalRange(rangeAddress + i * SIZE_OF_RANGE, ranges[i]);
       }
@@ -240,7 +271,7 @@ export class Parser {
         ? C._ts_parser_parse_utf16_wasm(
           this[0],
           callback[0],
-          callback.length * 2,
+          byteLength,
           oldTree ? oldTree[0] : 0,
           rangeAddress,
           rangeCount
@@ -253,6 +284,7 @@ export class Parser {
           rangeCount
         );
 
+      if (treeAddress === -1) throw new RangeError('Invalid included ranges');
       if (!treeAddress) {
         return null;
       }
@@ -264,6 +296,7 @@ export class Parser {
       const result = new Tree(INTERNAL, treeAddress, this.language, C.currentParseCallback);
       return result;
     } finally {
+      C._free(rangeAddress);
       C.currentParseCallback = previousParseCallback;
       C.currentLogCallback = previousLogCallback;
       C.currentProgressCallback = previousProgressCallback;

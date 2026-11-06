@@ -101,8 +101,10 @@ interface WasmModule {
   _ts_init(): number;
   _ts_parser_new_wasm(): void;
   _ts_parser_enable_logger_wasm(_0: number, _1: number): void;
-  _ts_parser_parse_wasm(_0: number, _1: number, _2: number, _3: number, _4: number): number;
-  _ts_parser_parse_utf16_wasm(_0: number, _1: number, _2: number, _3: number, _4: number, _5: number): number;
+  /** Signed tree address, 0 for cancellation/no language, -1 for rejected ranges. Caller owns ranges. */
+  _ts_parser_parse_wasm(parser: number, input: number, oldTree: number, ranges: number, count: number): number;
+  /** Signed tree address, 0 for cancellation/no language, -1 for rejected ranges. Caller owns ranges. */
+  _ts_parser_parse_utf16_wasm(parser: number, text: number, bytes: number, oldTree: number, ranges: number, count: number): number;
   _ts_parser_included_ranges_wasm(_0: number): void;
   _ts_language_type_is_named_wasm(_0: number, _1: number): number;
   _ts_language_type_is_visible_wasm(_0: number, _1: number): number;
