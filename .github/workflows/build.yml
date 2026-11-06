@@ -81,10 +81,10 @@ jobs:
         retention-days: 7
 
   build:
-    name: ${{ matrix.platform }} (${{ matrix.target }}) (${{ matrix.os }})
+    name: ${{ matrix.platform }} (${{ matrix.target }}) (${{ matrix.platform == 'macos-arm64' && vars.TSX_MACOS_ARM64_RUNNER && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && vars.TSX_MACOS_ARM64_RUNNER || matrix.os }})
     needs: fixtures
     if: always() && (!inputs.run-test || needs.fixtures.result == 'success')
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.platform == 'macos-arm64' && vars.TSX_MACOS_ARM64_RUNNER && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && vars.TSX_MACOS_ARM64_RUNNER || matrix.os }}
     timeout-minutes: 40
     strategy:
       fail-fast: false
