@@ -217,8 +217,12 @@ jobs:
             false) expected=skipped ;;
             *) echo '::error::Native CI filter output must be true or false'; exit 1 ;;
           esac
-          for result in "$CHECKS" "$SANITIZE" "$BUILD" "$WASM_STDLIB"; do
-            [[ "$result" == "$expected" ]] || exit 1
+          for job in "checks:$CHECKS" "sanitize:$SANITIZE" "build:$BUILD" "check-wasm-stdlib:$WASM_STDLIB"; do
+            result=${job#*:}
+            if [[ "$result" != "$expected" ]]; then
+              echo "::error::${job%%:*} returned '$result'; expected '$expected' for native=$NATIVE"
+              exit 1
+            fi
           done
 
   bindgen:
