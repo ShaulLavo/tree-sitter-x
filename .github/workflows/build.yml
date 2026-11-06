@@ -415,7 +415,7 @@ jobs:
       if: inputs.run-test && !matrix.no-run
       working-directory: lib
       shell: bash
-      run: bash scripts/with-build-cache.sh cargo check --no-default-features --target='${{ matrix.target }}'
+      run: bash ../scripts/with-build-cache.sh cargo check --no-default-features --target='${{ matrix.target }}'
 
     - name: Build target
       if: "!inputs.run-test && !matrix.vm"
