@@ -5,14 +5,20 @@ import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const packageDirectory = resolve(process.argv[2]);
-const compiler = process.argv[3] ?? fileURLToPath(import.meta.resolve('typescript/bin/tsc'));
+const args = process.argv.slice(2).filter(arg => arg !== '--runtime' && arg !== '--runtime-only');
+const packageArgument = args[0];
+if (!packageArgument) throw new Error('Expected an unpacked package directory');
+const packageDirectory = resolve(packageArgument);
+const compiler = args[1] ?? fileURLToPath(import.meta.resolve('typescript/bin/tsc'));
+const runtimeOnly = process.argv.includes('--runtime-only');
+const runtime = runtimeOnly || process.argv.includes('--runtime');
 const scratch = mkdtempSync(join(tmpdir(), 'tree-sitter-package-types-'));
-const cleanup = () => rmSync(scratch, { recursive: true, force: true });
+const cleanup = () => { rmSync(scratch, { recursive: true, force: true }); };
+process.once('exit', cleanup);
 process.once('SIGINT', () => { cleanup(); process.exit(130); });
 process.once('SIGTERM', () => { cleanup(); process.exit(143); });
 
-function check(files, label) {
+function check(files: string[], label: string) {
   const config = join(scratch, 'tsconfig.json');
   writeFileSync(config, JSON.stringify({
     compilerOptions: {
@@ -37,10 +43,12 @@ function check(files, label) {
   console.log(`PASS ${label}`);
 }
 
-function checkPackage(name) {
+function checkPackage(name: string) {
   const dependency = join(scratch, 'node_modules', name);
   mkdirSync(resolve(dependency, '..'), { recursive: true });
   symlinkSync(packageDirectory, dependency, 'junction');
+  if (runtime) checkRuntime(name);
+  if (runtimeOnly) return;
   const consumer = `
 import { Parser, Language, Query, TextBuffer, heap } from '${name}';
 import { Parser as DebugParser } from '${name}/debug';
@@ -79,8 +87,51 @@ void [parser, language, query, buffer, debug];
   check(['consumer.mts', 'consumer.cts', 'mixed.mts'], `${name}: mixed ESM/CommonJS`);
 }
 
+function checkRuntime(name: string) {
+  const consumer = join(scratch, 'runtime.mjs');
+  writeFileSync(consumer, `
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+const require = createRequire(import.meta.url);
+const name = ${JSON.stringify(name)};
+for (const suffix of ['', '/debug']) {
+  const specifier = name + suffix;
+  const wasmSpecifier = specifier + '/web-tree-sitter.wasm';
+  const wasmPath = fileURLToPath(import.meta.resolve(wasmSpecifier));
+  assert.equal(require.resolve(wasmSpecifier), wasmPath);
+  await WebAssembly.compile(readFileSync(wasmPath));
+  for (const binding of [await import(specifier), require(specifier)]) {
+    await binding.Parser.init();
+    const parser = new binding.Parser();
+    const buffer = new binding.TextBuffer('café 😀');
+    try {
+      assert(binding.heap().byteLength > 0);
+      assert.equal(buffer.slice(), 'café 😀');
+    } finally {
+      buffer.delete();
+      parser.delete();
+    }
+  }
+  console.log('PASS ' + specifier + ': packed ESM/CommonJS/Wasm runtime');
+}
+`);
+  const result = spawnSync(process.execPath, [consumer], { cwd: scratch, encoding: 'utf8', timeout: 60_000 });
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    process.stderr.write(result.stdout + result.stderr);
+    process.exit(result.status ?? 1);
+  }
+  process.stdout.write(result.stdout);
+}
+
 try {
-  const { name } = JSON.parse(readFileSync(join(packageDirectory, 'package.json'), 'utf8'));
+  const manifest: unknown = JSON.parse(readFileSync(join(packageDirectory, 'package.json'), 'utf8'));
+  if (!manifest || typeof manifest !== 'object' || !('name' in manifest) || typeof manifest.name !== 'string') {
+    throw new Error('Expected a package name');
+  }
+  const { name } = manifest;
   const names = new Set([name, '@singapore-editor/tree-sitter-x', 'web-tree-sitter']);
   for (const packageName of names) checkPackage(packageName);
 } finally {
