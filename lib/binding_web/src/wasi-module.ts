@@ -16,9 +16,41 @@ type Exports = Record<string, unknown> & {
   __stack_pointer: WebAssembly.Global;
   _initialize: () => void;
   malloc: (size: number) => number;
+  ts_query_delete?: (address: number) => void;
+  ts_tree_delete?: (address: number) => void;
 };
 
 type SideExports = Record<string, unknown>;
+
+interface QueryExecution {
+  query: number;
+  tree: number;
+  failure: { error: unknown } | null;
+}
+
+const queryExecutions = new WeakMap<MainModule, QueryExecution>();
+
+/** @internal */
+export function withQueryCursor<T>(module: MainModule, query: number, tree: number, callback: MainModule['currentQueryProgressCallback'], action: () => T): T {
+  if (queryExecutions.has(module)) throw new Error('A query is already running');
+  if (!query) throw new Error('Cannot execute a deleted query');
+  if (!tree) throw new Error('Cannot execute on a deleted tree');
+  const previous = module.currentQueryProgressCallback;
+  queryExecutions.set(module, { query, tree, failure: null });
+  module.currentQueryProgressCallback = callback;
+  try {
+    return action();
+  } finally {
+    module.currentQueryProgressCallback = previous;
+    queryExecutions.delete(module);
+  }
+}
+
+/** @internal */
+export function checkQueryProgress(module: MainModule): void {
+  const failure = queryExecutions.get(module)?.failure;
+  if (failure) throw failure.error;
+}
 
 // wasi_snapshot_preview1 imports of the runtime. It has no files, clock or entropy:
 // file calls report a bad descriptor, anything else is unsupported, and exit traps.
@@ -215,8 +247,15 @@ export default async function createModule(options: ModuleOptions = {}): Promise
         return Number(!!cancel);
       },
       tree_sitter_query_progress_callback(currentOffset: number) {
-        const cancel = module.currentQueryProgressCallback?.({ currentOffset }) as unknown;
-        return Number(!!cancel);
+        const execution = queryExecutions.get(module);
+        if (execution?.failure) return 1;
+        try {
+          const cancel = module.currentQueryProgressCallback?.({ currentOffset }) as unknown;
+          return Number(!!cancel);
+        } catch (error) {
+          if (execution) execution.failure = { error };
+          return 1;
+        }
       },
     },
   };
@@ -327,6 +366,20 @@ export default async function createModule(options: ModuleOptions = {}): Promise
   } });
   for (const [name, value] of Object.entries(exports)) {
     if (typeof value === 'function') (module as Record<string, unknown>)[`_${name}`] = value;
+  }
+  const deleteQuery = exports.ts_query_delete;
+  if (deleteQuery) {
+    module._ts_query_delete = address => {
+      if (queryExecutions.get(module)?.query === address) throw new Error('Cannot delete an active query');
+      deleteQuery(address);
+    };
+  }
+  const deleteTree = exports.ts_tree_delete;
+  if (deleteTree) {
+    module._ts_tree_delete = address => {
+      if (queryExecutions.get(module)?.tree === address) throw new Error('Cannot delete an active tree');
+      deleteTree(address);
+    };
   }
   return module;
 }
