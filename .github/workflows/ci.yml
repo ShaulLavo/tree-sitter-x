@@ -10,6 +10,7 @@ on:
       - '.cargo/**'
       - '.github/**'
       - 'crates/**'
+      - 'scripts/**'
       - 'xtask/**'
       - 'lib/**'
       - 'test/**'
@@ -128,14 +129,16 @@ jobs:
       - name: Set up pinned nightly Rust toolchain
         run: rustup toolchain install nightly-2026-09-03 --profile minimal --component rustfmt,clippy
 
+      - uses: ./.github/actions/rust-build-cache
+
       - name: Lint Rust files
-        run: make lint
+        run: bash scripts/with-build-cache.sh make lint
 
       - name: Check formatting with nightly rustfmt
         run: cargo +nightly-2026-09-03 fmt --all --check
 
       - name: Lint Rust files with nightly clippy
-        run: cargo +nightly-2026-09-03 clippy --workspace --all-targets -- -D warnings
+        run: bash scripts/with-build-cache.sh cargo +nightly-2026-09-03 clippy --workspace --all-targets -- -D warnings
 
       - name: Install Taplo
         uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2
