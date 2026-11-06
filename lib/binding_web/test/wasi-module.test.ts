@@ -5,7 +5,7 @@ import path from 'path';
 import { pathToFileURL } from 'url';
 import createModule from '../src/wasi-module';
 import type { ModuleOptions } from '../src/wasi-module';
-import { buildFixture } from './wasm-fixtures';
+import { buildFixture, memoryInfo, sideFixture } from './wasm-fixtures';
 
 let directory: string;
 let runtimePath: string;
@@ -184,6 +184,198 @@ function assertFixedEncodingInput(source: AllowSharedBufferSource | undefined) {
   const buffer = ArrayBuffer.isView(source) ? source.buffer : source;
   if (buffer instanceof ArrayBuffer) expect(buffer.resizable).toBe(false);
 }
+
+async function observedRuntime() {
+  const instantiate = WebAssembly.instantiate;
+  const live = new Set<number>();
+  const allocations: number[] = [];
+  const frees: number[] = [];
+  const control = { result: undefined as number | undefined, throwOnMalloc: false };
+  const thrown = { fixture: 'original thrown value' };
+  let captured: WebAssembly.Exports | undefined;
+  Reflect.set(WebAssembly, 'instantiate', async (compiled: WebAssembly.Module, imports: WebAssembly.Imports) => {
+    const instance = await instantiate(compiled, imports);
+    captured = instance.exports;
+    const malloc = captured.malloc as (size: number) => number;
+    const free = captured.free as (pointer: number) => void;
+    return { exports: { ...captured,
+      malloc(size: number) {
+        if (control.throwOnMalloc) throw thrown;
+        const pointer = control.result ?? (malloc(size) >>> 0);
+        allocations.push(pointer);
+        if (pointer && control.result === undefined) live.add(pointer);
+        return pointer;
+      },
+      free(pointer: number) {
+        frees.push(pointer >>> 0);
+        if (live.delete(pointer >>> 0)) free(pointer);
+      },
+    } };
+  });
+  try {
+    const module = await createModule();
+    if (!captured) throw new Error('Missing actual runtime exports');
+    const table = captured.__indirect_function_table;
+    const stack = captured.__stack_pointer;
+    if (!(table instanceof WebAssembly.Table) || !(stack instanceof WebAssembly.Global)) throw new Error('Missing linker state');
+    return { module, table, stack, live, allocations, frees, control, thrown };
+  } finally {
+    Reflect.set(WebAssembly, 'instantiate', instantiate);
+  }
+}
+
+function tableEntries(table: WebAssembly.Table): unknown[] {
+  return Array.from({ length: table.length }, (_, index) => table.get(index) as unknown);
+}
+
+const malformedMetadata: [string, number[][]][] = [
+  ['missing section', []],
+  ['missing memory info', [[]]],
+  ['truncated subsection size', [[1, 0x80]]],
+  ['overflowed subsection size', [[1, 0x80, 0x80, 0x80, 0x80, 0x10]]],
+  ['overlong subsection size', [[1, 0x80, 0x80, 0x80, 0x80, 0x80, 0]]],
+  ['subsection outside section', [[2, 16, 0]]],
+  ['truncated memory info', [[1, 3, 64, 4, 1]]],
+  ['integer crossing record end', [[1, 4, 64, 4, 1, 0x80, 0]]],
+  ['overflowed memory size', [[1, 8, 0xff, 0xff, 0xff, 0xff, 0x10, 4, 1, 0]]],
+  ['trailing memory info fields', [[1, 5, 64, 4, 1, 0, 0]]],
+  ['duplicate memory info', [memoryInfo().concat(memoryInfo())]],
+  ['duplicate sections', [memoryInfo(), memoryInfo()]],
+  ['memory alignment outside wasm32', [memoryInfo(64, 32)]],
+  ['table alignment outside wasm32', [memoryInfo(64, 4, 1, 32)]],
+  ['allocation size overflow', [memoryInfo(0xffffffff, 4)]],
+];
+
+describe.each(modes)('%s transactional linking', (mode) => {
+  beforeEach(() => {
+    if (mode === 'fixed') Object.defineProperty(WebAssembly.Memory.prototype, 'toResizableBuffer', { configurable: true, value: undefined });
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    if (conversionDescriptor) Object.defineProperty(WebAssembly.Memory.prototype, 'toResizableBuffer', conversionDescriptor);
+    else Reflect.deleteProperty(WebAssembly.Memory.prototype, 'toResizableBuffer');
+  });
+
+  it.each(malformedMetadata)('rejects %s before allocation or table growth', async (_, metadata) => {
+    const { module, table, allocations } = await observedRuntime();
+    const capacity = table.length;
+    const binary = sideFixture({ metadata });
+    expect(WebAssembly.validate(binary)).toBe(true);
+    await expect(module.loadWebAssemblyModule(binary, { loadAsync: true })).rejects.toThrow(/dylink|alignment|overflow/i);
+    expect(allocations).toEqual([]);
+    expect(table.length).toBe(capacity);
+  });
+
+  it.each([
+    { module: 'elsewhere', name: 'missing', kind: 'function' },
+    { module: 'env', name: 'missing', kind: 'function' },
+    { module: 'env', name: 'memory', kind: 'function' },
+    { module: 'env', name: 'malloc', kind: 'global' },
+    { module: 'GOT.func', name: 'value', kind: 'function' },
+    { module: 'GOT.mem', name: 'data', kind: 'function' },
+    { module: 'env', name: 'toString', kind: 'function' },
+  ] as const)('preflights unsupported import $module.$name ($kind)', async (extraImport) => {
+    const { module, table, allocations } = await observedRuntime();
+    const capacity = table.length;
+    await expect(module.loadWebAssemblyModule(sideFixture({ extraImport }), { loadAsync: true })).rejects.toThrow();
+    expect(allocations).toEqual([]);
+    expect(table.length).toBe(capacity);
+  });
+
+  it('checks zero and overflowing allocator results before writes', async () => {
+    const { module, table, allocations, frees, control } = await observedRuntime();
+    const before = module.HEAPU8.slice(0, 128);
+    const capacity = table.length;
+    control.result = 0;
+    await expect(module.loadWebAssemblyModule(sideFixture(), { loadAsync: true })).rejects.toThrow(/allocat/i);
+    expect(module.HEAPU8.slice(0, 128)).toEqual(before);
+    expect(table.length).toBe(capacity);
+    control.result = 0xfffffff8;
+    await expect(module.loadWebAssemblyModule(sideFixture(), { loadAsync: true })).rejects.toThrow(/overflow|bounds/i);
+    expect(module.HEAPU8.slice(0, 128)).toEqual(before);
+    expect(allocations).toEqual([0, 0xfffffff8]);
+    expect(frees).toEqual([0xfffffff8]);
+    expect(table.length).toBe(capacity);
+  });
+
+  it('frees the original allocation when table growth fails', async () => {
+    const { module, table, allocations, frees, live, thrown } = await observedRuntime();
+    vi.spyOn(table, 'grow').mockImplementationOnce(() => { throw thrown; });
+    await expect(module.loadWebAssemblyModule(sideFixture({ memoryAlign: 8 }), { loadAsync: true })).rejects.toBe(thrown);
+    expect(allocations).toHaveLength(1);
+    expect(frees).toEqual(allocations);
+    expect(live.size).toBe(0);
+  });
+
+  it.each(['start', 'relocation', 'constructor'] as const)('rolls back repeated %s traps and preserves live data and functions', async (trap) => {
+    const { module, table, stack, allocations, frees, live } = await observedRuntime();
+    const side = await module.loadWebAssemblyModule(sideFixture({ tableAlign: 3 }), { loadAsync: true });
+    const base = side.base();
+    const tableBase = side.table_base();
+    expect(tableBase % 8).toBe(0);
+    expect(side.value()).toBe(42);
+    expect(table.get(tableBase)).toBe(side.value);
+    expect(live.size).toBe(1);
+    module.HEAPU8[base] = 123;
+    const before = tableEntries(table);
+    const savedStack = stack.value as number;
+    let capacity = 0;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      await expect(module.loadWebAssemblyModule(sideFixture({ trap, memoryAlign: 8, tableAlign: 4, functionGot: 'value', memoryGot: 'data' }), { loadAsync: true })).rejects.toBeInstanceOf(WebAssembly.RuntimeError);
+      if (!attempt) capacity = table.length;
+      expect(table.length).toBe(capacity);
+      expect(stack.value).toBe(savedStack);
+      expect(live.size).toBe(1);
+      expect(tableEntries(table).slice(0, before.length)).toEqual(before);
+      expect(tableEntries(table).slice(before.length).every(entry => entry === null)).toBe(true);
+      expect(module.HEAPU8[base]).toBe(123);
+      expect(side.value()).toBe(42);
+    }
+    expect(frees).toEqual(allocations.slice(1));
+    const recovered = await module.loadWebAssemblyModule(sideFixture({ functionGot: 'value', memoryGot: 'data' }), { loadAsync: true });
+    expect(recovered.value()).toBe(42);
+    expect(live.size).toBe(2);
+  });
+
+  it('preserves a thrown host value and clears partially populated GOT function slots', async () => {
+    const { module, table, control, thrown, live, stack } = await observedRuntime();
+    const before = tableEntries(table);
+    const savedStack = stack.value as number;
+    const set = vi.spyOn(table, 'set');
+    set.mockImplementationOnce(() => { throw thrown; });
+    await expect(module.loadWebAssemblyModule(sideFixture({ functionGot: 'value' }), { loadAsync: true })).rejects.toBe(thrown);
+    expect(live.size).toBe(0);
+    set.mockRestore();
+    control.throwOnMalloc = true;
+    await expect(module.loadWebAssemblyModule(sideFixture(), { loadAsync: true })).rejects.toBe(thrown);
+    control.throwOnMalloc = false;
+    // The constructor calls the same captured allocator after its static allocation.
+    const malloc = vi.spyOn(module, '_malloc');
+    malloc.mockImplementation(() => { throw new Error('unused public wrapper'); });
+    let calls = 0;
+    Object.defineProperty(control, 'throwOnMalloc', { get: () => ++calls > 1 });
+    await expect(module.loadWebAssemblyModule(sideFixture({ callMalloc: true, functionGot: 'value' }), { loadAsync: true })).rejects.toBe(thrown);
+    expect(malloc).not.toHaveBeenCalled();
+    expect(calls).toBe(2);
+    expect(stack.value).toBe(savedStack);
+    expect(live.size).toBe(0);
+    expect(tableEntries(table).slice(0, before.length)).toEqual(before);
+    expect(tableEntries(table).slice(before.length).every(entry => entry === null)).toBe(true);
+  });
+
+  it('preflights missing GOT symbols and accepts bounded unknown metadata', async () => {
+    const { module, allocations } = await observedRuntime();
+    await expect(module.loadWebAssemblyModule(sideFixture({ functionGot: 'missing' }), { loadAsync: true })).rejects.toThrow();
+    await expect(module.loadWebAssemblyModule(sideFixture({ memoryGot: 'value' }), { loadAsync: true })).rejects.toThrow();
+    expect(allocations).toEqual([]);
+    const metadata = [[99, 1, 0].concat(memoryInfo(64, 8, 1, 3))];
+    const side = module.loadWebAssemblyModule(sideFixture({ metadata }), { loadAsync: false });
+    expect(side.base() % 256).toBe(0);
+    expect(side.table_base() % 8).toBe(0);
+    expect(side.value()).toBe(42);
+    expect(allocations).toHaveLength(1);
+  });
+});
 
 async function assertStringGrowth() {
   const { module, memory } = await runtime();
