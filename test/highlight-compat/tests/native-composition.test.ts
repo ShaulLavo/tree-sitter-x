@@ -31,10 +31,10 @@ async function unsupportedOperator(operator:string):Promise<void> {
     expect(error.message).toContain('control.scm:2');
   }
 }
-async function compose(query: string, source: string) {
+async function compose(query: string, source: string, window?: Parameters<typeof nativeScopes>[2]) {
   const scopes=await pack(query), owner=await PilotDocument.open('json',source);
   try {
-    const result=nativeScopes(scopes,owner);
+    const result=nativeScopes(scopes,owner,window);
     if(result.status!==0) throw new Error(`Native status ${result.status}/${result.detail}`);
     return { rows:Array.from({length:result.segments.length/3},(_,i)=>[
       result.segments[i*3],result.segments[i*3+1],result.paths[result.segments[i*3+2]].map(id=>scopes.scopes[id]),
@@ -43,6 +43,12 @@ async function compose(query: string, source: string) {
 }
 
 describe('native composition on real JSON trees',()=>{
+  it.each(['(number) @child (array) @parent', '(array) @parent (number) @child'])('preserves ancestor paths when clipping %s',async query=>{
+    const path=['source.json','parent.json','child.json'];
+    expect((await compose(query,'[1]')).rows).toContainEqual([1,2,path]);
+    expect((await compose(query,'[1]',{start:1,end:2})).rows).toEqual([[1,2,path]]);
+  });
+
   it('chooses first pattern or higher priority and stacks captures within one pattern',async()=>{
     expect((await compose('(number) @first (number) @second','1')).rows).toEqual([[0,1,['source.json','first.json']]]);
     expect((await compose('(number) @first ((number) @second (#set! priority "10"))','1')).rows).toEqual([[0,1,['source.json','second.json']]]);
