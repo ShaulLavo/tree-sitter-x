@@ -1,5 +1,11 @@
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { Language, Parser, Query, type Tree } from '../src';
+import { C } from '../src/constants';
+import { TRANSFER_BUFFER } from '../src/parser';
+import { execFileSync } from 'child_process';
+import { mkdtempSync, readFileSync, rmSync } from 'fs';
+import { tmpdir } from 'os';
+import path from 'path';
 import helper from './helper';
 
 let JavaScript: Language;
@@ -74,3 +80,209 @@ describe('query-local predicate text reuse', () => {
     expect(other.reads[0].units).toBe(4);
   });
 });
+
+describe('query failure ownership', () => {
+  it.each([
+    '((identifier) @name (#eq? @name))',
+    '((identifier) @name (#match? @name "["))',
+  ])('releases construction resources for %s', source => {
+    const malloc = vi.spyOn(C, '_malloc');
+    const free = vi.spyOn(C, '_free');
+    const create = vi.spyOn(C, '_ts_query_new');
+    const destroy = vi.spyOn(C, '_ts_query_delete');
+    try {
+      expect(() => new Query(JavaScript, source)).toThrow();
+      expect(free).toHaveBeenCalledExactlyOnceWith(malloc.mock.results[0].value);
+      expect(destroy).toHaveBeenCalledExactlyOnceWith(create.mock.results[0].value);
+    } finally {
+      vi.restoreAllMocks();
+    }
+    const { tree } = parse('alpha;');
+    expect(query('(identifier) @name').matches(tree.rootNode)).toHaveLength(1);
+  });
+
+  it.each(['matches', 'captures', 'captureRanges'] as const)('restores the previous callback after %s', method => {
+    const { tree } = parse('alpha;');
+    const q = query('(identifier) @name');
+    const previous = () => { throw new Error('previous callback must stay dormant'); };
+    C.currentQueryProgressCallback = previous;
+    try {
+      expect(q[method](tree.rootNode)).toHaveLength(1);
+      expect(C.currentQueryProgressCallback).toBe(previous);
+    } finally {
+      C.currentQueryProgressCallback = null;
+    }
+  });
+
+  it.each(['matches', 'captures', 'captureRanges'] as const)('cleans up a predicate read failure in %s', method => {
+    const { tree } = parse('alpha;');
+    const q = query('((identifier) @name (#eq? @name "alpha"))');
+    const failure = new Error('predicate read failed');
+    const read = tree.textCallback;
+    const previous = () => undefined;
+    C.currentQueryProgressCallback = previous;
+    tree.textCallback = () => { throw failure; };
+    const free = vi.spyOn(C, '_free');
+    try {
+      expect(() => q[method](tree.rootNode)).toThrow(failure);
+      expect(free).toHaveBeenCalledTimes(1);
+      expect(C.currentQueryProgressCallback).toBe(previous);
+    } finally {
+      free.mockRestore();
+      tree.textCallback = read;
+      C.currentQueryProgressCallback = null;
+    }
+    expect(q[method](tree.rootNode)).toHaveLength(1);
+  });
+
+  it.each(['matches', 'captures', 'captureRanges'] as const)('rejects deleted query and tree handles in %s', method => {
+    const { tree } = parse('alpha;');
+    const node = tree.rootNode;
+    const q = query('(identifier) @name');
+    q.delete();
+    expect(() => q[method](node)).toThrow('deleted query');
+    const live = query('(identifier) @name');
+    tree.delete();
+    expect(() => live[method](node)).toThrow('deleted tree');
+  });
+
+  it.each(['matches', 'captures', 'captureRanges'] as const)('rejects scratch-cursor reentry during %s', method => {
+    const { tree } = parse('alpha;\n'.repeat(5000));
+    const node = tree.rootNode;
+    const q = query('(identifier) @name');
+    let calls = 0;
+    expect(() => q[method](node, { progressCallback: () => {
+      calls++;
+      q.matches(node);
+    } })).toThrow('query is already running');
+    expect(calls).toBe(1);
+    expect(q[method](node)).toHaveLength(5000);
+  });
+
+  it.each(['query', 'tree'] as const)('prevents deleting the active %s from a progress callback', target => {
+    const { tree } = parse('alpha;\n'.repeat(5000));
+    const node = tree.rootNode;
+    const q = query('(identifier) @name');
+    expect(() => q.matches(node, { progressCallback: () => {
+      (target === 'query' ? q : tree).delete();
+    } })).toThrow(`Cannot delete an active ${target}`);
+    expect(q.matches(node)).toHaveLength(5000);
+  });
+});
+
+async function allocationObserver() {
+  const directory = mkdtempSync(path.join(tmpdir(), 'ts-query-ownership-'));
+  const output = path.join(directory, 'observer.wasm');
+  const sdk = process.env.TREE_SITTER_WASI_SDK_PATH ?? path.join(process.env.XDG_CACHE_HOME ?? path.join(process.env.HOME!, '.cache'), 'tree-sitter/wasi-sdk');
+  const source = `
+    #include <stdlib.h>
+    #include <tree_sitter/api.h>
+    static void *owned[16384];
+    static unsigned count;
+    static void forget(void *p) {
+      for (unsigned i = 0; i < count; i++) {
+        if (owned[i] != p) continue;
+        owned[i] = owned[--count];
+        return;
+      }
+    }
+    __attribute__((export_name("allocate")))
+    void *allocate(size_t n) {
+      void *p = malloc(n);
+      if (p) owned[count++] = p;
+      return p;
+    }
+    static void *zero_allocate(size_t n, size_t size) {
+      void *p = calloc(n, size);
+      if (p) owned[count++] = p;
+      return p;
+    }
+    static void *resize(void *old, size_t n) {
+      void *p = realloc(old, n);
+      if (!p && n) return p;
+      forget(old);
+      if (p) owned[count++] = p;
+      return p;
+    }
+    __attribute__((export_name("release")))
+    void release(void *p) { forget(p); free(p); }
+    __attribute__((export_name("start")))
+    void start(void) { ts_set_allocator(allocate, zero_allocate, resize, release); }
+    __attribute__((export_name("stop")))
+    void stop(void) { ts_set_allocator(NULL, NULL, NULL, NULL); }
+    __attribute__((export_name("outstanding")))
+    unsigned outstanding(void) { return count; }
+  `;
+  try {
+    execFileSync(path.join(sdk, 'bin/clang'), [
+      '--target=wasm32-wasip1', '-O2', '-fPIC', '-shared', '-nostdlib',
+      '-Wl,--allow-undefined', '-Wl,--no-entry', '-Wl,--export=__wasm_call_ctors',
+      '-I', path.join(process.cwd(), '../include'), '-x', 'c', '-', '-o', output,
+    ], { input: source });
+    return await C.loadWebAssemblyModule(readFileSync(output), { loadAsync: true });
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
+
+it('returns real native allocations to a warm baseline after repeated failures', async () => {
+  const observer = await allocationObserver();
+  const allocate = observer.allocate as (size: number) => number;
+  const release = observer.release as (address: number) => void;
+  const start = observer.start as () => void;
+  const stop = observer.stop as () => void;
+  const outstanding = observer.outstanding as () => number;
+  const { tree } = parse('alpha;\n'.repeat(5000));
+  const q = query('((identifier) @name (#eq? @name "alpha"))');
+  const node = tree.rootNode;
+  const malloc = C._malloc;
+  const free = C._free;
+  const failure = { message: 'same thrown object' };
+  start();
+  C._malloc = allocate;
+  C._free = release;
+  try {
+    warmQueries(q, tree);
+    const baseline = outstanding();
+    for (let attempt = 0; attempt < 10; attempt++) {
+      assertFailedQueries(q, tree, failure);
+      expect(() => new Query(JavaScript, '((identifier) @x (#match? @x "["))')).toThrow();
+      warmQueries(q, tree);
+      expect(outstanding()).toBe(baseline);
+    }
+    expect(q.matches(node)).toHaveLength(5000);
+  } finally {
+    C._malloc = malloc;
+    C._free = free;
+    stop();
+  }
+});
+
+function warmQueries(q: Query, tree: Tree) {
+  for (const method of ['matches', 'captures', 'captureRanges'] as const) q[method](tree.rootNode);
+}
+
+function assertFailedQueries(q: Query, tree: Tree, failure: unknown) {
+  for (const method of ['matches', 'captures', 'captureRanges'] as const) {
+    let calls = 0;
+    let caught: unknown;
+    let resultCount = 0;
+    const release = C._free;
+    const free = vi.spyOn(C, '_free').mockImplementation(address => {
+      if (address) resultCount = C.getValue(TRANSFER_BUFFER, 'i32');
+      release(address);
+    });
+    try {
+      q[method](tree.rootNode, { progressCallback: () => {
+        if (++calls === 2) throw failure;
+      } });
+    } catch (error) {
+      caught = error;
+    } finally {
+      free.mockRestore();
+    }
+    expect(calls).toBe(2);
+    expect(caught).toBe(failure);
+    expect(resultCount).toBeGreaterThan(0);
+  }
+}
