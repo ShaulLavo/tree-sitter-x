@@ -794,3 +794,268 @@ fn to_token_vector<'a>(
     }
     Ok(lines)
 }
+
+const ENCODING_PROGRAM: &str = "const café = \"naïve 😀\";\ncafé;\nÜber;\nhtml`<b>e\u{301}</b>`;";
+const ENCODING_HIGHLIGHTS: &str = r#"
+(identifier) @variable
+(string) @string
+(template_string) @string
+(variable_declarator name: (identifier) @constant)
+((identifier) @function.builtin (#eq? @function.builtin "Über"))
+((string_fragment) @string.special (#match? @string.special "😀$"))
+"#;
+const ENCODING_INJECTIONS: &str = r"
+(call_expression function: (identifier) @injection.language
+ arguments: (template_string (string_fragment) @injection.content))
+";
+const ENCODING_LOCALS: &str = r"
+(variable_declarator name: (identifier) @local.definition)
+(identifier) @local.reference
+";
+static ENCODING_JS: LazyLock<HighlightConfiguration> = LazyLock::new(|| {
+    let mut config = HighlightConfiguration::new(get_language("javascript"), "javascript",
+        ENCODING_HIGHLIGHTS, ENCODING_INJECTIONS, ENCODING_LOCALS).unwrap();
+    config.configure(&HIGHLIGHT_NAMES);
+    config
+});
+
+#[derive(Clone, Copy, Debug)]
+enum TestEncoding { Utf8, Le, Be }
+impl TestEncoding {
+    const fn input(self) -> Option<u32> {
+        match self {
+            Self::Utf8 => None,
+            Self::Le => Some(tree_sitter::ffi::TSInputEncodingUTF16LE),
+            Self::Be => Some(tree_sitter::ffi::TSInputEncodingUTF16BE),
+        }
+    }
+    fn encode(self, text: &str) -> Vec<u8> {
+        match self {
+            Self::Utf8 => text.as_bytes().to_vec(),
+            Self::Le => text.encode_utf16().flat_map(u16::to_le_bytes).collect(),
+            Self::Be => text.encode_utf16().flat_map(u16::to_be_bytes).collect(),
+        }
+    }
+    fn decode(self, bytes: &[u8]) -> String {
+        if matches!(self, Self::Utf8) { return String::from_utf8_lossy(bytes).into_owned(); }
+        let units = bytes.chunks_exact(2).map(|p| match self {
+            Self::Le => u16::from_le_bytes([p[0], p[1]]),
+            _ => u16::from_be_bytes([p[0], p[1]]),
+        });
+        let mut text: String = char::decode_utf16(units).map(|c| c.unwrap_or(char::REPLACEMENT_CHARACTER)).collect();
+        if bytes.len() % 2 != 0 { text.push(char::REPLACEMENT_CHARACTER); }
+        text
+    }
+}
+
+type EncodedTokens = Vec<(String, Vec<String>)>;
+fn encoded_tokens(highlighter: &mut Highlighter, bytes: &[u8], encoding: TestEncoding) -> EncodedTokens {
+    let events = highlighter.highlight(&ENCODING_JS, bytes, encoding.input(), None,
+        test_language_for_injection_string).unwrap();
+    let mut stack = Vec::new();
+    let mut tokens = Vec::new();
+    for event in events {
+        match event.unwrap() {
+            HighlightEvent::HighlightStart(h) => stack.push(HIGHLIGHT_NAMES[h.0].clone()),
+            HighlightEvent::HighlightEnd => { stack.pop(); }
+            HighlightEvent::Source { start, end } => tokens.push((encoding.decode(&bytes[start..end]), stack.clone())),
+        }
+    }
+    tokens
+}
+
+#[test]
+fn test_highlighting_encoding_utf8_semantic_control() {
+    let tokens = encoded_tokens(&mut Highlighter::new(), ENCODING_PROGRAM.as_bytes(), TestEncoding::Utf8);
+    assert_eq!(tokens, expected_encoding_tokens());
+    assert!(tokens.contains(&("café".into(), vec!["constant".into()])));
+    assert!(tokens.contains(&("Über".into(), vec!["function.builtin".into()])));
+    assert!(tokens.contains(&("naïve 😀".into(), vec!["string".into(), "string.special".into()])));
+    assert!(tokens.contains(&("b".into(), vec!["string".into(), "tag".into()])));
+}
+
+#[test]
+fn test_highlighting_encodings_match_utf8_tokens() {
+    let expected = expected_encoding_tokens();
+    for encoding in [TestEncoding::Le, TestEncoding::Be] {
+        assert_eq!(encoded_tokens(&mut Highlighter::new(), &encoding.encode(ENCODING_PROGRAM), encoding), expected, "{encoding:?}");
+    }
+}
+
+fn encoding_events(bytes: &[u8], encoding: TestEncoding) -> Vec<HighlightEvent> {
+    Highlighter::new().highlight(&ENCODING_JS, bytes, encoding.input(), None,
+        test_language_for_injection_string).unwrap().collect::<Result<_, _>>().unwrap()
+}
+fn assert_source_partition(events: &[HighlightEvent], len: usize) {
+    let mut offset = 0;
+    for event in events {
+        if let HighlightEvent::Source { start, end } = *event {
+            assert_eq!(start, offset);
+            assert_eq!(start % 2, 0);
+            assert!(end == len || end % 2 == 0);
+            offset = end;
+        }
+    }
+    assert_eq!(offset, len);
+}
+#[test]
+fn test_highlighting_encodings_preserve_source_offsets() {
+    for program in [ENCODING_PROGRAM.to_owned(), format!("\u{feff}{ENCODING_PROGRAM}")] {
+        let expected: Vec<_> = encoding_events(program.as_bytes(), TestEncoding::Utf8).into_iter().map(|e| match e {
+            HighlightEvent::Source { start, end } => HighlightEvent::Source {
+                start: program[..start].encode_utf16().count() * 2,
+                end: program[..end].encode_utf16().count() * 2,
+            },
+            e => e,
+        }).collect();
+        for encoding in [TestEncoding::Le, TestEncoding::Be] {
+            let bytes = encoding.encode(&program);
+            let events = encoding_events(&bytes, encoding);
+            assert_source_partition(&events, bytes.len());
+            assert_eq!(format!("{events:?}"), format!("{expected:?}"), "{encoding:?}");
+        }
+    }
+}
+
+struct CountingAllocator;
+thread_local! {
+    static COUNTING: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static COUNTED_BYTES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+fn count_allocation(size: usize) {
+    if COUNTING.try_with(std::cell::Cell::get).unwrap_or(false) {
+        let _ = COUNTED_BYTES.try_with(|count| count.set(count.get() + size));
+    }
+}
+unsafe impl std::alloc::GlobalAlloc for CountingAllocator {
+    unsafe fn alloc(&self, layout: std::alloc::Layout) -> *mut u8 {
+        count_allocation(layout.size());
+        unsafe { std::alloc::System.alloc(layout) }
+    }
+    unsafe fn alloc_zeroed(&self, layout: std::alloc::Layout) -> *mut u8 {
+        count_allocation(layout.size());
+        unsafe { std::alloc::System.alloc_zeroed(layout) }
+    }
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: std::alloc::Layout) {
+        unsafe { std::alloc::System.dealloc(ptr, layout) }
+    }
+    unsafe fn realloc(&self, ptr: *mut u8, layout: std::alloc::Layout, size: usize) -> *mut u8 {
+        count_allocation(size);
+        unsafe { std::alloc::System.realloc(ptr, layout, size) }
+    }
+}
+#[global_allocator]
+static ENCODING_ALLOCATOR: CountingAllocator = CountingAllocator;
+struct CountingGuard(bool);
+impl Drop for CountingGuard {
+    fn drop(&mut self) { COUNTING.set(self.0); }
+}
+fn rust_bytes_allocated_during<T>(f: impl FnOnce() -> T) -> (T, usize) {
+    COUNTED_BYTES.set(0);
+    let guard = CountingGuard(COUNTING.replace(true));
+    let result = f();
+    drop(guard);
+    (result, COUNTED_BYTES.get())
+}
+fn allocation_control(encoding: TestEncoding) {
+    LazyLock::force(&HTML_HIGHLIGHT);
+    LazyLock::force(&JS_HIGHLIGHT);
+    let source = format!("<!--{}-->{}", "x".repeat(128 * 1024), "<script>let a = 1;</script>".repeat(16));
+    let bytes = encoding.encode(&source);
+    let mut highlighter = Highlighter::new();
+    let mut callbacks = 0;
+    let ((), allocated) = rust_bytes_allocated_during(|| {
+        let events = highlighter.highlight(&HTML_HIGHLIGHT, &bytes, encoding.input(), None, |language| {
+            assert_eq!(language, "javascript");
+            callbacks += 1;
+            Some(&*JS_HIGHLIGHT)
+        }).unwrap();
+        for event in events { event.unwrap(); }
+    });
+    eprintln!("{encoding:?}: allocated {allocated}, source {}, callbacks {callbacks}", bytes.len());
+    assert!(allocated < bytes.len() / 4);
+    assert_eq!(callbacks, 16);
+}
+#[test]
+fn test_highlighting_encoding_utf8_allocation_control() { allocation_control(TestEncoding::Utf8); }
+#[test]
+fn test_highlighting_encodings_do_not_copy_source_per_layer_le() { allocation_control(TestEncoding::Le); }
+#[test]
+fn test_highlighting_encodings_do_not_copy_source_per_layer_be() { allocation_control(TestEncoding::Be); }
+
+#[test]
+fn test_highlighter_reuse_after_cancelled_utf16_highlight() {
+    let source = "<script>let a = 1;</script>".repeat(500);
+    let bytes = TestEncoding::Be.encode(&source);
+    let mut highlighter = Highlighter::new();
+    let cancellation = AtomicUsize::new(0);
+    let cancelled = highlighter.highlight(&HTML_HIGHLIGHT, &bytes, TestEncoding::Be.input(), Some(&cancellation), |_| {
+        cancellation.store(1, Ordering::SeqCst);
+        Some(&*JS_HIGHLIGHT)
+    }).unwrap().any(|e| matches!(e, Err(Error::Cancelled)));
+    assert!(cancelled);
+    drop(bytes);
+    let bytes = TestEncoding::Le.encode(ENCODING_PROGRAM);
+    let mut events = highlighter.highlight(&ENCODING_JS, &bytes, TestEncoding::Le.input(), None, test_language_for_injection_string).unwrap();
+    events.next().unwrap().unwrap();
+    events.next().unwrap().unwrap();
+    drop(events);
+    assert_eq!(encoded_tokens(&mut highlighter, &bytes, TestEncoding::Le),
+        encoded_tokens(&mut Highlighter::new(), ENCODING_PROGRAM.as_bytes(), TestEncoding::Utf8));
+}
+
+fn c_encoding_output(bytes: &[u8], encoding: TestEncoding, auto: bool) -> (Vec<u8>, Vec<u32>) {
+    let names: Vec<_> = HIGHLIGHT_NAMES.iter().map(|n| c_string(n)).collect();
+    let attrs: Vec<_> = HTML_ATTRS.iter().map(|n| c_string(n)).collect();
+    let name_ptrs: Vec<_> = names.iter().map(|n| n.as_ptr()).collect();
+    let attr_ptrs: Vec<_> = attrs.iter().map(|n| n.as_ptr()).collect();
+    let highlighter = unsafe { c::ts_highlighter_new(name_ptrs.as_ptr(), attr_ptrs.as_ptr(), names.len() as u32) };
+    add_encoding_c_language(highlighter, "javascript", ENCODING_HIGHLIGHTS, ENCODING_INJECTIONS, ENCODING_LOCALS);
+    let path = get_language_queries_path("html");
+    add_encoding_c_language(highlighter, "html", &fs::read_to_string(path.join("highlights.scm")).unwrap(), "", "");
+    let buffer = c::ts_highlight_buffer_new();
+    let entry = match (auto, encoding) {
+        (false, TestEncoding::Le) => c::ts_highlighter_highlight_utf16_le,
+        (false, TestEncoding::Be) => c::ts_highlighter_highlight_utf16_be,
+        _ => c::ts_highlighter_highlight,
+    };
+    let error = unsafe { entry(highlighter, c_string("javascript").as_ptr(), bytes.as_ptr().cast(), bytes.len() as u32, buffer, ptr::null()) };
+    let output = unsafe { slice::from_raw_parts(c::ts_highlight_buffer_content(buffer), c::ts_highlight_buffer_len(buffer) as usize).to_vec() };
+    let offsets = unsafe { slice::from_raw_parts(c::ts_highlight_buffer_line_offsets(buffer), c::ts_highlight_buffer_line_count(buffer) as usize).to_vec() };
+    unsafe { c::ts_highlight_buffer_delete(buffer); c::ts_highlighter_delete(highlighter); }
+    assert!(matches!(error, c::ErrorCode::Ok));
+    (output, offsets)
+}
+fn add_encoding_c_language(highlighter: *mut c::TSHighlighter, name: &str, highlights: &str, injections: &str, locals: &str) {
+    let error = unsafe { c::ts_highlighter_add_language(highlighter, c_string(name).as_ptr(), c_string(name).as_ptr(),
+        c_string(&format!("^{name}$")).as_ptr(), get_language(name), highlights.as_ptr().cast(), injections.as_ptr().cast(),
+        locals.as_ptr().cast(), highlights.len() as u32, injections.len() as u32, locals.len() as u32) };
+    assert!(matches!(error, c::ErrorCode::Ok));
+}
+#[test]
+fn test_highlighting_via_c_api_utf16() {
+    for program in [ENCODING_PROGRAM.to_owned(), format!("\u{feff}{ENCODING_PROGRAM}")] {
+        let expected = c_encoding_output(program.as_bytes(), TestEncoding::Utf8, true);
+        assert!(!expected.0.contains(&0));
+        let html = str::from_utf8(&expected.0).unwrap();
+        assert!(html.contains("<span class=tag>b</span>"));
+        assert!(html.contains("class=function.builtin>Über"));
+        for encoding in [TestEncoding::Le, TestEncoding::Be] {
+            assert_eq!(c_encoding_output(&encoding.encode(&program), encoding, program.starts_with('\u{feff}')), expected);
+        }
+    }
+}
+
+fn expected_encoding_tokens() -> EncodedTokens {
+    [
+        ("const ", vec![]), ("café", vec!["constant"]), (" = ", vec![]),
+        ("\"", vec!["string"]), ("naïve 😀", vec!["string", "string.special"]),
+        ("\"", vec!["string"]), (";\n", vec![]), ("café", vec!["constant"]),
+        (";\n", vec![]), ("Über", vec!["function.builtin"]), (";\n", vec![]),
+        ("html", vec!["variable"]), ("`", vec!["string"]),
+        ("<", vec!["string", "punctuation.bracket"]), ("b", vec!["string", "tag"]),
+        (">", vec!["string", "punctuation.bracket"]), ("e\u{301}", vec!["string"]),
+        ("</", vec!["string", "punctuation.bracket"]), ("b", vec!["string", "tag"]),
+        (">", vec!["string", "punctuation.bracket"]), ("`", vec!["string"]), (";", vec![]),
+    ].into_iter().map(|(text, names)| (text.to_owned(), names.into_iter().map(str::to_owned).collect())).collect()
+}
