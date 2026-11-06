@@ -1,6 +1,6 @@
 {
   "name": "@singapore-editor/tree-sitter-x",
-  "version": "0.28.5",
+  "version": "0.28.6",
   "description": "Tree-sitter-x WASI runtime for JavaScript, with shared text buffers and C extensions",
   "repository": {
     "type": "git",
