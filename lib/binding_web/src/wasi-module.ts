@@ -14,6 +14,7 @@ type Exports = Record<string, unknown> & {
   memory: WebAssembly.Memory;
   __indirect_function_table: WebAssembly.Table;
   __stack_pointer: WebAssembly.Global;
+  free: (pointer: number) => void;
   _initialize: () => void;
   malloc: (size: number) => number;
   ts_query_delete?: (address: number) => void;
@@ -76,37 +77,81 @@ const UTF16_CHUNK_SIZE = 4096;
 
 function readLeb(bytes: Uint8Array, cursor: { at: number }): number {
   let result = 0;
-  let shift = 0;
-  let byte;
-  do {
-    byte = bytes[cursor.at++];
-    result |= (byte & 0x7f) << shift;
-    shift += 7;
-  } while (byte & 0x80);
-  return result >>> 0;
+  for (let shift = 0; shift <= 28; shift += 7) {
+    if (cursor.at >= bytes.length) throw new Error('Truncated dylink.0 integer');
+    const byte = bytes[cursor.at++];
+    if (shift === 28 && byte > 15) throw new Error('dylink.0 integer overflow');
+    result += (byte & 0x7f) * 2 ** shift;
+    if (!(byte & 0x80)) return result;
+  }
+  throw new Error('dylink.0 integer overflow');
 }
 
 // The WASM_DYLINK_MEM_INFO subsection of a side module's `dylink.0` section.
 function dylinkInfo(module: WebAssembly.Module) {
-  const info = { memorySize: 0, memoryAlign: 0, tableSize: 0, tableAlign: 0 };
   const sections = WebAssembly.Module.customSections(module, 'dylink.0');
   if (sections.length === 0) throw new Error('Language module has no dylink.0 section');
+  if (sections.length !== 1) throw new Error('Duplicate dylink.0 sections');
+  let info: { memorySize: number; memoryAlign: number; tableSize: number; tableAlign: number } | undefined;
   const bytes = new Uint8Array(sections[0]);
   const cursor = { at: 0 };
   while (cursor.at < bytes.length) {
     const type = bytes[cursor.at++];
     const size = readLeb(bytes, cursor);
     const end = cursor.at + size;
+    if (end > bytes.length) throw new Error('Truncated dylink.0 subsection');
     if (type === 1) {
-      info.memorySize = readLeb(bytes, cursor);
-      info.memoryAlign = readLeb(bytes, cursor);
-      info.tableSize = readLeb(bytes, cursor);
-      info.tableAlign = readLeb(bytes, cursor);
+      if (info) throw new Error('Duplicate dylink.0 memory info');
+      const record = bytes.subarray(cursor.at, end);
+      const position = { at: 0 };
+      info = { memorySize: readLeb(record, position), memoryAlign: readLeb(record, position),
+        tableSize: readLeb(record, position), tableAlign: readLeb(record, position) };
+      if (position.at !== record.length) throw new Error('Invalid dylink.0 memory info size');
+      if (info.memoryAlign > 31 || info.tableAlign > 31) throw new Error('Invalid dylink.0 alignment');
+      if (info.memorySize + Math.max(16, 2 ** info.memoryAlign) - 1 > 0xffffffff) throw new Error('dylink.0 allocation size overflow');
     }
     cursor.at = end;
   }
+  if (!info) throw new Error('Missing dylink.0 memory info');
   return info;
 }
+
+function sideImports(wasmModule: WebAssembly.Module, exports: Exports) {
+  const env: Record<string, WebAssembly.ImportValue> = Object.create(null) as Record<string, WebAssembly.ImportValue>;
+  Object.assign(env, { memory: exports.memory, __indirect_function_table: exports.__indirect_function_table, __stack_pointer: exports.__stack_pointer });
+  const kinds: Record<string, WebAssembly.ImportExportKind> = { memory: 'memory', __indirect_function_table: 'table',
+    __stack_pointer: 'global', __memory_base: 'global', __table_base: 'global' };
+  const symbols = new Map(WebAssembly.Module.exports(wasmModule).map(symbol => [symbol.name, symbol.kind]));
+  const memoryGot = new Map<string, WebAssembly.Global>();
+  const functionGot = new Map<string, WebAssembly.Global>();
+  const got: Record<'GOT.mem' | 'GOT.func', Record<string, WebAssembly.Global>> = {
+    'GOT.mem': Object.create(null) as Record<string, WebAssembly.Global>,
+    'GOT.func': Object.create(null) as Record<string, WebAssembly.Global>,
+  };
+  for (const { module: from, name, kind } of WebAssembly.Module.imports(wasmModule)) {
+    if (from === 'env' && Object.hasOwn(kinds, name) && kinds[name] === kind) continue;
+    const runtimeSymbol = Object.hasOwn(exports, name) ? exports[name] : undefined;
+    if (from === 'env' && !Object.hasOwn(kinds, name) && kind === 'function' && typeof runtimeSymbol === 'function') {
+      env[name] = runtimeSymbol;
+      continue;
+    }
+    if ((from !== 'GOT.mem' && from !== 'GOT.func') || kind !== 'global') throw new Error(`Language module imports unsupported ${from}.${name} (${kind})`);
+    const expected = from === 'GOT.mem' ? 'global' : 'function';
+    const symbol = symbols.get(name);
+    if (symbol !== expected && !(from === 'GOT.func' && symbol === undefined && typeof runtimeSymbol === 'function')) throw new Error(`Language module has no ${expected} symbol ${name}`);
+    const slots = from === 'GOT.mem' ? memoryGot : functionGot;
+    if (slots.has(name)) continue;
+    const slot = new WebAssembly.Global({ value: 'i32', mutable: true }, 0);
+    got[from][name] = slot;
+    slots.set(name, slot);
+  }
+  for (const name of ['__wasm_apply_data_relocs', '__wasm_call_ctors']) {
+    if (symbols.has(name) && symbols.get(name) !== 'function') throw new Error(`Invalid language module function ${name}`);
+  }
+  return { env, got, memoryGot, functionGot };
+}
+
+interface TableReservation { start: number; end: number; base: number }
 
 export function isFileInput(input: string | URL): boolean {
   if (typeof input !== 'string') return input.protocol === 'file:';
@@ -284,62 +329,112 @@ export default async function createModule(options: ModuleOptions = {}): Promise
   }
   exports._initialize();
 
-  // Links a grammar built as a dylink side module: its data goes in a block of the
-  // runtime's heap, its functions in the runtime's table, and its libc imports
-  // resolve to the runtime's exports.
-  function link(wasmModule: WebAssembly.Module): SideExports {
-    const info = dylinkInfo(wasmModule);
-    const align = Math.max(2 ** info.memoryAlign, 16);
-    // Unsigned, so the zero fill below starts at the block above 2 GiB and not near the heap's end.
-    const memoryBase = info.memorySize ? Math.ceil((exports.malloc(info.memorySize + align) >>> 0) / align) * align : 0;
-    refreshHeap();
-    if (info.memorySize) heapU8.fill(0, memoryBase, memoryBase + info.memorySize);
+  // Failed links return cleared ranges to this runtime. Capacity cannot shrink.
+  const freeTableRanges: { start: number; end: number }[] = [];
+
+  function planTable(size: number, alignment: number) {
     const table = exports.__indirect_function_table;
-    const tableBase = table.grow(info.tableSize);
+    const available = freeTableRanges.findIndex(range => Math.ceil(range.start / alignment) * alignment + size <= range.end);
+    const start = available === -1 ? table.length : freeTableRanges[available].start;
+    const base = Math.ceil(start / alignment) * alignment;
+    const end = base + size;
+    if (end > 0xffffffff) throw new Error('dylink.0 table offset overflow');
+    return { start, end: size === 0 ? start : end, base, available };
+  }
 
-    const env: Record<string, WebAssembly.ImportValue> = {
-      memory: exports.memory,
-      __indirect_function_table: table,
-      __stack_pointer: exports.__stack_pointer,
-      __memory_base: new WebAssembly.Global({ value: 'i32', mutable: false }, memoryBase),
-      __table_base: new WebAssembly.Global({ value: 'i32', mutable: false }, tableBase),
-    };
-    // Addresses the module takes through its GOT, filled in once it has been instantiated.
-    const memoryGot = new Map<string, WebAssembly.Global>();
-    const functionGot = new Map<string, WebAssembly.Global>();
-    const got = { 'GOT.mem': {} as Record<string, WebAssembly.Global>, 'GOT.func': {} as Record<string, WebAssembly.Global> };
-    for (const { module: from, name, kind } of WebAssembly.Module.imports(wasmModule)) {
-      if (from === 'env') {
-        if (name in env) continue;
-        if (kind !== 'function' || typeof exports[name] !== 'function') {
-          throw new Error(`Language module imports ${name}, which the runtime does not provide`);
-        }
-        env[name] = exports[name];
-      } else if (from === 'GOT.mem' || from === 'GOT.func') {
-        const slot = new WebAssembly.Global({ value: 'i32', mutable: true }, 0);
-        got[from][name] = slot;
-        (from === 'GOT.mem' ? memoryGot : functionGot).set(name, slot);
-      } else {
-        throw new Error(`Language module imports ${from}.${name}, which the runtime does not provide`);
-      }
+  function reserveTable(reservation: ReturnType<typeof planTable>): TableReservation {
+    const { start, end, available } = reservation;
+    if (start === end) return reservation;
+    if (available === -1) exports.__indirect_function_table.grow(end - start);
+    else {
+      const range = freeTableRanges[available];
+      freeTableRanges.splice(available, 1);
+      if (range.end > end) freeTableRanges.splice(available, 0, { start: end, end: range.end });
     }
+    return reservation;
+  }
 
-    const side = new WebAssembly.Instance(wasmModule, { env, ...got }).exports as SideExports;
-    for (const [name, slot] of memoryGot) {
+  function releaseTable(reservation: TableReservation) {
+    const { start, end } = reservation;
+    if (start === end) return;
+    for (let index = start; index < end; index++) exports.__indirect_function_table.set(index, null);
+    freeTableRanges.push({ start, end });
+    freeTableRanges.sort((a, b) => a.start - b.start);
+    for (let index = 1; index < freeTableRanges.length;) {
+      const previous = freeTableRanges[index - 1];
+      const current = freeTableRanges[index];
+      if (previous.end !== current.start) { index++; continue; }
+      previous.end = current.end;
+      freeTableRanges.splice(index, 1);
+    }
+  }
+
+  function relocate(side: SideExports, memoryBase: number, tableBase: number, imports: ReturnType<typeof sideImports>) {
+    for (const [name, slot] of imports.memoryGot) {
       const symbol = side[name];
-      if (!(symbol instanceof WebAssembly.Global)) throw new Error(`Language module has no data symbol ${name}`);
-      slot.value = memoryBase + (symbol.value as number);
+      if (!(symbol instanceof WebAssembly.Global) || typeof symbol.value !== 'number') throw new Error(`Language module has no data symbol ${name}`);
+      const address = memoryBase + (symbol.value >>> 0);
+      if (address > 0xffffffff) throw new Error('dylink.0 data symbol offset overflow');
+      slot.value = address;
     }
-    for (const [name, slot] of functionGot) {
+    let index = tableBase;
+    for (const [name, slot] of imports.functionGot) {
       const fn = side[name] ?? exports[name];
       if (typeof fn !== 'function') throw new Error(`Language module has no function ${name}`);
-      const index = table.grow(1);
-      table.set(index, fn);
-      slot.value = index;
+      exports.__indirect_function_table.set(index, fn);
+      slot.value = index++;
     }
     (side.__wasm_apply_data_relocs as (() => void) | undefined)?.();
     (side.__wasm_call_ctors as (() => void) | undefined)?.();
-    return side;
+  }
+
+  function rollbackLink(allocation: number, reservation: TableReservation | undefined, stack: number, imports: ReturnType<typeof sideImports>) {
+    try {
+      for (const slot of imports.memoryGot.values()) slot.value = 0;
+      for (const slot of imports.functionGot.values()) slot.value = 0;
+      if (reservation) releaseTable(reservation);
+    } finally {
+      try { if (allocation) exports.free(allocation); }
+      finally { exports.__stack_pointer.value = stack; }
+    }
+  }
+
+  // Successful modules keep their static data and table entries for the runtime's lifetime.
+  function link(wasmModule: WebAssembly.Module): SideExports {
+    const info = dylinkInfo(wasmModule);
+    const imports = sideImports(wasmModule, exports);
+    const tableSize = info.tableSize + imports.functionGot.size;
+    if (tableSize > 0xffffffff) throw new Error('dylink.0 table size overflow');
+    const tablePlan = planTable(tableSize, 2 ** info.tableAlign);
+    const alignment = Math.max(2 ** info.memoryAlign, 16);
+    const stack = exports.__stack_pointer.value as number;
+    let allocation = 0;
+    let reservation: TableReservation | undefined;
+    try {
+      let memoryBase = 0;
+      if (info.memorySize) {
+        const size = info.memorySize + alignment - 1;
+        allocation = exports.malloc(size) >>> 0;
+        if (!allocation) throw new Error('Language module allocation failed');
+        memoryBase = Math.ceil(allocation / alignment) * alignment;
+        refreshHeap();
+        if (allocation + size > 2 ** 32 || memoryBase + info.memorySize > heapU8.length) throw new Error('Language module allocation overflow or out of bounds');
+        heapU8.fill(0, memoryBase, memoryBase + info.memorySize);
+      }
+      reservation = reserveTable(tablePlan);
+      imports.env.__memory_base = new WebAssembly.Global({ value: 'i32', mutable: false }, memoryBase);
+      imports.env.__table_base = new WebAssembly.Global({ value: 'i32', mutable: false }, reservation.base);
+      const side = new WebAssembly.Instance(wasmModule, { env: imports.env, ...imports.got }).exports as SideExports;
+      relocate(side, memoryBase, reservation.base + info.tableSize, imports);
+      return side;
+    } catch (error) {
+      // Restore only loader-owned resources and the known shared stack, not arbitrary module writes.
+      try { rollbackLink(allocation, reservation, stack, imports); }
+      catch {
+        // A cleanup exception must not replace the original module failure.
+      }
+      throw error;
+    }
   }
 
   function loadWebAssemblyModule(binary: Uint8Array | WebAssembly.Module, flags: { loadAsync: boolean }) {
