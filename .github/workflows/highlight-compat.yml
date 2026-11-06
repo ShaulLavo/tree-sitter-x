@@ -53,7 +53,7 @@ jobs:
         run: npm ci
 
       - name: Check tracked imports
-        run: node scripts/check-tracked-imports.mjs
+        run: node scripts/check-tracked-imports.ts
 
       - name: Typecheck
         run: npx tsc --noEmit
@@ -66,7 +66,7 @@ jobs:
 
       - name: Check tests left the checkout unchanged
         if: always()
-        run: node scripts/check-tracked-imports.mjs --check-clean
+        run: node scripts/check-tracked-imports.ts --check-clean
 
   scope-compat-native:
     needs: harness
