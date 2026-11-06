@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   checkComponent, checkFreshness, checkImports, componentInputs, componentPath, digest,
-  manifestPath, repositoryRoot,
+  manifestPath, repositoryRoot, sourceIdentity,
 } from '../src/native/component-inputs.ts';
 
 function leb(value: number): number[] {
@@ -137,6 +137,8 @@ describe('optional native component inputs', () => {
       }
       const inputs = await Promise.all(paths.map(async (path) => ({ path, sha256: digest(await readFile(resolve(root, path))) })));
       const identity = { abi: 1, compiler: 'test', flags: [], wasm: { size: bytes.length, sha256: digest(bytes) }, inputs };
+      expect(sourceIdentity({ ...identity, compiler: '/different/host/compiler', commit: 'unrelated commit' })).toBe(sourceIdentity(identity));
+      expect(sourceIdentity({ ...identity, inputs: inputs.concat([{ path: 'extra', sha256: 'changed' }]) })).not.toBe(sourceIdentity(identity));
       await checkFreshness(bytes, identity, root);
       await expect(checkFreshness(bytes, { ...identity, inputs: inputs.slice(1) }, root)).rejects.toThrow('inventory');
       for (const path of ['lib/include/tree_sitter/api.h', 'crates/loader/wasi-sdk-version', 'lib/scope-compat/src/alloc.c', 'lib/binding_web/lib/exports.txt']) {

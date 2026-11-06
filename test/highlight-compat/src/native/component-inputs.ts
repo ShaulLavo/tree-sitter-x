@@ -58,6 +58,13 @@ function inputEntries(value: unknown): Map<string, string> {
   return inputs;
 }
 
+export function sourceIdentity(manifest: unknown): string {
+  if (!isRecord(manifest)) throw new Error('Invalid component manifest');
+  const entries = Array.from(inputEntries(manifest.inputs));
+  entries.sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0);
+  return digest(new TextEncoder().encode(JSON.stringify(entries)));
+}
+
 export async function checkFreshness(bytes: Uint8Array, manifest: unknown, root = repositoryRoot): Promise<void> {
   if (!isRecord(manifest) || manifest.abi !== 1 || !isRecord(manifest.wasm)) throw new Error('Invalid component manifest');
   if (manifest.wasm.size !== bytes.byteLength || manifest.wasm.sha256 !== digest(bytes)) throw new Error('Stale component Wasm');

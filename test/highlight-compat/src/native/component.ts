@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { checkComponent, componentPath, manifestPath, digest, repositoryRoot } from './component-inputs.ts';
+import { checkComponent, componentPath, manifestPath, digest, repositoryRoot, sourceIdentity } from './component-inputs.ts';
 import { address, decodeExplain, decodeResult, nativeString, sourceSpan, span, u32, validateLayout } from './decode.ts';
 import type { PassResult, ExplainResult, Window } from './decode.ts';
 import { languageAddress } from './borrow.ts';
@@ -77,10 +77,10 @@ export class Component {
     const module = await checkComponent();
     const exports = await runtime.extension(module);
     const bytes = await readFile(resolve(repositoryRoot, componentPath));
-    const manifest = await readFile(resolve(repositoryRoot, manifestPath));
+    const manifest: unknown = JSON.parse(await readFile(resolve(repositoryRoot, manifestPath), 'utf8'));
     const runtimeBytes = await readFile(new URL('../../../../lib/binding_web/web-tree-sitter.wasm', import.meta.url));
     const bindingBytes = await readFile(new URL('../../../../lib/binding_web/web-tree-sitter.js', import.meta.url));
-    const component = new Component(runtime, exports, { componentSha256: digest(bytes), sourceDigest: digest(manifest), runtimeSha256: digest(Buffer.concat([runtimeBytes, bindingBytes])), abi: '1' });
+    const component = new Component(runtime, exports, { componentSha256: digest(bytes), sourceDigest: sourceIdentity(manifest), runtimeSha256: digest(Buffer.concat([runtimeBytes, bindingBytes])), abi: '1' });
     if (component.number('scope_compat_abi_version') !== 1) throw new Error('Unsupported component ABI');
     const layout = component.number('scope_compat_layout');
     validateLayout(runtime.heap(), layout);
