@@ -12,14 +12,15 @@ trap 'git worktree remove --force "$work/branch" 2>/dev/null || true; rm -rf "$w
 
 # Debug first: both builds write lib/web-tree-sitter.wasm, and the release one must win.
 npm run build:debug
-CJS=1 node script/build.js --debug
+CJS=1 node script/build.ts --debug
 npm run build
-CJS=1 node script/build.js
+CJS=1 node script/build.ts
 npm run build:dts
+node script/check-artifacts-fresh.ts
 npm pack --pack-destination "$work"
 tar xzf "$work"/*.tgz -C "$work"
 node script/git-package-manifest.ts "$work/package/package.json"
-node script/check-package-types.js "$work/package"
+node script/check-package-types.ts "$work/package" --runtime
 
 git fetch -q origin "$branch"
 git worktree add -q --detach "$work/branch" FETCH_HEAD

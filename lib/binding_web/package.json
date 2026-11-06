@@ -87,7 +87,7 @@
     "web-tree-sitter-upstream": "file:test/vendor/upstream-ref"
   },
   "scripts": {
-    "build:ts": "tsc -b . && node script/build.js",
+    "build:ts": "tsc -b . && node script/build.ts",
     "build:wasm": "cd ../../ && cargo xtask build-wasm",
     "build:wasm:debug": "cd ../../ && cargo xtask build-wasm --debug",
     "build": "npm run build:wasm && npm run build:ts",

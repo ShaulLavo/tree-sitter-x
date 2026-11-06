@@ -26,7 +26,7 @@ function run(script: string, cwd: string) {
 
 describe('web bundle subprocess', () => {
   it('fails when the real bundler cannot resolve its entry point', () => {
-    const result = run(join(web, 'script/build.js'), scratch);
+    const result = run(join(web, 'script/build.ts'), scratch);
     expect(result.error).toBeUndefined();
     expect(result.stderr).toContain('Could not resolve "src/index.ts"');
     expect(result.status).toBe(1);
@@ -35,7 +35,7 @@ describe('web bundle subprocess', () => {
   it('preserves the copy error when the runtime Wasm is missing', () => {
     mkdirSync(join(scratch, 'src'));
     writeFileSync(join(scratch, 'src/index.ts'), 'export const value = 1;');
-    const result = run(join(web, 'script/build.js'), scratch);
+    const result = run(join(web, 'script/build.ts'), scratch);
     expect(result.error).toBeUndefined();
     expect(result.stderr).toContain('ENOENT');
     expect(result.stderr).toContain('lib/web-tree-sitter.wasm');
@@ -49,7 +49,7 @@ function setTime(file: string, time: Date) {
 
 function fixture() {
   const pkg = join(scratch, 'lib/binding_web');
-  for (const relative of ['src', 'script', 'tsconfig.json', 'package.json', 'package-lock.json', 'lib/tree-sitter.c', 'lib/exports.txt', 'lib/extra-exports.txt', '../src', '../include', '../../crates/xtask/src/build_wasm.rs', '../../crates/loader/wasi-sdk-version', '../../crates/loader/binaryen-version']) {
+  for (const relative of ['src', 'script', 'tsconfig.json', 'package.json', 'package-lock.json', 'lib/tree-sitter.c', 'lib/exports.txt', 'lib/extra-exports.txt', 'lib/wasm-memory.d.ts', 'lib/web-tree-sitter.d.ts', '../src', '../include', '../../crates/xtask/src/build_wasm.rs', '../../crates/loader/wasi-sdk-version', '../../crates/loader/binaryen-version']) {
     const target = join(pkg, relative);
     mkdirSync(dirname(target), { recursive: true });
     cpSync(join(web, relative), target, { recursive: true });
@@ -97,6 +97,46 @@ describe('package freshness', () => {
   it('rejects a missing required source directory', () => {
     const pkg = fixture();
     rmSync(join(pkg, '../include'), { recursive: true });
+    expect(check(pkg).status).not.toBe(0);
+  });
+
+  it('rejects a missing explicit build input', () => {
+    const pkg = fixture();
+    rmSync(join(pkg, 'lib/exports.txt'));
+    expect(check(pkg).status).not.toBe(0);
+  });
+
+  it('rejects deletion of a nested input through its parent directory timestamp', () => {
+    const pkg = fixture();
+    const input = join(pkg, '../src/wasm-stdlib/libc/string/strcmp.c');
+    rmSync(input);
+    setTime(dirname(input), new Date(Date.now() + 120_000));
+    expect(check(pkg).status).not.toBe(0);
+  });
+
+  it('requires export targets even when they are absent from the files list', () => {
+    const pkg = fixture();
+    const packageFile = join(pkg, 'package.json');
+    assert('exports' in manifest);
+    writeFileSync(packageFile, JSON.stringify({ ...manifest, exports: { '.': manifest.exports, './extra': './nested/extra.js' } }));
+    setTime(packageFile, old);
+    expect(check(pkg).status).not.toBe(0);
+  });
+
+  it('requires the types target even when it is absent from files and exports', () => {
+    const pkg = fixture();
+    const packageFile = join(pkg, 'package.json');
+    writeFileSync(packageFile, JSON.stringify({ ...manifest, types: 'nested/extra.d.ts' }));
+    setTime(packageFile, old);
+    expect(check(pkg).status).not.toBe(0);
+  });
+
+  it('rejects a directory in place of an advertised artifact', () => {
+    const pkg = fixture();
+    const output = join(pkg, 'debug/web-tree-sitter.cjs');
+    rmSync(output);
+    mkdirSync(output);
+    setTime(output, new Date(Date.now() + 60_000));
     expect(check(pkg).status).not.toBe(0);
   });
 });
