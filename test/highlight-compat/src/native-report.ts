@@ -236,7 +236,9 @@ function renderExample(key: string, { row, run }: Example): string[] {
   const intervals = row.fixture.explain.filter(item => item.from < run.to && item.to > run.from);
   return [`### ${key}`, '', `${row.fixture.input.fixtureId}:${line}:${column}, [${run.from}, ${run.to}), excerpt ${JSON.stringify(source.slice(run.from, Math.min(run.to, run.from + 80)))}`, '',
     `Reference: ${run.reference.join(' ') || '(empty)'}`, '', `Native: ${run.candidate.join(' ') || '(empty)'}`, '',
-    ...(intervals.length ? intervals.map(item => `- [${item.from}, ${item.to}) ${item.scope}, pattern ${item.pattern}, ${item.capture}, priority ${item.priority}, ${item.disposition}, ${item.location}`) : ['No native interval covers this mismatch. Markdown parent and fence-frame mapping is outside the child scope pack.']), ''];
+    ...(intervals.length ? intervals.map(item => `- [${item.from}, ${item.to}) ${item.scope}, pattern ${item.pattern}, ${item.capture}, priority ${item.priority}, ${item.disposition}, ${item.location}`) : [row.fixture.input.languageId === 'markdown'
+      ? 'No child-pack interval covers this mismatch. The remaining path comes from the Markdown parent and resolver fence frame.'
+      : 'No native capture or range interval covers this mismatch. The remaining path comes from root and terminator composition.']), ''];
 }
 function markdownTable(rows: readonly Row[]): string[] {
   const lines = ['| Fixture | Reference | Region | Matching / units | Non-whitespace matching / units |', '| --- | --- | --- | ---: | ---: |'];
@@ -272,6 +274,7 @@ export async function buildNativeReport(root = GOLDEN_ROOT): Promise<string> {
     const failures = failingCells(rows), identities = await checkMarkdownAssets();
     const identity = Object.fromEntries(Array.from(packs, ([id, pack]) => [id, JSON.stringify(pack.engine)]));
     identity.markdown = JSON.stringify(identities); identity.markdownCommit = MARKDOWN_COMMIT;
+    identity.markdownManifest = reportIdentity({ manifest: readFileSync(new URL('../vendor/native-pilot/assets.json', import.meta.url), 'utf8') });
     identity.packManifests = reportIdentity(Object.fromEntries(NATIVE_LANGUAGES.map(id => [id,
       readFileSync(new URL(`../../../lib/scope-compat/packs/${id}/pack.json`, import.meta.url), 'utf8')])));
     identity.corpus = reportIdentity(Object.fromEntries(inputs.map(input => [`${input.languageId}/${input.fixtureId}`, sourceSha256(input.source)])));

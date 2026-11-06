@@ -17,6 +17,11 @@ async function initialize(): Promise<ResolverRuntime> {
 
 export interface ResolverRecord { readonly start: number; readonly end: number; readonly kind: number; readonly extra: number }
 
+function decorationFlags(kind: number, extra: number): void {
+  if (!((kind >= 1 && kind <= 20) || (kind >= 32 && kind <= 39))) throw new Error('Invalid Markdown decoration kind');
+  if ([4, 6, 8].includes(kind) && extra > 1) throw new Error('Invalid Markdown decoration flags');
+  if (kind === 2 && (extra < 1 || extra > 6)) throw new Error('Invalid Markdown heading level');
+}
 export function decodeResolverRecords(heap: Uint8Array, pointer: number, count: number, length: number, injections: boolean): readonly ResolverRecord[] {
   u32(count); u32(length);
   if (count % 4 !== 0) throw new Error('Invalid Markdown output count');
@@ -28,6 +33,7 @@ export function decodeResolverRecords(heap: Uint8Array, pointer: number, count: 
   for (let i = 0; i < words.length; i += 4) {
     const [start, end, kind, extra] = words.subarray(i, i + 4);
     if (start > end || end > length || (injections && (kind > extra || extra > start))) throw new Error('Invalid Markdown output range');
+    if (!injections) decorationFlags(kind, extra);
     records.push(Object.freeze({ start, end, kind, extra }));
   }
   return Object.freeze(records);

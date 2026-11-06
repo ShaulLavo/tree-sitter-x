@@ -25,6 +25,10 @@ describe('current native Markdown pilot', () => {
     expect(() => decodeResolverRecords(heap, 16, 4, 16, true)).toThrow('range');
     words.set([8, 16, 7, 4], 4);
     expect(() => decodeResolverRecords(heap, 16, 4, 16, true)).toThrow('range');
+    words.set([8, 16, 42, 0], 4);
+    expect(() => decodeResolverRecords(heap, 16, 4, 16, false)).toThrow('kind');
+    words.set([8, 16, 4, 2], 4);
+    expect(() => decodeResolverRecords(heap, 16, 4, 16, false)).toThrow('flags');
     expect(decodeResolverRecords(heap, 0, 0, 0, false)).toEqual([]);
   });
   it('owns one resolver and maps the two original fence children to the document', async () => {
