@@ -31,6 +31,7 @@ on:
       - 'flake.lock'
       - 'flake.nix'
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - 'master'
       - 'release-[0-9]+.[0-9]+'
@@ -40,11 +41,12 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name != 'push' }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   changes:
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) }}
     runs-on: ubuntu-latest
     outputs:
       native: ${{ steps.paths.outputs.native }}
@@ -111,7 +113,7 @@ jobs:
 
   checks:
     needs: changes
-    if: needs.changes.outputs.native == 'true'
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (needs.changes.outputs.native == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -155,7 +157,7 @@ jobs:
 
   consistency:
     needs: changes
-    if: needs.changes.outputs.native == 'true'
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (needs.changes.outputs.native == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -184,21 +186,21 @@ jobs:
 
   sanitize:
     needs: changes
-    if: needs.changes.outputs.native == 'true'
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (needs.changes.outputs.native == 'true') }}
     uses: ./.github/workflows/sanitize.yml
 
   build:
     needs: changes
-    if: needs.changes.outputs.native == 'true'
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (needs.changes.outputs.native == 'true') }}
     uses: ./.github/workflows/build.yml
 
   check-wasm-stdlib:
     needs: changes
-    if: needs.changes.outputs.native == 'true'
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (needs.changes.outputs.native == 'true') }}
     uses: ./.github/workflows/wasm_stdlib.yml
 
   native-ci:
-    if: always()
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (always()) }}
     needs: [changes, checks, sanitize, build, check-wasm-stdlib]
     runs-on: ubuntu-latest
     steps:
@@ -227,27 +229,27 @@ jobs:
 
   bindgen:
     needs: changes
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.bindgen == 'true'
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.bindgen == 'true') }}
     uses: ./.github/workflows/bindgen.yml
 
   wasm-exports:
     needs: changes
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.wasm-exports == 'true'
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.wasm-exports == 'true') }}
     uses: ./.github/workflows/wasm_exports.yml
 
   package-types:
     needs: changes
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.package-types == 'true'
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.package-types == 'true') }}
     uses: ./.github/workflows/package-types.yml
 
   highlight-compat:
     needs: changes
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.highlight-compat == 'true'
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.highlight-compat == 'true') }}
     uses: ./.github/workflows/highlight-compat.yml
 
   gate:
     name: Complete CI gate
-    if: always()
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (always()) }}
     needs: [changes, checks, consistency, sanitize, build, check-wasm-stdlib, native-ci, bindgen, wasm-exports, package-types, highlight-compat]
     runs-on: ubuntu-latest
     steps:
