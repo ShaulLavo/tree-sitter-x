@@ -81,6 +81,9 @@ jobs:
       - name: Check reference golden and report staleness
         run: npm run artifacts:check
 
+      - name: Check current Markdown assets and native pilot report
+        run: npm run report:native -- --check
+
       - name: Check tests left the checkout unchanged
         if: always()
         run: node scripts/check-tracked-imports.mjs --check-clean

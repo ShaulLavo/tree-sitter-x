@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -67,33 +67,49 @@ async function generateTree(root: string): Promise<void> {
   write(root, 'reports/baselines.md', await buildBaselineReport(goldens))
 }
 
-function committedDifferences(generated: string): string[] {
-  return ['goldens', 'reports'].flatMap(directory => artifactDifferences(join(generated, directory), join(ROOT, directory)).map(message => `${directory}/${message}`))
+export function committedDifferences(generated: string, root = ROOT): string[] {
+  if (existsSync(join(generated, 'reports/native-pilot.md'))) throw new Error('candidate report in reference generation')
+  const goldens = artifactDifferences(join(generated, 'goldens'), join(root, 'goldens')).map(message => `goldens/${message}`)
+  const reports = artifactDifferences(join(generated, 'reports'), join(root, 'reports'))
+    .filter(message => message !== 'native-pilot.md: extra committed artifact').map(message => `reports/${message}`)
+  return goldens.concat(reports)
 }
 
-const mode = process.argv[2]
-if (!['--check', '--update'].includes(mode ?? '') || process.argv.length !== 3) throw new Error('usage: node scripts/regenerate.ts --check|--update')
-const scratch = mkdtempSync(join(tmpdir(), 'highlight-compat-regenerate-'))
-try {
-  const { first, second, firstHash, secondHash, counts } = await regenerationRuns(scratch, {
-    generate: generateTree,
-    selfTests: goldenRoot => selfTestCounts(scratch, goldenRoot),
-  })
-  console.log(`pipeline content SHA-256 ${firstHash} ${secondHash}`)
-  const gate = phase1GateReport(counts, firstHash, secondHash)
-  write(first, 'reports/phase-1-gate.md', gate)
-  write(second, 'reports/phase-1-gate.md', gate)
-  const repeated = artifactDifferences(first, second)
-  if (repeated.length > 0) throw new Error(`repeated generation differs:\n${repeated.join('\n')}`)
-  console.log(`full artifact SHA-256 ${artifactHash(first)} ${artifactHash(second)}`)
-  if (mode === '--update') {
-    publishArtifacts(first, ROOT)
-    console.log('updated reference goldens and reports from two identical runs')
-  } else {
-    const differences = committedDifferences(first)
-    if (differences.length > 0) throw new Error(`committed artifacts are stale:\n${differences.join('\n')}`)
-    console.log('all committed goldens and reports match two full regenerations')
-  }
-} finally {
-  rmSync(scratch, { recursive: true, force: true })
+export function preserveCandidate(generated: string, root = ROOT): void {
+  if (existsSync(join(generated, 'reports/native-pilot.md'))) throw new Error('candidate report in reference generation')
+  artifactHash(join(root, 'reports'))
+  const candidate = join(root, 'reports/native-pilot.md')
+  if (existsSync(candidate)) copyFileSync(candidate, join(generated, 'reports/native-pilot.md'))
 }
+
+async function main(): Promise<void> {
+  const mode = process.argv[2]
+  if (!['--check', '--update'].includes(mode ?? '') || process.argv.length !== 3) throw new Error('usage: node scripts/regenerate.ts --check|--update')
+  const scratch = mkdtempSync(join(tmpdir(), 'highlight-compat-regenerate-'))
+  try {
+    const { first, second, firstHash, secondHash, counts } = await regenerationRuns(scratch, {
+      generate: generateTree,
+      selfTests: goldenRoot => selfTestCounts(scratch, goldenRoot),
+    })
+    console.log(`pipeline content SHA-256 ${firstHash} ${secondHash}`)
+    const gate = phase1GateReport(counts, firstHash, secondHash)
+    write(first, 'reports/phase-1-gate.md', gate)
+    write(second, 'reports/phase-1-gate.md', gate)
+    const repeated = artifactDifferences(first, second)
+    if (repeated.length > 0) throw new Error(`repeated generation differs:\n${repeated.join('\n')}`)
+    console.log(`full artifact SHA-256 ${artifactHash(first)} ${artifactHash(second)}`)
+    if (mode === '--update') {
+      preserveCandidate(first)
+      publishArtifacts(first, ROOT)
+      console.log('updated reference goldens and reports from two identical runs')
+    } else {
+      const differences = committedDifferences(first)
+      if (differences.length > 0) throw new Error(`committed artifacts are stale:\n${differences.join('\n')}`)
+      console.log('all committed goldens and reports match two full regenerations')
+    }
+  } finally {
+    rmSync(scratch, { recursive: true, force: true })
+  }
+}
+
+if (import.meta.main) await main()

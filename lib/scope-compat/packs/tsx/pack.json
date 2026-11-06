@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "languageId": "tsx",
+  "packVersion": "pilot-1",
+  "rootScope": "source.tsx",
+  "scopeSuffix": ".tsx",
+  "embeddedScope": "meta.embedded.block.tsx",
+  "parser": {
+    "asset": "tree-sitter-typescript/tree-sitter-tsx.wasm",
+    "sha256": "79e5da75ea62855a0cd67177685f0164eac87d5f630b3cbe1e0a099751ad30f8"
+  },
+  "queries": [
+    "../shared/typescript-common.scm",
+    "tsx.scm"
+  ]
+}
