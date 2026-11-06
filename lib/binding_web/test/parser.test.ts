@@ -3,6 +3,7 @@ import helper, { type LanguageName } from './helper';
 import type { ParseState, Tree, Range } from '../src';
 import { Parser, Language, TextBuffer } from '../src';
 import { C } from '../src/constants';
+import { marshalRange } from '../src/marshal';
 
 function includedRange(startIndex: number, endIndex: number): Range {
   return { startIndex, endIndex, startPosition: { row: 0, column: startIndex }, endPosition: { row: 0, column: endIndex } };
@@ -23,6 +24,7 @@ const invalidRanges: Range[][] = [
   ]), [
   [{ ...includedRange(0, 4), startPosition: { row: 2, column: 0 }, endPosition: { row: 1, column: 4 } }],
   [{ ...includedRange(0, 4), startPosition: { row: 1, column: 5 }, endPosition: { row: 1, column: 4 } }],
+  [includedRange(0, 1), { ...includedRange(2, 4), startPosition: { row: 0, column: 0 } }],
 ]);
 
 function assertRejectedRanges(parser: Parser, input: Parameters<Parser['parse']>[0], previousRanges: Range[]) {
@@ -32,13 +34,29 @@ function assertRejectedRanges(parser: Parser, input: Parameters<Parser['parse']>
   }
 }
 
-function parseSelectedRange(parser: Parser, input: Parameters<Parser['parse']>[0], includedRanges: Range[]) {
+function assertParsedText(parser: Parser, input: Parameters<Parser['parse']>[0], includedRanges: Range[], text: string) {
   const tree = parser.parse(input, null, { includedRanges })!;
   try {
-    expect(tree.rootNode.text).toBe('水;');
+    expect(tree.getIncludedRanges()).toEqual(includedRanges.length ? includedRanges : parser.getIncludedRanges());
+    expect(tree.rootNode.text).toBe(text);
   } finally {
     tree.delete();
   }
+}
+
+function rejectRangesNatively(buffer: boolean) {
+  if (buffer) {
+    const parse = C._ts_parser_parse_utf16_wasm.bind(C);
+    return vi.spyOn(C, '_ts_parser_parse_utf16_wasm').mockImplementation((parser, text, bytes, oldTree, ranges, count) => {
+      marshalRange(ranges, includedRange(3, 1));
+      return parse(parser, text, bytes, oldTree, ranges, count);
+    });
+  }
+  const parse = C._ts_parser_parse_wasm.bind(C);
+  return vi.spyOn(C, '_ts_parser_parse_wasm').mockImplementation((parser, input, oldTree, ranges, count) => {
+    marshalRange(ranges, includedRange(3, 1));
+    return parse(parser, input, oldTree, ranges, count);
+  });
 }
 
 let JavaScript: Language;
@@ -61,6 +79,117 @@ describe('Parser', () => {
     parser.delete();
   });
 
+  it.each(['string', 'callback', 'buffer'] as const)('propagates native range rejection and frees temporary ranges for %s input', (kind) => {
+    parser.setLanguage(JavaScript);
+    const text = 'a;水;';
+    const buffer = kind === 'buffer' ? new TextBuffer(text) : null;
+    const input = buffer ?? (kind === 'callback' ? (index: number) => text.slice(index) : text);
+    const valid = [includedRange(2, 4)];
+    assertParsedText(parser, input, valid, '水;');
+    const previousParse = C.currentParseCallback;
+    const previousLog = C.currentLogCallback;
+    const previousProgress = C.currentProgressCallback;
+    const native = rejectRangesNatively(kind === 'buffer');
+    const calloc = vi.spyOn(C, '_calloc');
+    const free = vi.spyOn(C, '_free');
+    try {
+      expect(() => parser.parse(input, null, { includedRanges: valid })).toThrow(RangeError);
+      expect(native.mock.results[0].value).toBe(-1);
+      expect(calloc).toHaveBeenCalledExactlyOnceWith(1, 24);
+      expect(free).toHaveBeenCalledExactlyOnceWith(calloc.mock.results[0].value);
+      expect(parser.getIncludedRanges()).toEqual(valid);
+      expect(C.currentParseCallback).toBe(previousParse);
+      expect(C.currentLogCallback).toBe(previousLog);
+      expect(C.currentProgressCallback).toBe(previousProgress);
+    } finally {
+      native.mockRestore();
+      calloc.mockRestore();
+      free.mockRestore();
+      buffer?.delete();
+    }
+    parser.setLanguage(null);
+    expect(parser.parse(text)).toBeNull();
+    parser.setLanguage(JavaScript);
+    assertParsedText(parser, text, valid, '水;');
+  });
+
+  it.each(['string', 'callback', 'buffer'] as const)('preserves adjacent, empty and Unicode ranges for %s input', (kind) => {
+    parser.setLanguage(JavaScript);
+    const text = 'a;水;"😀";';
+    const buffer = kind === 'buffer' ? new TextBuffer(text) : null;
+    const input = buffer ?? (kind === 'callback' ? (index: number) => text.slice(index) : text);
+    const ranges = [includedRange(0, 2), includedRange(2, 2), includedRange(2, 4), includedRange(4, text.length)];
+    try {
+      assertParsedText(parser, input, ranges, text);
+      assertParsedText(parser, input, [includedRange(2, 2)], '');
+      assertParsedText(parser, input, [], text);
+    } finally {
+      buffer?.delete();
+    }
+  });
+
+  it('accepts the unsigned Wasm32 point and UTF-16 byte boundaries', () => {
+    parser.setLanguage(JavaScript);
+    const range = { ...includedRange(0, 0x7fffffff), endPosition: { row: 0xffffffff, column: 0x7fffffff } };
+    const tree = parser.parse('水;', null, { includedRanges: [range] })!;
+    try {
+      expect(tree.getIncludedRanges()).toEqual([range]);
+      expect(tree.rootNode.text).toBe('水;');
+    } finally {
+      tree.delete();
+    }
+  });
+
+  it('rejects range storage whose Wasm32 byte count would wrap before allocation', () => {
+    const ranges: Range[] = [];
+    ranges.length = Math.floor(0xffffffff / 24) + 1;
+    const calloc = vi.spyOn(C, '_calloc');
+    try {
+      expect(() => parser.parse('', null, { includedRanges: ranges })).toThrow(RangeError);
+      expect(calloc).not.toHaveBeenCalled();
+    } finally {
+      calloc.mockRestore();
+    }
+  });
+
+  it('frees temporary ranges and restores callbacks when an input callback throws', () => {
+    parser.setLanguage(JavaScript);
+    const failure = new Error('input failed');
+    const input = () => { throw failure; };
+    const parseCallback = C.currentParseCallback;
+    const logCallback = C.currentLogCallback;
+    const progressCallback = C.currentProgressCallback;
+    const calloc = vi.spyOn(C, '_calloc');
+    const free = vi.spyOn(C, '_free');
+    try {
+      expect(() => parser.parse(input, null, { includedRanges: [includedRange(0, 4)] })).toThrow(failure);
+      expect(free).toHaveBeenCalledExactlyOnceWith(calloc.mock.results[0].value);
+      expect(C.currentParseCallback).toBe(parseCallback);
+      expect(C.currentLogCallback).toBe(logCallback);
+      expect(C.currentProgressCallback).toBe(progressCallback);
+    } finally {
+      calloc.mockRestore();
+      free.mockRestore();
+    }
+  });
+
+  it('preserves the selected ranges when range allocation fails', () => {
+    parser.setLanguage(JavaScript);
+    const ranges = [includedRange(2, 4)];
+    assertParsedText(parser, 'a;水;', ranges, '水;');
+    const calloc = vi.spyOn(C, '_calloc').mockReturnValue(0);
+    const marshal = vi.spyOn(C, 'setValue');
+    try {
+      expect(() => parser.parse('a;水;', null, { includedRanges: [includedRange(0, 2)] })).toThrow('Failed to allocate included ranges');
+      expect(marshal).not.toHaveBeenCalled();
+      expect(parser.getIncludedRanges()).toEqual(ranges);
+    } finally {
+      calloc.mockRestore();
+      marshal.mockRestore();
+    }
+    assertParsedText(parser, 'a;水;', ranges, '水;');
+  });
+
   it.each((['string', 'callback', 'buffer'] as const).flatMap(kind => [
     { kind, selected: false }, { kind, selected: true },
   ]))('rejects invalid included ranges atomically for $kind input, selected=$selected', ({ kind, selected }) => {
@@ -74,23 +203,21 @@ describe('Parser', () => {
     const previousLog = C.currentLogCallback;
     const previousProgress = C.currentProgressCallback;
     const parseCallback = () => 'previous';
-    const logCallback = () => {};
-    const progressCallback = () => {};
+    const logCallback = () => { return; };
+    const progressCallback = () => { return; };
     const calloc = vi.spyOn(C, '_calloc');
     C.currentParseCallback = parseCallback;
     C.currentLogCallback = logCallback;
     C.currentProgressCallback = progressCallback;
     try {
-      if (selected) parseSelectedRange(parser, input, valid);
+      if (selected) assertParsedText(parser, input, valid, '水;');
       calloc.mockClear();
       assertRejectedRanges(parser, input, selected ? valid : initial);
       expect(calloc).not.toHaveBeenCalled();
       expect(C.currentParseCallback).toBe(parseCallback);
       expect(C.currentLogCallback).toBe(logCallback);
       expect(C.currentProgressCallback).toBe(progressCallback);
-      const recovered = parser.parse(input)!;
-      expect(recovered.rootNode.text).toBe(text);
-      recovered.delete();
+      assertParsedText(parser, input, [], text);
     } finally {
       calloc.mockRestore();
       C.currentParseCallback = previousParse;

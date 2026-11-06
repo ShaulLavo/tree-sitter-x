@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { Edit, heap, Language, Parser, Query, TextBuffer, type Tree } from '../src';
 import { C } from '../src/constants';
+import { textBufferByteLength } from '../src/text_buffer';
 import helper from './helper';
 
 let JavaScript: Language;
@@ -18,6 +19,14 @@ function point(text: string, index: number) {
 }
 
 describe('TextBuffer', () => {
+  it('bounds UTF-16 lengths before converting them to Wasm32 byte lengths', () => {
+    expect(textBufferByteLength(0)).toBe(0);
+    expect(textBufferByteLength(0x7fffffff)).toBe(0xfffffffe);
+    for (const length of [NaN, Infinity, -Infinity, -1, 0.5, 0x80000000, Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER + 1]) {
+      expect(() => textBufferByteLength(length)).toThrow(RangeError);
+    }
+  });
+
   it.each([
     [NaN, 1], [0, NaN], [Infinity, 1], [0, Infinity], [-Infinity, 1],
     [0.5, 1], [0, 1.5], [-1, 1], [2, 1], [0, 5],
@@ -26,7 +35,7 @@ describe('TextBuffer', () => {
     const buffer = new TextBuffer('a😀b');
     const address = buffer[0];
     try {
-      expect(() => buffer.edit(start, end, 'replacement')).toThrow(RangeError);
+      expect(() => { buffer.edit(start, end, 'replacement'); }).toThrow(RangeError);
       expect(buffer[0]).toBe(address);
       expect(buffer.length).toBe(4);
       expect(buffer.slice()).toBe('a😀b');
@@ -46,6 +55,25 @@ describe('TextBuffer', () => {
       buffer.edit(1, 2, '');
       expect(buffer.slice()).toBe('a\ude00b');
     } finally {
+      buffer.delete();
+    }
+  });
+
+  it.each(['set', 'edit'] as const)('preserves the allocation and text when %s cannot grow', (method) => {
+    const buffer = new TextBuffer('a😀b');
+    const address = buffer[0];
+    expect(buffer.read(0)).toBe('a😀b');
+    const realloc = vi.spyOn(C, '_realloc').mockReturnValue(0);
+    const text = 'x'.repeat(128);
+    const write = method === 'set' ? () => { buffer.set(text); } : () => { buffer.edit(0, 0, text); };
+    try {
+      expect(write).toThrow('Failed to allocate');
+      expect(buffer[0]).toBe(address);
+      expect(buffer.length).toBe(4);
+      expect(buffer.slice()).toBe('a😀b');
+      expect(buffer.read(0)).toBe('a😀b');
+    } finally {
+      realloc.mockRestore();
       buffer.delete();
     }
   });

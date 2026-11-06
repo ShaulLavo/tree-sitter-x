@@ -7,6 +7,15 @@ const finalizer = newFinalizer((address: number) => {
 
 // Code units decoded per String.fromCharCode call, below engines' argument limits.
 const DECODE_CHUNK = 4096;
+const MAX_CODE_UNITS = 0x7fffffff;
+
+/** @internal The Wasm32 byte length must fit in an unsigned 32-bit integer. */
+export function textBufferByteLength(length: number): number {
+  if (!Number.isSafeInteger(length) || length < 0 || length > MAX_CODE_UNITS) {
+    throw new RangeError(`Invalid text buffer length ${length}`);
+  }
+  return length * 2;
+}
 
 /**
  * UTF-16 text kept in the parser's memory. {@link Parser#parse} reads it in place, and
@@ -38,10 +47,11 @@ export class TextBuffer {
 
   /** Replace the code units in `[startIndex, oldEndIndex)` with `text`. */
   edit(startIndex: number, oldEndIndex: number, text: string): void {
-    if (startIndex < 0 || oldEndIndex < startIndex || oldEndIndex > this.length) {
+    if (!Number.isSafeInteger(startIndex) || !Number.isSafeInteger(oldEndIndex)
+      || startIndex < 0 || oldEndIndex < startIndex || oldEndIndex > this.length) {
       throw new RangeError(`Invalid edit [${startIndex}, ${oldEndIndex}) of a buffer of length ${this.length}`);
     }
-    const length = this.length + text.length - (oldEndIndex - startIndex);
+    const length = this.length - (oldEndIndex - startIndex) + text.length;
     this.reserve(length);
     const units = this.units(Math.max(length, this.length));
     units.copyWithin(startIndex + text.length, oldEndIndex, this.length);
@@ -95,9 +105,10 @@ export class TextBuffer {
   }
 
   private reserve(length: number): void {
+    textBufferByteLength(length);
     if (length <= this.capacity && this[0]) return;
-    const capacity = Math.max(length, this.capacity * 2, 64);
-    const address = C._realloc(this[0], capacity * 2);
+    const capacity = Math.min(MAX_CODE_UNITS, Math.max(length, this.capacity * 2, 64));
+    const address = C._realloc(this[0], textBufferByteLength(capacity));
     if (!address) throw new Error(`Failed to allocate a text buffer of ${capacity} code units`);
     finalizer?.unregister(this);
     // Unsigned: a signed address above 2 GiB is not a valid Uint16Array offset.
