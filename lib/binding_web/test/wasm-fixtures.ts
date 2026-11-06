@@ -35,13 +35,14 @@ interface SideFixtureOptions {
   tableAlign?: number;
   extraImport?: { module: string; name: string; kind: 'function' | 'global' | 'memory' | 'table' };
   functionGot?: string;
+  additionalFunctionGot?: string;
   memoryGot?: string;
   trap?: 'start' | 'relocation' | 'constructor';
   callMalloc?: boolean;
 }
 
 /** Real side modules with active data/elements and executable failure paths. */
-export function sideFixture(options: SideFixtureOptions = {}): Uint8Array {
+export function sideFixture(options: SideFixtureOptions = {}): Uint8Array<ArrayBuffer> {
   const metadata = options.metadata ?? [memoryInfo(options.memorySize, options.memoryAlign, options.tableSize, options.tableAlign)];
   const sections = metadata.map(bytes => wasmSection(0, wasmName('dylink.0').concat(bytes)));
   const imports = [
@@ -52,6 +53,7 @@ export function sideFixture(options: SideFixtureOptions = {}): Uint8Array {
     wasmName('env').concat(wasmName('__table_base'), [3, 0x7f, 0]),
   ];
   if (options.functionGot) imports.push(wasmName('GOT.func').concat(wasmName(options.functionGot), [3, 0x7f, 1]));
+  if (options.additionalFunctionGot) imports.push(wasmName('GOT.func').concat(wasmName(options.additionalFunctionGot), [3, 0x7f, 1]));
   if (options.memoryGot) imports.push(wasmName('GOT.mem').concat(wasmName(options.memoryGot), [3, 0x7f, 1]));
   if (options.callMalloc) imports.push(wasmName('env').concat(wasmName('malloc'), [0, 2]));
   if (options.extraImport) {
@@ -59,17 +61,20 @@ export function sideFixture(options: SideFixtureOptions = {}): Uint8Array {
     const descriptor = { function: [0, 1], global: [3, 0x7f, 1], memory: [2, 0, 0], table: [1, 0x70, 0, 0] }[kind];
     imports.push(wasmName(module).concat(wasmName(name), descriptor));
   }
-  const functionOffset = Number(options.callMalloc) + Number(options.extraImport?.kind === 'function');
+  const functionOffset = Number(!!options.callMalloc) + Number(options.extraImport?.kind === 'function');
   const exports = [
     wasmName('value').concat([0], wasmU32(functionOffset)),
     wasmName('base').concat([0], wasmU32(functionOffset + 2)),
     wasmName('table_base').concat([0], wasmU32(functionOffset + 3)),
   ];
-  if (options.memoryGot === 'data') exports.push(wasmName('data').concat([3, 3 + Number(!!options.functionGot) + 1 + Number(options.extraImport?.kind === 'global')]));
+  if (options.functionGot) exports.push(wasmName('function_slot').concat([3, 3]));
+  if (options.memoryGot) exports.push(wasmName('memory_slot').concat([3, 3 + Number(!!options.functionGot) + Number(!!options.additionalFunctionGot)]));
+  if (options.memoryGot === 'data') exports.push(wasmName('data').concat([3, 3 + Number(!!options.functionGot) + Number(!!options.additionalFunctionGot) + 1 + Number(options.extraImport?.kind === 'global')]));
   if (options.trap === 'relocation') exports.push(wasmName('__wasm_apply_data_relocs').concat([0], wasmU32(functionOffset + 1)));
   if (options.trap === 'constructor' || options.callMalloc) exports.push(wasmName('__wasm_call_ctors').concat([0], wasmU32(functionOffset + 1)));
-  const phase = options.trap ? [0x41, 32, 0x24, 0, 0] : [];
+  const phase = options.trap || options.callMalloc ? [0x41, 32, 0x24, 0] : [];
   if (options.callMalloc) phase.push(0x41, 1, 0x10, 0, 0x1a);
+  if (options.trap) phase.push(0);
   const bodies = [[0x41, 42], phase, [0x23, 1], [0x23, 2]].map(code => {
     const body = [0].concat(code, [0x0b]);
     return wasmU32(body.length).concat(body);

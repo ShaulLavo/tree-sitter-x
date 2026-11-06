@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { Parser, Language, loadExtension, heap, type Tree, type Node } from '../src';
+import { Parser, Language, TextBuffer, loadExtension, heap, type Tree, type Node } from '../src';
+import { readFile } from 'fs/promises';
 import helper from './helper';
 
-import { buildFixture } from './wasm-fixtures';
+import { buildFixture, sideFixture } from './wasm-fixtures';
 import { C } from '../src/constants';
 
 let JavaScript: Language;
@@ -16,6 +17,49 @@ function countNamedNodes(node: Node): number {
 }
 
 describe('loadExtension', () => {
+  it.each(['async language', 'sync language', 'extension'] as const)('recovers genuine parser and extension work after failed %s links', async (entry) => {
+    const parser = new Parser();
+    parser.setLanguage(JavaScript);
+    const source = 'const text = "hé 😀";';
+    const buffer = new TextBuffer(source);
+    const tree = parser.parse(buffer)!;
+    const fixture = buildFixture('extension');
+    const existing = await loadExtension(fixture);
+    const countNamed = existing.count_named as (tree: number) => number;
+    const releaseExisting = existing.release_fixture as () => void;
+    try {
+      for (const trap of ['start', 'relocation', 'constructor'] as const) {
+        const binary = sideFixture({ trap, functionGot: 'value', memoryGot: 'data', tableAlign: 3 });
+        if (entry === 'sync language') expect(() => Language.loadSync(new WebAssembly.Module(binary))).toThrow(WebAssembly.RuntimeError);
+        else await expect(entry === 'async language' ? Language.load(binary) : loadExtension(binary)).rejects.toBeInstanceOf(WebAssembly.RuntimeError);
+        expect(countNamed(tree[0])).toBe(countNamedNodes(tree.rootNode));
+        expect(tree.rootNode.text).toBe(source);
+      }
+      const { languageURL } = await helper;
+      const binary = await readFile(languageURL('javascript'));
+      const language = entry === 'sync language' ? Language.loadSync(new WebAssembly.Module(binary)) : await Language.load(binary);
+      parser.setLanguage(language);
+      const recovered = parser.parse(buffer)!;
+      const extension = await loadExtension(fixture);
+      const count = extension.count_named as (tree: number) => number;
+      const release = extension.release_fixture as () => void;
+      try {
+        expect(recovered.rootNode.text).toBe(source);
+        expect(recovered.rootNode.hasError).toBe(false);
+        expect(count(recovered[0])).toBe(countNamedNodes(recovered.rootNode));
+        expect(countNamed(tree[0])).toBe(countNamedNodes(tree.rootNode));
+      } finally {
+        release();
+        recovered.delete();
+      }
+    } finally {
+      releaseExisting();
+      tree.delete();
+      buffer.delete();
+      parser.delete();
+    }
+  });
+
   it('runs C code on a tree in the same memory', async () => {
     const parser = new Parser();
     parser.setLanguage(JavaScript);

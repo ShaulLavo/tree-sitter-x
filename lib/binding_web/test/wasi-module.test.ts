@@ -185,6 +185,10 @@ function assertFixedEncodingInput(source: AllowSharedBufferSource | undefined) {
   if (buffer instanceof ArrayBuffer) expect(buffer.resizable).toBe(false);
 }
 
+function throwFixtureValue(value: unknown): never {
+  throw value;
+}
+
 async function observedRuntime() {
   const instantiate = WebAssembly.instantiate;
   const live = new Set<number>();
@@ -200,7 +204,7 @@ async function observedRuntime() {
     const free = captured.free as (pointer: number) => void;
     return { exports: { ...captured,
       malloc(size: number) {
-        if (control.throwOnMalloc) throw thrown;
+        if (control.throwOnMalloc) throwFixtureValue(thrown);
         const pointer = control.result ?? (malloc(size) >>> 0);
         allocations.push(pointer);
         if (pointer && control.result === undefined) live.add(pointer);
@@ -218,7 +222,7 @@ async function observedRuntime() {
     const table = captured.__indirect_function_table;
     const stack = captured.__stack_pointer;
     if (!(table instanceof WebAssembly.Table) || !(stack instanceof WebAssembly.Global)) throw new Error('Missing linker state');
-    return { module, table, stack, live, allocations, frees, control, thrown };
+    return { module, table, stack, live, allocations, frees, control, thrown, exports: captured };
   } finally {
     Reflect.set(WebAssembly, 'instantiate', instantiate);
   }
@@ -244,6 +248,7 @@ const malformedMetadata: [string, number[][]][] = [
   ['memory alignment outside wasm32', [memoryInfo(64, 32)]],
   ['table alignment outside wasm32', [memoryInfo(64, 4, 1, 32)]],
   ['allocation size overflow', [memoryInfo(0xffffffff, 4)]],
+  ['table offset overflow', [memoryInfo(64, 4, 0xffffffff)]],
 ];
 
 describe.each(modes)('%s transactional linking', (mode) => {
@@ -300,29 +305,43 @@ describe.each(modes)('%s transactional linking', (mode) => {
 
   it('frees the original allocation when table growth fails', async () => {
     const { module, table, allocations, frees, live, thrown } = await observedRuntime();
-    vi.spyOn(table, 'grow').mockImplementationOnce(() => { throw thrown; });
+    vi.spyOn(table, 'grow').mockImplementationOnce(() => { throwFixtureValue(thrown); });
     await expect(module.loadWebAssemblyModule(sideFixture({ memoryAlign: 8 }), { loadAsync: true })).rejects.toBe(thrown);
     expect(allocations).toHaveLength(1);
+    expect(allocations[0] % 256).not.toBe(0);
     expect(frees).toEqual(allocations);
     expect(live.size).toBe(0);
   });
 
   it.each(['start', 'relocation', 'constructor'] as const)('rolls back repeated %s traps and preserves live data and functions', async (trap) => {
-    const { module, table, stack, allocations, frees, live } = await observedRuntime();
-    const side = await module.loadWebAssemblyModule(sideFixture({ tableAlign: 3 }), { loadAsync: true });
+    const { module, table, stack, allocations, frees, live, exports } = await observedRuntime();
+    const savedStack = stack.value as number;
+    const control = new WebAssembly.Module(sideFixture({ memorySize: 0, tableSize: 0, trap }));
+    const invokeTrap = () => {
+      const instance = new WebAssembly.Instance(control, { env: { memory: exports.memory, __indirect_function_table: table,
+        __stack_pointer: stack, __memory_base: new WebAssembly.Global({ value: 'i32' }, 0), __table_base: new WebAssembly.Global({ value: 'i32' }, 0) } });
+      const name = trap === 'relocation' ? '__wasm_apply_data_relocs' : '__wasm_call_ctors';
+      const fn = instance.exports[name];
+      if (typeof fn === 'function') (fn as () => void)();
+    };
+    try {
+      expect(invokeTrap).toThrow(WebAssembly.RuntimeError);
+      expect(stack.value).toBe(32);
+    } finally { stack.value = savedStack; }
+    const side = await module.loadWebAssemblyModule(sideFixture(), { loadAsync: true });
     const base = side.base();
     const tableBase = side.table_base();
-    expect(tableBase % 8).toBe(0);
     expect(side.value()).toBe(42);
     expect(table.get(tableBase)).toBe(side.value);
     expect(live.size).toBe(1);
     module.HEAPU8[base] = 123;
     const before = tableEntries(table);
-    const savedStack = stack.value as number;
     let capacity = 0;
     for (let attempt = 0; attempt < 5; attempt++) {
       await expect(module.loadWebAssemblyModule(sideFixture({ trap, memoryAlign: 8, tableAlign: 4, functionGot: 'value', memoryGot: 'data' }), { loadAsync: true })).rejects.toBeInstanceOf(WebAssembly.RuntimeError);
       if (!attempt) capacity = table.length;
+      expect(capacity - before.length).toBeGreaterThan(0);
+      expect(capacity - before.length).toBeLessThanOrEqual(17);
       expect(table.length).toBe(capacity);
       expect(stack.value).toBe(savedStack);
       expect(live.size).toBe(1);
@@ -334,6 +353,13 @@ describe.each(modes)('%s transactional linking', (mode) => {
     expect(frees).toEqual(allocations.slice(1));
     const recovered = await module.loadWebAssemblyModule(sideFixture({ functionGot: 'value', memoryGot: 'data' }), { loadAsync: true });
     expect(recovered.value()).toBe(42);
+    const functionSlot: unknown = Reflect.get(recovered, 'function_slot');
+    const memorySlot: unknown = Reflect.get(recovered, 'memory_slot');
+    expect(functionSlot).toBeInstanceOf(WebAssembly.Global);
+    expect(memorySlot).toBeInstanceOf(WebAssembly.Global);
+    if (!(functionSlot instanceof WebAssembly.Global) || !(memorySlot instanceof WebAssembly.Global)) throw new Error('Missing real GOT slots');
+    expect(table.get(functionSlot.value as number)).toBe(recovered.value);
+    expect(memorySlot.value).toBe(recovered.base());
     expect(live.size).toBe(2);
   });
 
@@ -341,9 +367,10 @@ describe.each(modes)('%s transactional linking', (mode) => {
     const { module, table, control, thrown, live, stack } = await observedRuntime();
     const before = tableEntries(table);
     const savedStack = stack.value as number;
+    const setEntry = table.set.bind(table);
     const set = vi.spyOn(table, 'set');
-    set.mockImplementationOnce(() => { throw thrown; });
-    await expect(module.loadWebAssemblyModule(sideFixture({ functionGot: 'value' }), { loadAsync: true })).rejects.toBe(thrown);
+    set.mockImplementationOnce(setEntry).mockImplementationOnce(() => { throwFixtureValue(thrown); });
+    await expect(module.loadWebAssemblyModule(sideFixture({ functionGot: 'value', additionalFunctionGot: 'base' }), { loadAsync: true })).rejects.toBe(thrown);
     expect(live.size).toBe(0);
     set.mockRestore();
     control.throwOnMalloc = true;
@@ -361,6 +388,54 @@ describe.each(modes)('%s transactional linking', (mode) => {
     expect(live.size).toBe(0);
     expect(tableEntries(table).slice(0, before.length)).toEqual(before);
     expect(tableEntries(table).slice(before.length).every(entry => entry === null)).toBe(true);
+  });
+
+  it('rejects combined table/GOT overflow before allocation and supports empty reservations', async () => {
+    const { module, table, allocations } = await observedRuntime();
+    const capacity = table.length;
+    await expect(module.loadWebAssemblyModule(sideFixture({ tableSize: 0xffffffff, functionGot: 'value' }), { loadAsync: true })).rejects.toThrow(/overflow/);
+    expect(allocations).toEqual([]);
+    const side = module.loadWebAssemblyModule(sideFixture({ memorySize: 0, tableSize: 0 }), { loadAsync: false });
+    expect(side.value()).toBe(42);
+    expect(allocations).toEqual([]);
+    expect(table.length).toBe(capacity);
+  });
+
+  it('rolls back an engine import-type failure during instantiation', async () => {
+    const { module, table, allocations, frees, live, stack } = await observedRuntime();
+    const before = tableEntries(table);
+    const savedStack = stack.value as number;
+    // memcpy expects three i32 arguments; this fixture deliberately imports () -> void.
+    const binary = sideFixture({ extraImport: { module: 'env', name: 'memcpy', kind: 'function' } });
+    await expect(module.loadWebAssemblyModule(binary, { loadAsync: true })).rejects.toBeInstanceOf(WebAssembly.LinkError);
+    expect(frees).toEqual(allocations);
+    expect(live.size).toBe(0);
+    expect(stack.value).toBe(savedStack);
+    expect(tableEntries(table).slice(0, before.length)).toEqual(before);
+    expect(tableEntries(table).slice(before.length).every(entry => entry === null)).toBe(true);
+  });
+
+  it('preserves real allocations above the signed i32 boundary', async () => {
+    const { module, live, allocations, frees } = await observedRuntime();
+    const large = module._malloc(0x40000000);
+    const second = module._malloc(0x40000000);
+    try {
+      expect(large).not.toBe(0);
+      expect(second).not.toBe(0);
+      const side = await module.loadWebAssemblyModule(sideFixture({ memoryAlign: 8 }), { loadAsync: true });
+      expect(side.base() >>> 0).toBeGreaterThan(0x80000000);
+      expect(module.HEAPU8[side.base() >>> 0]).toBe(99);
+      expect(side.value()).toBe(42);
+      const allocationCount = allocations.length;
+      await expect(module.loadWebAssemblyModule(sideFixture({ memoryAlign: 8, trap: 'constructor' }), { loadAsync: true })).rejects.toBeInstanceOf(WebAssembly.RuntimeError);
+      expect(allocations).toHaveLength(allocationCount + 1);
+      expect(frees.at(-1)).toBe(allocations.at(-1));
+      expect(live.size).toBe(3);
+      expect(module.HEAPU8[side.base() >>> 0]).toBe(99);
+    } finally {
+      module._free(second);
+      module._free(large);
+    }
   });
 
   it('preflights missing GOT symbols and accepts bounded unknown metadata', async () => {
