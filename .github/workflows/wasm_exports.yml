@@ -1,17 +1,7 @@
 name: Check Wasm Exports
 
 on:
-  pull_request:
-    paths:
-      - lib/include/tree_sitter/api.h
-      - lib/binding_web/**
-      - xtask/src/**
-  push:
-    branches: [master]
-    paths:
-      - lib/include/tree_sitter/api.h
-      - lib/binding_rust/bindings.rs
-      - CMakeLists.txt
+  workflow_call:
 
 jobs:
   check-wasm-exports:
