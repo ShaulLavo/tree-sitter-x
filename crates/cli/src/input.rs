@@ -185,3 +185,51 @@ pub fn get_tmp_source_file(contents: &[u8]) -> Result<PathBuf> {
 
     Ok(parse_path)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn temporary_inputs_have_independent_contents_and_lifetimes() -> Result<()> {
+        let first = get_tmp_source_file(b"first input")?;
+        let first_path = AsRef::<Path>::as_ref(&first).to_path_buf();
+        let second = get_tmp_source_file(b"second input")?;
+        let second_path = AsRef::<Path>::as_ref(&second).to_path_buf();
+
+        assert_ne!(first_path, second_path);
+        assert_eq!(fs::read(&first_path)?, b"first input");
+        assert_eq!(fs::read(&second_path)?, b"second input");
+        drop(first);
+        assert!(!first_path.exists());
+        assert_eq!(fs::read(&second_path)?, b"second input");
+        drop(second);
+        assert!(!second_path.exists());
+        Ok(())
+    }
+
+    #[test]
+    fn temporary_input_is_removed_on_drop() -> Result<()> {
+        let input = get_tmp_source_file(b"\0private input\xff")?;
+        let path = AsRef::<Path>::as_ref(&input).to_path_buf();
+        assert_eq!(fs::read(&path)?, b"\0private input\xff");
+        drop(input);
+        assert!(!path.exists());
+        Ok(())
+    }
+
+    fn fail_after_creating_input(path: &mut PathBuf) -> Result<()> {
+        let input = get_tmp_source_file(b"private input")?;
+        *path = AsRef::<Path>::as_ref(&input).to_path_buf();
+        assert_eq!(fs::read(&*path)?, b"private input");
+        bail!("consumer failed")
+    }
+
+    #[test]
+    fn temporary_input_is_removed_on_consumer_error() {
+        let mut path = PathBuf::new();
+        let error = fail_after_creating_input(&mut path).unwrap_err();
+        assert_eq!(error.to_string(), "consumer failed");
+        assert!(!path.exists());
+    }
+}
