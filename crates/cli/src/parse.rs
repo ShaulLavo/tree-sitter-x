@@ -383,7 +383,7 @@ pub fn parse_file_at_path(
                 .as_chunks::<2>()
                 .0
                 .iter()
-                .map(|&chunk| u16::from_le_bytes(chunk))
+                .map(|&chunk| u16::from_ne_bytes(chunk))
                 .collect::<Vec<_>>();
             parser.parse_utf16_le_with_options(
                 &mut |i, _| {
@@ -402,7 +402,7 @@ pub fn parse_file_at_path(
                 .as_chunks::<2>()
                 .0
                 .iter()
-                .map(|&chunk| u16::from_be_bytes(chunk))
+                .map(|&chunk| u16::from_ne_bytes(chunk))
                 .collect::<Vec<_>>();
             parser.parse_utf16_be_with_options(
                 &mut |i, _| {
