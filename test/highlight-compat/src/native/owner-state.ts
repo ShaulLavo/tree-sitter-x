@@ -18,6 +18,7 @@ let epoch = 0;
 export function sameOwner(a: OwnerKey, b: OwnerKey): boolean { return a.epoch === b.epoch && a.revision === b.revision && a.syntax === b.syntax; }
 export function sameWork(a: WorkKey, b: WorkKey): boolean { return sameOwner(a, b) && a.request === b.request; }
 export function counter<Name extends string>(value: number): Brand<number, Name> { return integer(value) as Brand<number, Name>; }
+function errorText(error: unknown): string { return error instanceof Error ? error.message : String(error); }
 type Lifecycle<Ready> = Readonly<{ kind: 'ready'; analysis: Ready }> | Readonly<{ kind: 'updating' | 'unavailable' | 'closed' }>;
 export class OwnerState<Ready> {
   #key: OwnerKey = Object.freeze({ epoch: counter<'DocumentEpoch'>(++epoch), revision: counter<'Revision'>(0), syntax: counter<'SyntaxGeneration'>(0) });
@@ -36,10 +37,16 @@ export class OwnerState<Ready> {
   }
   begin(commit: () => void): OwnerKey {
     this.#key = Object.freeze({ epoch: this.#key.epoch, revision: counter<'Revision'>(this.#key.revision + 1), syntax: counter<'SyntaxGeneration'>(this.#key.syntax + 1) });
-    this.#state = { kind: 'updating' }; commit(); this.notify(); return this.#key;
+    this.#state = { kind: 'updating' }; commit(); return this.#key;
   }
   finish(analysis: Ready): void { if (this.#state.kind !== 'closed') { this.#state = { kind: 'ready', analysis }; this.notify(); } }
-  fail(): void { if (this.#state.kind !== 'closed') { this.#state = { kind: 'unavailable' }; this.notify(); } }
+  fail(error: unknown): string {
+    const reason = errorText(error);
+    if (this.#state.kind === 'closed') return reason;
+    this.#state = { kind: 'unavailable' };
+    try { this.notify(); } catch (notification) { return `${reason}; ${errorText(notification)}`; }
+    return reason;
+  }
   close(release: (analysis: Ready | undefined) => void): void {
     if (this.#state.kind === 'closed') return;
     if (this.#borrows) throw new Error('Cannot dispose during native borrow');
@@ -52,5 +59,11 @@ export class OwnerState<Ready> {
     try { const result = action(this.#state.analysis); if (result instanceof Promise) throw new Error('Owner borrow must be synchronous'); return result; }
     finally { this.#borrows--; }
   }
-  private notify(): void { for (const listener of this.#listeners) listener(); }
+  notify(): void {
+    const errors: unknown[] = [];
+    for (const listener of Array.from(this.#listeners)) {
+      try { listener(); } catch (error) { errors.push(error); }
+    }
+    if (errors.length) throw new AggregateError(errors, 'Owner notification failed');
+  }
 }

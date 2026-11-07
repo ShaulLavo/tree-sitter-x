@@ -74,6 +74,7 @@ export class PilotDocument {
     let key = this.key(), tree = this.#state.ready();
     try {
       key = this.#state.begin(() => { this.#source = prepared.source; });
+      this.#state.notify();
       if (recovering) invoke(this.#buffer, 'set', [previousSource]);
       for (const step of prepared.schedule) {
         if (tree) invoke(tree, 'edit', [step.binding]);
@@ -89,8 +90,8 @@ export class PilotDocument {
       return { kind: 'ready', key, oldTextSpans: prepared.oldTextSpans, newTextSpans: prepared.newTextSpans };
     } catch (error) {
       if (tree) release(tree); tree = undefined;
-      invoke(this.#parser, 'reset'); this.#state.fail();
-      return { kind: 'unavailable', key, reason: error instanceof Error ? error.message : String(error) };
+      invoke(this.#parser, 'reset');
+      return { kind: 'unavailable', key: this.key(), reason: this.#state.fail(error) };
     } finally { this.#operation = false; if (this.#closeRequested) this.dispose(); }
   }
 

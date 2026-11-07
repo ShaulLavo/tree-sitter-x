@@ -42,6 +42,8 @@ async function aliases(): Promise<ReadonlyMap<string, NativeLanguage>> {
 function supportedContainer(source: string, injection: ResolverRecord, decorations: readonly ResolverRecord[]): boolean {
   const block = decorations.find(item => item.kind === 4 && item.extra === 1 && item.start <= injection.start && item.end >= injection.end);
   if (!block) return false;
+  // The pinned resolver emits block quote, list and list-item containers as kinds 5 through 7.
+  if (decorations.some(item => item.kind >= 5 && item.kind <= 7 && item.start <= block.start && item.end >= injection.end)) return false;
   const marker = decorations.find(item => item.kind === 35 && item.start >= block.start && item.end <= injection.start);
   if (!marker) return false;
   const lineStart = source.lastIndexOf('\n', marker.start - 1) + 1;
@@ -204,6 +206,7 @@ export class MarkdownPilotDocument {
       this.#update = { key, children: update.children };
       this.#operation = true;
       dropChildren(previous?.children ?? []); previous = undefined;
+      this.#state.notify();
       invoke(this.#buffer, 'set', [this.source]);
       if (recovering) await this.restoreResolver(current);
       else this.#resolver.replaceText(this.source);
@@ -224,9 +227,9 @@ export class MarkdownPilotDocument {
       if (this.#closeRequested) return { kind: 'closed', key };
       return { kind: 'ready', key, oldTextSpans: prepared.oldTextSpans, newTextSpans: prepared.newTextSpans };
     } catch (error) {
-      if (this.#disposed) return { kind: 'closed', key };
-      dropChildren(this.#state.ready()?.children ?? update.children); this.#update = undefined; this.#state.fail();
-      return { kind: 'unavailable', key, reason: error instanceof Error ? error.message : String(error) };
+      if (this.#disposed) return { kind: 'closed', key: this.key() };
+      dropChildren(this.#state.ready()?.children ?? update.children); this.#update = undefined;
+      return { kind: 'unavailable', key: this.key(), reason: this.#state.fail(error) };
     } finally { this.#operation = false; if (this.#closeRequested) this.dispose(); }
   }
   private operation<T>(action: () => T): T {
