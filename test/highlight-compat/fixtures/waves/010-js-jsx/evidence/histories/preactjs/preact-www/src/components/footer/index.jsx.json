@@ -1,0 +1,86 @@
+{
+  "repository": "preactjs/preact-www",
+  "revision": "8854f888e5bbe726ed1ec2d956a8822f73458cbb",
+  "path": "src/components/footer/index.jsx",
+  "url": "https://api.github.com/repos/preactjs/preact-www/commits?sha=8854f888e5bbe726ed1ec2d956a8822f73458cbb&path=src%2Fcomponents%2Ffooter%2Findex.jsx&per_page=100",
+  "pagination": null,
+  "commits": [
+    {
+      "sha": "05c0ac921531714bb2aad0017bb87ee762a3e016",
+      "author": "Ryan Christian",
+      "date": "2026-10-19T00:10:44Z",
+      "message": "fix: Ensure CORS isn't blocking content preloading (#1447)",
+      "url": "https://github.com/preactjs/preact-www/commit/05c0ac921531714bb2aad0017bb87ee762a3e016"
+    },
+    {
+      "sha": "ffb4db29b68bd64fcf826cd683cbdc157736fdeb",
+      "author": "Ryan Christian",
+      "date": "2026-10-13T02:49:23Z",
+      "message": "chore: Use fully formed module specifiers & import attributes (#1441)",
+      "url": "https://github.com/preactjs/preact-www/commit/ffb4db29b68bd64fcf826cd683cbdc157736fdeb"
+    },
+    {
+      "sha": "79ba69f4e5b074baa46772f22e6735bb9b7182b3",
+      "author": "Ryan Christian",
+      "date": "2026-09-27T20:05:36Z",
+      "message": "chore: Finish formatting (#1431)\n\n* refactor: Format MD & JSX content in precommit & 'format' script\n\n* chore: Format",
+      "url": "https://github.com/preactjs/preact-www/commit/79ba69f4e5b074baa46772f22e6735bb9b7182b3"
+    },
+    {
+      "sha": "a3b77d46f7f3d4361a6d70a200b553272104d374",
+      "author": "Ryan Christian",
+      "date": "2026-09-21T07:07:22Z",
+      "message": "chore: Update contributors (#1410)",
+      "url": "https://github.com/preactjs/preact-www/commit/a3b77d46f7f3d4361a6d70a200b553272104d374"
+    },
+    {
+      "sha": "b7c730b1048e5fc6a52b1301d6efc31d4fad1586",
+      "author": "Ryan Christian",
+      "date": "2025-12-24T04:20:03Z",
+      "message": "refactor: Extract i18n out of nav definitions (#1347)\n\n* refactor: Extract i18n out of nav definitions\n\n* chore: Sort keys\n\n* chore: Appease TS\n\n* refactor: Flatten \"/about\" routes\n\n* junk: REVERT ME\n\n* refactor: Fix temporary translation hook standin\n\n* junk: REVERT ME TOO - checking size\n\n* refactor: Mostly works\n\n* refactor: Simplify implementation\n\n* refactor: Go back to Object.keys?\n\n* refactor: Remove '/about' path as it does not actually exist\n\n* refactor: Explicitly list all routes to prerender",
+      "url": "https://github.com/preactjs/preact-www/commit/b7c730b1048e5fc6a52b1301d6efc31d4fad1586"
+    },
+    {
+      "sha": "493984b27c64baeaa6750582607c21a1c3564843",
+      "author": "Ryan Christian",
+      "date": "2025-08-25T16:47:59Z",
+      "message": "feat: Prefetch known static assets but deprioritize them (#1326)",
+      "url": "https://github.com/preactjs/preact-www/commit/493984b27c64baeaa6750582607c21a1c3564843"
+    },
+    {
+      "sha": "8f82d4f9f8c66a1ae99fe01b3b4578b5a8814d53",
+      "author": "Ryan Christian",
+      "date": "2024-11-07T21:30:15Z",
+      "message": "chore: Update contributors list (#1193)",
+      "url": "https://github.com/preactjs/preact-www/commit/8f82d4f9f8c66a1ae99fe01b3b4578b5a8814d53"
+    },
+    {
+      "sha": "8fdc91266a05f42788ac40080cbf041320b5fdc3",
+      "author": "Ryan Christian",
+      "date": "2024-11-07T07:11:07Z",
+      "message": "chore: Cache contributors w/ use-resource (#1191)",
+      "url": "https://github.com/preactjs/preact-www/commit/8fdc91266a05f42788ac40080cbf041320b5fdc3"
+    },
+    {
+      "sha": "1c1a08fb467d3d9af2a999a237d2033b18258df0",
+      "author": "Ryan Christian",
+      "date": "2024-04-09T12:43:14Z",
+      "message": "fix: Reduce tearing issues (#1113)\n\n* fix: 'Outdated docs' banner flash & simplify guide check\r\n\r\n* refactor: Swap in `useRoute` where possible\r\n\r\n* refactor: Swap out fake suspense impl",
+      "url": "https://github.com/preactjs/preact-www/commit/1c1a08fb467d3d9af2a999a237d2033b18258df0"
+    },
+    {
+      "sha": "72353ed91c6e6ea157965ef733a1a695e04213fa",
+      "author": "Ryan Christian",
+      "date": "2024-04-05T00:57:01Z",
+      "message": "refactor: Switch to Vite (#1053)\n\n* feat: Start switch, set up basics\r\n\r\n* chore: Fix public dir path in content & components\r\n\r\n* refactor: Re-enabled REPL & Tutorial, seemingly all \"working\"\r\n\r\n* chore: Fix some types\r\n\r\n* refactor: Extract out CodeMirror global styles\r\n\r\n* fix: Prerendering\r\n\r\n* refactor: Remove preact-cli-isms\r\n\r\n* chore: Copy over RSS plugin\r\n\r\n* refactor: Metadata galore\r\n\r\n* fix: Temporary patch for prerenderer & trailing slashes\r\n\r\n* fix: Re-enable v8 noindex, GA script, and release version prerender data\r\n\r\n* chore: Bump preset-vite\r\n\r\n* refactor: Markdown plugin config, ensure _redirects is copied\r\n\r\n* feat: Restore PWA (maybe?)\r\n\r\n* chore: Fix broken stripe CSS\r\n\r\n* refactor: Move _headers, _redirects, and robots.txt to \"public\" dir\r\n\r\n* revert: PWA\r\n\r\n* fix: Sponsor logos on hover\r\n\r\n* refactor: Uninstall existing service worker(s)\r\n\r\n* chore: Clean up remaining PWA meta tags\r\n\r\n* fix: Non-breaking space that snuck into our button CSS\r\n\r\n* fix: Lock static-copy plugin, fix patch\r\n\r\n* fix: Docsearch CSS ordering issue\r\n\r\n* fix: Docsearch hash fragments",
+      "url": "https://github.com/preactjs/preact-www/commit/72353ed91c6e6ea157965ef733a1a695e04213fa"
+    },
+    {
+      "sha": "fd278cf66a1ce15665c702debcf4595af247373a",
+      "author": "Ryan Christian",
+      "date": "2024-02-13T02:08:43Z",
+      "message": "chore: Convert all modules using JSX to `.jsx` extension",
+      "url": "https://github.com/preactjs/preact-www/commit/fd278cf66a1ce15665c702debcf4595af247373a"
+    }
+  ]
+}

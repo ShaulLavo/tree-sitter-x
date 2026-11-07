@@ -1,0 +1,9 @@
+{
+  "date": "2026-11-07",
+  "authoring": "GPT on Shaul Lavo behalf, new development data for this authorized task",
+  "derivation": "Written from feature requirements; no upstream snippets or existing TS/TSX test source copied.",
+  "family": "original-010",
+  "license": "MIT, with original development NOTICE and LICENSE retained.",
+  "generator": "prepare-packet.py",
+  "generatedBoundaryPolicy": "Boundary inputs are deliberate generated DEVELOPMENT data. No generated evaluation source selected."
+}

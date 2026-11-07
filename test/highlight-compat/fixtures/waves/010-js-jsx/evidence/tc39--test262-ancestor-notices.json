@@ -1,0 +1,29 @@
+[
+  {
+    "directory": "",
+    "legalFiles": [
+      "LICENSE"
+    ],
+    "url": "https://api.github.com/repos/tc39/test262/contents/?ref=e4fbf57745c6aae3d1f12f181ecef78b1665d812"
+  },
+  {
+    "directory": "test",
+    "legalFiles": [],
+    "url": "https://api.github.com/repos/tc39/test262/contents/test?ref=e4fbf57745c6aae3d1f12f181ecef78b1665d812"
+  },
+  {
+    "directory": "test/language",
+    "legalFiles": [],
+    "url": "https://api.github.com/repos/tc39/test262/contents/test/language?ref=e4fbf57745c6aae3d1f12f181ecef78b1665d812"
+  },
+  {
+    "directory": "test/language/expressions",
+    "legalFiles": [],
+    "url": "https://api.github.com/repos/tc39/test262/contents/test/language/expressions?ref=e4fbf57745c6aae3d1f12f181ecef78b1665d812"
+  },
+  {
+    "directory": "test/language/expressions/arrow-function",
+    "legalFiles": [],
+    "url": "https://api.github.com/repos/tc39/test262/contents/test/language/expressions/arrow-function?ref=e4fbf57745c6aae3d1f12f181ecef78b1665d812"
+  }
+]

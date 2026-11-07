@@ -1,0 +1,43 @@
+{
+  "repository": "preactjs/preact-www",
+  "revision": "8854f888e5bbe726ed1ec2d956a8822f73458cbb",
+  "path": "src/components/time/index.js",
+  "pagination": null,
+  "commits": [
+    {
+      "sha": "fd278cf66a1ce15665c702debcf4595af247373a",
+      "author": "Ryan Christian",
+      "date": "2024-02-13T02:08:43Z",
+      "message": "chore: Convert all modules using JSX to `.jsx` extension",
+      "url": "https://github.com/preactjs/preact-www/commit/fd278cf66a1ce15665c702debcf4595af247373a"
+    },
+    {
+      "sha": "c18ac8bc8ea4d326eedf3cd6bbb7306bce5b959b",
+      "author": "Ryan Christian",
+      "date": "2023-12-05T04:04:10Z",
+      "message": "refactor: The great un-less-ening",
+      "url": "https://github.com/preactjs/preact-www/commit/c18ac8bc8ea4d326eedf3cd6bbb7306bce5b959b"
+    },
+    {
+      "sha": "c288a050de88567df25c9cb4d1a2dd119ee1260f",
+      "author": "Ryan Christian",
+      "date": "2023-01-12T01:10:56Z",
+      "message": "chore: Migrate LESS modules to follow .module.less naming scheme",
+      "url": "https://github.com/preactjs/preact-www/commit/c288a050de88567df25c9cb4d1a2dd119ee1260f"
+    },
+    {
+      "sha": "6875e41efcbb04a0fa4ddd041e96e902378011c6",
+      "author": "Jason Miller",
+      "date": "2022-09-06T15:43:59Z",
+      "message": "fix incorrect dates in gmt-4",
+      "url": "https://github.com/preactjs/preact-www/commit/6875e41efcbb04a0fa4ddd041e96e902378011c6"
+    },
+    {
+      "sha": "de7dd5aa1df0a0428fa075318ad1e771e8aba559",
+      "author": "Marvin Hagemeister",
+      "date": "2022-09-03T08:46:32Z",
+      "message": "Add basic blogging infrastructure",
+      "url": "https://github.com/preactjs/preact-www/commit/de7dd5aa1df0a0428fa075318ad1e771e8aba559"
+    }
+  ]
+}

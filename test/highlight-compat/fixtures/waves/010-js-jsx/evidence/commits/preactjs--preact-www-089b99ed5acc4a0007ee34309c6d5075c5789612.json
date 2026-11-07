@@ -1,0 +1,24 @@
+{
+  "repository": "preactjs/preact-www",
+  "sha": "089b99ed5acc4a0007ee34309c6d5075c5789612",
+  "url": "https://github.com/preactjs/preact-www/commit/089b99ed5acc4a0007ee34309c6d5075c5789612",
+  "author": "Ryan Christian",
+  "message": "chore: Backport much of #793\n\nCo-authored-by: Marvin Hagemeister <hello@marvinh.dev>",
+  "parents": [
+    "1b131bb48a01a9fe82b7eddc692dd07c8ba4e968"
+  ],
+  "files": [
+    {
+      "sha": "e82c75fac468e12c3d940288cff1fa457adcc4a0",
+      "filename": "src/lib/use-resource.js",
+      "status": "added",
+      "additions": 67,
+      "deletions": 0,
+      "changes": 67,
+      "blob_url": "https://github.com/preactjs/preact-www/blob/089b99ed5acc4a0007ee34309c6d5075c5789612/src%2Flib%2Fuse-resource.js",
+      "raw_url": "https://github.com/preactjs/preact-www/raw/089b99ed5acc4a0007ee34309c6d5075c5789612/src%2Flib%2Fuse-resource.js",
+      "contents_url": "https://api.github.com/repos/preactjs/preact-www/contents/src%2Flib%2Fuse-resource.js?ref=089b99ed5acc4a0007ee34309c6d5075c5789612",
+      "patch": "@@ -0,0 +1,67 @@\n+import { useEffect } from 'preact/hooks';\n+import { getContent, getContentOnServer } from './content.js';\n+\n+/** @type {Map<string, Promise<any>>} */\n+const CACHE = new Map();\n+\n+/**\n+ * @param {[ lang: string, url: string ]} args\n+ * @returns {{ html: string, meta: any }}\n+ */\n+export function useContent([lang, url]) {\n+\treturn useResource(\n+\t\t() => (PRERENDER ? getContentOnServer : getContent)([lang, url]),\n+\t\t[lang, url]\n+\t);\n+}\n+\n+export function useResource(fn, deps) {\n+\tconst cacheKey = '' + fn + JSON.stringify(deps);\n+\n+\tlet state = CACHE.get(cacheKey);\n+\tif (!state) {\n+\t\tstate = { promise: null, status: 'pending', result: undefined, users: 0 };\n+\n+\t\tstate.promise = fn();\n+\t\tif (state.promise.then) {\n+\t\t\tstate.promise\n+\t\t\t\t.then(r => {\n+\t\t\t\t\tstate.status = 'success';\n+\t\t\t\t\tstate.result = r;\n+\t\t\t\t})\n+\t\t\t\t.catch(err => {\n+\t\t\t\t\tstate.status = 'error';\n+\t\t\t\t\tstate.result = err;\n+\t\t\t\t});\n+\t\t} else {\n+\t\t\tstate.status = 'success';\n+\t\t\tstate.result = state.promise;\n+\t\t}\n+\n+\t\tCACHE.set(cacheKey, state);\n+\t}\n+\n+\tuseEffect(() => {\n+\t\tstate.users++;\n+\n+\t\treturn () => {\n+\t\t\t// Delete cached Promise if nobody uses it anymore\n+\t\t\tif (state.users-- <= 0) {\n+\t\t\t\tCACHE.delete(cacheKey);\n+\t\t\t}\n+\t\t};\n+\t}, [cacheKey, state]);\n+\n+\tif (state.status === 'success') return state.result;\n+\telse if (state.status === 'error') throw state.result;\n+\tthrow state.promise;\n+}\n+\n+export function FakeSuspense(props) {\n+\tthis.__c = childDidSuspend;\n+\treturn this.state && this.state.suspended ? props.fallback : props.children;\n+}\n+\n+function childDidSuspend(err) {\n+\terr.then(() => this.forceUpdate());\n+}"
+    }
+  ]
+}

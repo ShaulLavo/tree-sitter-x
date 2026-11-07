@@ -1,0 +1,47 @@
+[
+  {
+    "repository": "acornjs/acorn-jsx",
+    "revision": "8ed96d6ddec2065204ba07d924bb2e7bca539ea6",
+    "path": "test/tests-jsx.js",
+    "sha256": "698b1d779b11ec81ac671233cce93dd25ba8209c77959d455058e9a66efd8e35",
+    "bytes": 113131,
+    "decision": "not-selected",
+    "reason": "Explicitly taken/adapted from esprima-fb/fbtest.js; embedded BSD notice has no complete copyright attribution. Root MIT is insufficient. Shared derivation family unresolved, reject without extraction."
+  },
+  {
+    "repository": "tc39/test262",
+    "revision": "e4fbf57745c6aae3d1f12f181ecef78b1665d812",
+    "path": "test/language/expressions/arrow-function/arrow/binding-tests-1.js",
+    "sha256": "8fdaab321dd3fb9281ee3a0cea11a0935f10b10d5b699ee7a6f6459c75c659db",
+    "bytes": 385,
+    "decision": "not-selected",
+    "reason": "Microsoft-authored syntax test not selected; use separately traced Caitlin Potter origin to keep this bounded clearance narrower."
+  },
+  {
+    "repository": "tc39/test262",
+    "revision": "e4fbf57745c6aae3d1f12f181ecef78b1665d812",
+    "path": "test/language/expressions/arrow-function/arrow/capturing-closure-variables-1.js",
+    "sha256": "ab105605b61012ae8ba88cc2d0e69d2c6227f1ce4835a883056646032b89d551",
+    "bytes": 353,
+    "decision": "not-selected",
+    "reason": "Microsoft-authored syntax test not selected; not declared independent merely because repository differs from VS Code."
+  },
+  {
+    "repository": "tc39/test262",
+    "revision": "e4fbf57745c6aae3d1f12f181ecef78b1665d812",
+    "path": "test/language/expressions/arrow-function/object-literal-return-requires-body-parens.js",
+    "sha256": "d51bd2601c28ec0785c3425fcbcc550dac06e224eb7cb2723be1fcf5454f5c00",
+    "bytes": 319,
+    "decision": "not-selected",
+    "reason": "V8 project author header implies another derivation family; not traced in this bounded unit, reject unresolved origin."
+  },
+  {
+    "repository": "tc39/test262",
+    "revision": "e4fbf57745c6aae3d1f12f181ecef78b1665d812",
+    "path": "test/language/expressions/arrow-function/statement-body-requires-braces-must-return-explicitly-missing.js",
+    "sha256": "6d05444748ffa3b379c67383bd164a6f4982e1d5c05b775b919774c72f017b5d",
+    "bytes": 326,
+    "decision": "not-selected",
+    "reason": "V8 project author header implies another derivation family; not traced in this bounded unit, reject unresolved origin."
+  }
+]

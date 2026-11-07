@@ -1,0 +1,910 @@
+{
+  "test/highlight-compat/fixtures/textmate-grammars-themes/NOTICE": {
+    "sha256": "b253fa4f5a5c05dd894db6c8773e476b22d688cc21c4a6829811482137ba73f1",
+    "bytes": 1811
+  },
+  "test/highlight-compat/fixtures/tree-sitter-highlight/NOTICE": {
+    "sha256": "72dc836cec55d673fc68109faf23870142327e8651e6f8e6bd95f0714ccec2d8",
+    "bytes": 2714
+  },
+  "test/highlight-compat/fixtures/typescript-tmlanguage/NOTICE": {
+    "sha256": "67f9ca380d9a7364b4353ca97df335c69e682896224fcff7b1fb3563f8f1c307",
+    "bytes": 3607
+  },
+  "test/highlight-compat/fixtures/vscode-colorize/NOTICE": {
+    "sha256": "a9a62f20ee0da48384e19a7266d9268f489832df668ef73ffc928179b97e3596",
+    "bytes": 4970
+  },
+  "test/highlight-compat/fixtures/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-brackets.tsx": {
+    "sha256": "2d33e00ba3c02b140644715a43770c0750fb1774ec31ee1d349eaa17f5518609",
+    "bytes": 140
+  },
+  "test/highlight-compat/fixtures/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-keywords.ts": {
+    "sha256": "491e4563c720e23b629f295fcea28dc589b557ece4595f2b5f4ae70011fab1f6",
+    "bytes": 39
+  },
+  "test/highlight-compat/fixtures/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-object-literals.ts": {
+    "sha256": "276ecad82959d3fb8c77d19586a8f54e65b05093a5c3feb217278cf7f5f22355",
+    "bytes": 39
+  },
+  "test/highlight-compat/fixtures/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test.js": {
+    "sha256": "d86234cda3285c0d00e0e0326f5f4d29a768e7b91dd8ce255abcf251d5afc053",
+    "bytes": 1148
+  },
+  "test/highlight-compat/fixtures/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test.json": {
+    "sha256": "b2d531295f4856719d5eb1bf2f5fa42bc0ea8436b5687cde0ed19e504866c360",
+    "bytes": 223
+  },
+  "test/highlight-compat/fixtures/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-results/test-brackets_tsx.json": {
+    "sha256": "aca259963a00993ce3794d8d5efd8b7b6668f24c81127f587b26057c280b3c3e",
+    "bytes": 19892
+  },
+  "test/highlight-compat/fixtures/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-results/test-keywords_ts.json": {
+    "sha256": "5c6f223454f3341775dafc79a5d22d1f55518b4cbe1c9787b946ae0021e39bd2",
+    "bytes": 10402
+  },
+  "test/highlight-compat/fixtures/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-results/test-object-literals_ts.json": {
+    "sha256": "0e9025351d57423af73ba0d72232ec1867e174ecf6c5ff2e27c2f21cd686e36b",
+    "bytes": 14851
+  },
+  "test/highlight-compat/fixtures/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-results/test_js.json": {
+    "sha256": "1e6b893c095975b6308086eb547830e7921859b2bdb6b81fdb3f09a02b6ee43a",
+    "bytes": 175495
+  },
+  "test/highlight-compat/fixtures/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-results/test_json.json": {
+    "sha256": "b5b7401ddbb3d72346defbbc46f518bb9f5ae9e3a623dcb0c49c06445117fc8d",
+    "bytes": 68554
+  },
+  "test/highlight-compat/fixtures/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-tree-sitter-results/test-keywords_ts.json": {
+    "sha256": "107372c95b5195e38871abb9e71d8fe8ef55895587a1837a7c37848b3a5b42d8",
+    "bytes": 6784
+  },
+  "test/highlight-compat/fixtures/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-tree-sitter-results/test-object-literals_ts.json": {
+    "sha256": "dc3e873a718dd1b60f162930dcff1b30568da7d4cc4e64b84245a1bf132c9fa7",
+    "bytes": 7440
+  },
+  "test/highlight-compat/fixtures/typescript-tmlanguage/tests/baselines/AsConstSatisfies.baseline.txt": {
+    "sha256": "9359c69c82f7e60855d02a3a518d6021554afac199b694c7afd382f4aea921c0",
+    "bytes": 1785
+  },
+  "test/highlight-compat/fixtures/typescript-tmlanguage/tests/baselines/autoAccessor.baseline.txt": {
+    "sha256": "9fc779967c02034a66c43a33418e87415edcd39d767e24375c380485d92c2271",
+    "bytes": 4454
+  },
+  "test/highlight-compat/fixtures/typescript-tmlanguage/tests/baselines/awaitUsing.baseline.txt": {
+    "sha256": "d21f968903c131f64eb8d21f7a3b37dbb709d465d0ec6005505c3154e154fb52",
+    "bytes": 100491
+  },
+  "test/highlight-compat/fixtures/typescript-tmlanguage/tests/baselines/constTypeParameter.baseline.txt": {
+    "sha256": "0016a5d2caa77ce358baa59f278d30bcaefa2a858d2f78d387c2c6b63c1439c2",
+    "bytes": 65211
+  },
+  "test/highlight-compat/fixtures/typescript-tmlanguage/tests/cases/AsConstSatisfies.ts": {
+    "sha256": "d3043db40b618696d156fd5c17542762f95371a217b3f253b70efe26975c2f33",
+    "bytes": 34
+  },
+  "test/highlight-compat/fixtures/typescript-tmlanguage/tests/cases/autoAccessor.ts": {
+    "sha256": "d600d45bb9f7b9c915dbe2a396b19f4e5d8e8598e335a42423f2af00263f37e8",
+    "bytes": 122
+  },
+  "test/highlight-compat/fixtures/typescript-tmlanguage/tests/cases/awaitUsing.ts": {
+    "sha256": "c5cde4b5312fd7f765b9632a1a9e910002daf35a3347f73d1b19638688fa0572",
+    "bytes": 2592
+  },
+  "test/highlight-compat/fixtures/typescript-tmlanguage/tests/cases/constTypeParameter.ts": {
+    "sha256": "60e7a09ae8399bd4b54e11db5a8804bb52a1d9a2b061e4c0da4179ffb10248b4",
+    "bytes": 913
+  },
+  "test/highlight-compat/fixtures/tree-sitter-highlight/test/highlight/functions.js": {
+    "sha256": "06a53d5fd7265258e58d489b016d3766caf3c4e2fbf3b9891c7f3428f486dcc6",
+    "bytes": 603
+  },
+  "test/highlight-compat/fixtures/tree-sitter-highlight/test/highlight/imports.js": {
+    "sha256": "04108b8647ec48d87719c52df9795d861229983ad8a6def40821e50ed1d29f6e",
+    "bytes": 139
+  },
+  "test/highlight-compat/fixtures/tree-sitter-highlight/test/highlight/injection.js": {
+    "sha256": "d52bc9ad2005e16422027a5c3ff81130cff1ce6ea8427cbba12e92e151044ae1",
+    "bytes": 96
+  },
+  "test/highlight-compat/fixtures/tree-sitter-highlight/test/highlight/keywords.js": {
+    "sha256": "9a66c7a248abc299463167ace12e99ad0e3e1cab94cda4b1a9604d08ec42c451",
+    "bytes": 181
+  },
+  "test/highlight-compat/fixtures/tree-sitter-highlight/test/highlight/variables.js": {
+    "sha256": "4808ef48df87bb8b929a52d91bcc87c125aaa117535612efa90ea94116cf01ec",
+    "bytes": 1184
+  },
+  "test/highlight-compat/fixtures/textmate-grammars-themes/samples/javascript.sample": {
+    "sha256": "fff0add0e2876252ce6334a07257edc8251771548cad5b5362d2f20338e7b8b1",
+    "bytes": 3946
+  },
+  "test/highlight-compat/fixtures/textmate-grammars-themes/samples/typescript.sample": {
+    "sha256": "18669770e176f60b535dead9ba0236419f2141678618a1b0b6e7e1f127b781c5",
+    "bytes": 2205
+  },
+  "test/highlight-compat/fixtures/original/json/bom.json": {
+    "sha256": "574aeb26a09272de958cad848035d58214b198e3bafb411deadffeddd8849631",
+    "bytes": 15
+  },
+  "test/highlight-compat/fixtures/original/json/crlf.json": {
+    "sha256": "d82f8eba9a529e3854e830fe8ab0276e79fe61783516e2f587deea4e0c71fec2",
+    "bytes": 21
+  },
+  "test/highlight-compat/fixtures/original/json/empty-line-object.json": {
+    "sha256": "d09be27b946f7c24e886ff3f719bf01aa2a696260746fc182b61cb09bc4f9b79",
+    "bytes": 14
+  },
+  "test/highlight-compat/fixtures/original/json/empty.json": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "test/highlight-compat/fixtures/original/json/line-20000.json": {
+    "sha256": "57b06399412a884f99069c7bb4b31d33f114744ac802c8fa13644cf6450e05bf",
+    "bytes": 20001
+  },
+  "test/highlight-compat/fixtures/original/json/no-trailing-newline.json": {
+    "sha256": "3a316d6d3226f84c1e46e4447fa8d5fd800bff4a1bc6498152523cd4a602b69b",
+    "bytes": 6
+  },
+  "test/highlight-compat/fixtures/original/markdown/fences.md": {
+    "sha256": "8c9c1cd8f806ddabd930b841232a0bc6f98174dd7e23a33d08b7ebd842c84cb9",
+    "bytes": 72
+  },
+  "test/highlight-compat/fixtures/original/tsx/crlf.tsx": {
+    "sha256": "30d0a4a3fbf9830f5aa8be3a887ca7738996c86f01032958a5c404bec9eb6ac4",
+    "bytes": 26
+  },
+  "test/highlight-compat/fixtures/original/tsx/empty-line-jsx.tsx": {
+    "sha256": "75c895c2cf227249e957db29da48a6e90e0741f2ba87989babdc8ef81a67fb0b",
+    "bytes": 40
+  },
+  "test/highlight-compat/fixtures/original/tsx/line-20000.tsx": {
+    "sha256": "04ffbbf200f89bee8b279bc5d5c6865afbadee1572a706a7123790ac8f544ef9",
+    "bytes": 20020
+  },
+  "test/highlight-compat/fixtures/original/tsx/unicode-jsx.tsx": {
+    "sha256": "896c777a6e50892a61d447f4b6efcf54f74115feb2fdc8f229a868257e5644e0",
+    "bytes": 39
+  },
+  "test/highlight-compat/fixtures/original/typescript/bom.ts": {
+    "sha256": "cf4a8f8db18d98ba14f0206c55922b93b920ec5f815edf0b37c06d864a9658c6",
+    "bytes": 15
+  },
+  "test/highlight-compat/fixtures/original/typescript/crlf-then-trailing-cr.ts": {
+    "sha256": "81929b4532afd536ac1d3b09724334e00a89078d42d98c88eb2b96885ddf917e",
+    "bytes": 21
+  },
+  "test/highlight-compat/fixtures/original/typescript/crlf.ts": {
+    "sha256": "f6d6c41158873d058b3fec17d2d270bb29f9b609359f6961932e38ae505bdbaa",
+    "bytes": 28
+  },
+  "test/highlight-compat/fixtures/original/typescript/empty-line-block-comment.ts": {
+    "sha256": "6b2f6a2de4eb1b784e0f639b070e4373bdb21d4718df9ff4786b3b93071f890f",
+    "bytes": 30
+  },
+  "test/highlight-compat/fixtures/original/typescript/empty-line-declaration.ts": {
+    "sha256": "8fa3269f77a31a6dcf5dd9e4c72efd8ad0df6eba794c453ebe150353c238d075",
+    "bytes": 15
+  },
+  "test/highlight-compat/fixtures/original/typescript/empty-line-template.ts": {
+    "sha256": "fafa5f5ef46c9a1a1bb83ebbc4baf7cf6b16b3c5bd868b8c3a57b40901923b87",
+    "bytes": 33
+  },
+  "test/highlight-compat/fixtures/original/typescript/empty.ts": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "test/highlight-compat/fixtures/original/typescript/line-19999.ts": {
+    "sha256": "2646242a9e0af8b0b5f60b9927f3326bc62cc864d277a6203421a70282219fcb",
+    "bytes": 20010
+  },
+  "test/highlight-compat/fixtures/original/typescript/line-20000.ts": {
+    "sha256": "ce74956f6d25e729ca574198828aa553192c3aa8488012355f0cb61b9f75d3ae",
+    "bytes": 20011
+  },
+  "test/highlight-compat/fixtures/original/typescript/line-20001-closes-open-comment.ts": {
+    "sha256": "73c62435ffbb297a0c0f73662adf1eb61452f2322baebfb7240d047dd11769e7",
+    "bytes": 20015
+  },
+  "test/highlight-compat/fixtures/original/typescript/line-20001.ts": {
+    "sha256": "7140b6e6d7444ecbc8b2925add8127d8e7a8b347d34920d8dace1abe1ab9e62f",
+    "bytes": 20012
+  },
+  "test/highlight-compat/fixtures/original/typescript/lone-cr.ts": {
+    "sha256": "d32ad6891306f8b77269903e861d4410ff3ca1b89c5401fbc1e9592622d4be50",
+    "bytes": 22
+  },
+  "test/highlight-compat/fixtures/original/typescript/mixed-eol.ts": {
+    "sha256": "2e5c1a4b7b3de57b867d36ec2dfa7b2ffdcb7dd825bf4491c8b9eda93a9e2101",
+    "bytes": 42
+  },
+  "test/highlight-compat/fixtures/original/typescript/no-trailing-newline.ts": {
+    "sha256": "6ec818aa7f27cdbf63242af50658c60475768cc67322bd4c63a184d987908674",
+    "bytes": 11
+  },
+  "test/highlight-compat/fixtures/original/typescript/only-cr.ts": {
+    "sha256": "9d1e0e2d9459d06523ad13e28a4093c2316baafe7aec5b25f30eba2e113599c4",
+    "bytes": 1
+  },
+  "test/highlight-compat/fixtures/original/typescript/trailing-lone-cr.ts": {
+    "sha256": "a58a5d28efdbdee196db9b1c3fdcdbdd7d373b9d45c8625c1237f792dc41e7b6",
+    "bytes": 10
+  },
+  "test/highlight-compat/fixtures/original/typescript/unicode.ts": {
+    "sha256": "35b2441506e6f6ee2b83952bc5920dc0e215ab93c90c7efe0eb755edc1ce9d63",
+    "bytes": 49
+  },
+  "test/highlight-compat/goldens/shiki-api/typescript/original/bom.json": {
+    "sha256": "9ab6b03a33e962113b87ff96a75a9d8becd4caa0797cc4a59211102e7d7a3799",
+    "bytes": 2503
+  },
+  "test/highlight-compat/goldens/shiki-api/typescript/original/crlf-then-trailing-cr.json": {
+    "sha256": "cfa3036d47f8395ac35c226f87831dc969871d040387c0450454b00fe6f26bd6",
+    "bytes": 2928
+  },
+  "test/highlight-compat/goldens/shiki-api/typescript/original/crlf.json": {
+    "sha256": "f4f073ace14d77361326ce3261c5e4ea9474ca53030f86c7ba215c7f281eef75",
+    "bytes": 3581
+  },
+  "test/highlight-compat/goldens/shiki-api/typescript/original/empty-line-block-comment.json": {
+    "sha256": "6dcee188d735dd308275f66b61429165cb51f1ad11344349cfcc6d4dd8960523",
+    "bytes": 3375
+  },
+  "test/highlight-compat/goldens/shiki-api/typescript/original/empty-line-declaration.json": {
+    "sha256": "db296600475352e1c728ed72583b5636ebba7a6dfe046391c98f9e89b599cbd0",
+    "bytes": 2604
+  },
+  "test/highlight-compat/goldens/shiki-api/typescript/original/empty-line-template.json": {
+    "sha256": "e121d1c7a200ca23804f58121b1583a52cb592bb4f896040705dab8f204ad268",
+    "bytes": 4381
+  },
+  "test/highlight-compat/goldens/shiki-api/typescript/original/empty.json": {
+    "sha256": "fcb835c5302137dc54e83a615e71c37c455b1c05351418b03117f3e7a04d9509",
+    "bytes": 657
+  },
+  "test/highlight-compat/goldens/shiki-api/typescript/original/line-19999.json": {
+    "sha256": "14854fe19bedad8fdf16e0e7b8fd5779e9b55c2bba02711e4b54acba481e7196",
+    "bytes": 3087
+  },
+  "test/highlight-compat/goldens/shiki-api/typescript/original/line-20000.json": {
+    "sha256": "45b81c7ab4aa958da6461baa71dc30834665fc3afe770959b383947823ea94a6",
+    "bytes": 2891
+  },
+  "test/highlight-compat/goldens/shiki-api/typescript/original/line-20001-closes-open-comment.json": {
+    "sha256": "2a5ca6f8c144fa5234f71f76effb33925a51e95a4065d1e5baa1922dda2d6305",
+    "bytes": 1983
+  },
+  "test/highlight-compat/goldens/shiki-api/typescript/original/line-20001.json": {
+    "sha256": "1929bc4454c78f485c971fcd7e49ca348d77e92ed7ceecd4605adbbbe73e37be",
+    "bytes": 2891
+  },
+  "test/highlight-compat/goldens/shiki-api/typescript/original/lone-cr.json": {
+    "sha256": "70bc754ca7fafcc890358dd471db738fc4f28ca77aac9a5274f4e4f556710670",
+    "bytes": 2952
+  },
+  "test/highlight-compat/goldens/shiki-api/typescript/original/mixed-eol.json": {
+    "sha256": "b4734ffcdc2bd91db12cef6ee46fe6b23a950bea3eb2825bed16371f0bd65b0e",
+    "bytes": 3981
+  },
+  "test/highlight-compat/goldens/shiki-api/typescript/original/no-trailing-newline.json": {
+    "sha256": "e99350bc25513a31d7e18e61ad776f2f843c09c5f1d33a5087ee7536f5c35eae",
+    "bytes": 2258
+  },
+  "test/highlight-compat/goldens/shiki-api/typescript/original/only-cr.json": {
+    "sha256": "9e2406659ac04a2c5c346e3b079b024e08aaa2d94726ff674b2644479c9ee0b9",
+    "bytes": 1230
+  },
+  "test/highlight-compat/goldens/shiki-api/typescript/original/trailing-lone-cr.json": {
+    "sha256": "8d90a96e354bbfd9f351b6b037c892b5ca85922e84e5b5e64ae21316a1065cd6",
+    "bytes": 2296
+  },
+  "test/highlight-compat/goldens/shiki-api/typescript/original/unicode.json": {
+    "sha256": "ca6fa5bcffaa17c349922498c34fbc8f3aca44076ce818b1127caf58a9aef62a",
+    "bytes": 3794
+  },
+  "test/highlight-compat/goldens/shiki-api/typescript/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-keywords.ts.json": {
+    "sha256": "1d7094ab89a989db3c80590179d5a97298fdfe6981eae6f1d13a7484d2368a30",
+    "bytes": 4272
+  },
+  "test/highlight-compat/goldens/shiki-api/typescript/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-object-literals.ts.json": {
+    "sha256": "66159e32aa9bc9057474436ef5dfd887f206bd719186041fc82dcc26ff6a55ad",
+    "bytes": 4256
+  },
+  "test/highlight-compat/goldens/shiki-api/typescript/typescript-tmlanguage/tests/cases/AsConstSatisfies.ts.json": {
+    "sha256": "a28d0022b41830b7a24c7f4c10da18df9642a6b9893143c46fae5bb10e3efd55",
+    "bytes": 3258
+  },
+  "test/highlight-compat/goldens/shiki-api/typescript/typescript-tmlanguage/tests/cases/autoAccessor.ts.json": {
+    "sha256": "975b1e64c382c280c2402ce1c8cbb58fc810721783e48f0343a984179e68e940",
+    "bytes": 6676
+  },
+  "test/highlight-compat/goldens/shiki-api/typescript/typescript-tmlanguage/tests/cases/awaitUsing.ts.json": {
+    "sha256": "56cc388b386274b298f9106870627f11077d0a0e3c2c7baf4ce7d343b26ca46d",
+    "bytes": 94631
+  },
+  "test/highlight-compat/goldens/shiki-api/typescript/typescript-tmlanguage/tests/cases/constTypeParameter.ts.json": {
+    "sha256": "160f40cc1af20b73b8ef480803ef58d38bdc1043db44c43d066069c604fafdcc",
+    "bytes": 48662
+  },
+  "test/highlight-compat/goldens/shiki-api/typescript/textmate-grammars-themes/samples/typescript.sample.json": {
+    "sha256": "b25fc96a879a98995407e2bdf3f964cbf2dcaf8a3716a7bbd93e26977a6da41e",
+    "bytes": 60708
+  },
+  "test/highlight-compat/goldens/shiki-api/tsx/original/crlf.json": {
+    "sha256": "2f25d10d06e34239c7e88528267627f799298b79ab2111c5a85e4c96a6659712",
+    "bytes": 3224
+  },
+  "test/highlight-compat/goldens/shiki-api/tsx/original/empty-line-jsx.json": {
+    "sha256": "14009d6db3e004ef6450a3a72fab8675cf6899836b2c0447b3109bc4aeeb6e0d",
+    "bytes": 4364
+  },
+  "test/highlight-compat/goldens/shiki-api/tsx/original/line-20000.json": {
+    "sha256": "2d5910e14c9513ffe01c144e3ee30e712d815a47c726b7edd44c72cd33b3aee2",
+    "bytes": 3621
+  },
+  "test/highlight-compat/goldens/shiki-api/tsx/original/unicode-jsx.json": {
+    "sha256": "d06d8b07466f44dd50d88abf99a8662ba6891484397b23d421ce01d364dbc73b",
+    "bytes": 4032
+  },
+  "test/highlight-compat/goldens/shiki-api/tsx/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-brackets.tsx.json": {
+    "sha256": "d2feeabc59adcbd3eabbfb043923a643ada939df37f08662fffcae155d8518f1",
+    "bytes": 6865
+  },
+  "test/highlight-compat/goldens/shiki-api/markdown/original/fences.json": {
+    "sha256": "70e7bbb3459b721353d0d099be8c73bfca6e39ee9cbb2e6a34e635b6abecf724",
+    "bytes": 3573
+  },
+  "test/highlight-compat/goldens/shiki-api/json/original/bom.json": {
+    "sha256": "8279f3b86fa645b9c32d6e2482d411f35db67ee9bd4d2b67c862a1219f196c0a",
+    "bytes": 2641
+  },
+  "test/highlight-compat/goldens/shiki-api/json/original/crlf.json": {
+    "sha256": "4a74450b7025aa4650db9041564c65bc88fdc6905eb2175b643d65c3b30d28f9",
+    "bytes": 3489
+  },
+  "test/highlight-compat/goldens/shiki-api/json/original/empty-line-object.json": {
+    "sha256": "caf50739e7fa8448bde7b68ceb355ca190923ae20dfb8c590df67b9e371072de",
+    "bytes": 3010
+  },
+  "test/highlight-compat/goldens/shiki-api/json/original/empty.json": {
+    "sha256": "4e919d6775d1c808944fd72d296a2b3e7c4d67987e07d0d8b64f005ed6e989ab",
+    "bytes": 651
+  },
+  "test/highlight-compat/goldens/shiki-api/json/original/line-20000.json": {
+    "sha256": "82c9ace1364f4b49a5f2fcf01098cf92c36cfb99789f4040510deaf7e450bfa6",
+    "bytes": 1320
+  },
+  "test/highlight-compat/goldens/shiki-api/json/original/no-trailing-newline.json": {
+    "sha256": "5e5a192e5f9e7133ed8476e6d08198d68d734b881b8449df174c47c6d176fcff",
+    "bytes": 1960
+  },
+  "test/highlight-compat/goldens/shiki-api/json/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test.json.json": {
+    "sha256": "9f7497c4df7181c3f3699a44be388c08301bf44ea9373d8b5774f5643d92c266",
+    "bytes": 11967
+  },
+  "test/highlight-compat/goldens/shiki-api/javascript/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test.js.json": {
+    "sha256": "cb56985908ac4e3528925780346ce08f83c2c548eac60879e1358e104608e4c2",
+    "bytes": 33284
+  },
+  "test/highlight-compat/goldens/shiki-api/javascript/tree-sitter-highlight/test/highlight/functions.js.json": {
+    "sha256": "383055c49e2ab0ea3bcd241766dff1534d3e6030b751c8b1260111027b53e2d2",
+    "bytes": 22456
+  },
+  "test/highlight-compat/goldens/shiki-api/javascript/tree-sitter-highlight/test/highlight/imports.js.json": {
+    "sha256": "2aa6041127c8703299022450870943e0280f0954e3d0e058aeed4bf10bc531b4",
+    "bytes": 4402
+  },
+  "test/highlight-compat/goldens/shiki-api/javascript/tree-sitter-highlight/test/highlight/injection.js.json": {
+    "sha256": "97df3f95275af582c976d073ef7848d68524cf03f24688c64b0353103aad9a7d",
+    "bytes": 3410
+  },
+  "test/highlight-compat/goldens/shiki-api/javascript/tree-sitter-highlight/test/highlight/keywords.js.json": {
+    "sha256": "e546436aef98ad971f3fd125b2fea6c1b31188867f899252211283b954d7d21f",
+    "bytes": 5349
+  },
+  "test/highlight-compat/goldens/shiki-api/javascript/tree-sitter-highlight/test/highlight/variables.js.json": {
+    "sha256": "9848cb986979b2184ef50a2b2da7f4f86e7a0b8ec31a0555b5f870cf7095140d",
+    "bytes": 24299
+  },
+  "test/highlight-compat/goldens/shiki-api/javascript/textmate-grammars-themes/samples/javascript.sample.json": {
+    "sha256": "80ba6f10a15be94daedcf04c6bcb31b3e7f6dc4e27debd3b8241baa9dca31065",
+    "bytes": 98077
+  },
+  "test/highlight-compat/goldens/raw/typescript/original/bom.json": {
+    "sha256": "ff8737fd903ded1d829f25c75fe243ef343cf2fc0a7c4726c19a2d61480b729f",
+    "bytes": 2710
+  },
+  "test/highlight-compat/goldens/raw/typescript/original/crlf-then-trailing-cr.json": {
+    "sha256": "f0409c59e908c38fbe699bc46d7a79e0e6e0827c5696fac94a23edaddb906060",
+    "bytes": 3135
+  },
+  "test/highlight-compat/goldens/raw/typescript/original/crlf.json": {
+    "sha256": "56e46ef0eb8c54d2f655fa1fdea1a8b59322797eee6566340f52d36e57c6b780",
+    "bytes": 3788
+  },
+  "test/highlight-compat/goldens/raw/typescript/original/empty-line-block-comment.json": {
+    "sha256": "49125ea7e4aa75da1351df07ab68faaf92b28e50fe5bf64a548d42c83d1b99ea",
+    "bytes": 3582
+  },
+  "test/highlight-compat/goldens/raw/typescript/original/empty-line-declaration.json": {
+    "sha256": "0ef402726156229fde2144d2d25da1056e2a13c17fe45f4564cd54817a3fad90",
+    "bytes": 2817
+  },
+  "test/highlight-compat/goldens/raw/typescript/original/empty-line-template.json": {
+    "sha256": "4d64dcae143cbdda63dfec54a9330ecc5f44ec910c27452543cda07a3d65eacc",
+    "bytes": 4588
+  },
+  "test/highlight-compat/goldens/raw/typescript/original/empty.json": {
+    "sha256": "4811b00502ca947481b96a61ff04962e51a9879e3fe61a29bf436ba3a5920a3c",
+    "bytes": 864
+  },
+  "test/highlight-compat/goldens/raw/typescript/original/line-19999.json": {
+    "sha256": "ebe690623c6ac98cc454333a91e503f80ec8e223552f56719900733f7587a632",
+    "bytes": 3294
+  },
+  "test/highlight-compat/goldens/raw/typescript/original/line-20000.json": {
+    "sha256": "ff44775188e59d14a50e60fd57ebf98f81bab207227fe0ba191f7809a9085be3",
+    "bytes": 3294
+  },
+  "test/highlight-compat/goldens/raw/typescript/original/line-20001-closes-open-comment.json": {
+    "sha256": "d64d9f45ae0ea0e5e5e02d97d5c7cccc4c517fa88e8a95cde44dc92c5c8c7162",
+    "bytes": 3452
+  },
+  "test/highlight-compat/goldens/raw/typescript/original/line-20001.json": {
+    "sha256": "b6548f8c34c471d750961b2687f5476748de0067f8626338a83884ac7fa78472",
+    "bytes": 3294
+  },
+  "test/highlight-compat/goldens/raw/typescript/original/lone-cr.json": {
+    "sha256": "da9fdceb90f35d26ba45fbda32bebfab118977bd6ffd46601d5e0510b1152a1a",
+    "bytes": 3159
+  },
+  "test/highlight-compat/goldens/raw/typescript/original/mixed-eol.json": {
+    "sha256": "9c7421ea9014c86138123517da18447bae4ffeb18f8da1397b3f89ddb8ba8dd7",
+    "bytes": 4188
+  },
+  "test/highlight-compat/goldens/raw/typescript/original/no-trailing-newline.json": {
+    "sha256": "9eb04bef2d1fd0fd53e2a5e661eb7169b80f48b66d568b9c844fb1169feed5f7",
+    "bytes": 2465
+  },
+  "test/highlight-compat/goldens/raw/typescript/original/only-cr.json": {
+    "sha256": "d4197ddcb9f7311189358d3dbbf21c76f7119935721a850e66e63ebba166ecd2",
+    "bytes": 1437
+  },
+  "test/highlight-compat/goldens/raw/typescript/original/trailing-lone-cr.json": {
+    "sha256": "d90501143d57fdf11917fc368ea12dfc0e7dbe205d9fcdf8592461fa70726e2d",
+    "bytes": 2503
+  },
+  "test/highlight-compat/goldens/raw/typescript/original/unicode.json": {
+    "sha256": "6ca4e819d6912c031227612926d4c16bde4a436fc700c2a3fe043dbdaee9c551",
+    "bytes": 4001
+  },
+  "test/highlight-compat/goldens/raw/typescript/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-keywords.ts.json": {
+    "sha256": "1a1c5c10c3b5dad6144aff8c7d55c25330179238cf9104c16c9e4966a614756e",
+    "bytes": 4479
+  },
+  "test/highlight-compat/goldens/raw/typescript/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-object-literals.ts.json": {
+    "sha256": "82844e711e8a41f5cf00c4f6cd5f833b576fc6c7b18771fd166ac050bba97d5b",
+    "bytes": 4463
+  },
+  "test/highlight-compat/goldens/raw/typescript/typescript-tmlanguage/tests/cases/AsConstSatisfies.ts.json": {
+    "sha256": "fc68b7017ae1ca0821b1149eb67f60d08d4a36f4c5d09204cfdad49f299ed91c",
+    "bytes": 3465
+  },
+  "test/highlight-compat/goldens/raw/typescript/typescript-tmlanguage/tests/cases/autoAccessor.ts.json": {
+    "sha256": "646b4430015cdb458325557cee2b4488019d555a354f17a4f5e6080cb680b65b",
+    "bytes": 6883
+  },
+  "test/highlight-compat/goldens/raw/typescript/typescript-tmlanguage/tests/cases/awaitUsing.ts.json": {
+    "sha256": "8c5ffb5a3f5db942a999a3a90a5ec8c5a4116f7162db84deccf07344be29779c",
+    "bytes": 94838
+  },
+  "test/highlight-compat/goldens/raw/typescript/typescript-tmlanguage/tests/cases/constTypeParameter.ts.json": {
+    "sha256": "59855f3da37538116eb48531227c78c97c41e88b21a3dd0ea29a5cd290405b7e",
+    "bytes": 48869
+  },
+  "test/highlight-compat/goldens/raw/typescript/textmate-grammars-themes/samples/typescript.sample.json": {
+    "sha256": "b1766747db6ebdd86551fe1e465fa7ff090e79939559947cd9d39ad313f92ad1",
+    "bytes": 60915
+  },
+  "test/highlight-compat/goldens/raw/tsx/original/crlf.json": {
+    "sha256": "b86dc01b0d69e15f802327ca588f942b4a402290006da0fc47ba307f5c9e021c",
+    "bytes": 3431
+  },
+  "test/highlight-compat/goldens/raw/tsx/original/empty-line-jsx.json": {
+    "sha256": "5c704bbb5a7f3d1e908dadce0555d7b1d8ba04241bf8a987834092665b8fcc17",
+    "bytes": 4571
+  },
+  "test/highlight-compat/goldens/raw/tsx/original/line-20000.json": {
+    "sha256": "50df890de5177803b567fedb8a0fa9c98c9c002651a7503ab34fbc89b2034301",
+    "bytes": 4031
+  },
+  "test/highlight-compat/goldens/raw/tsx/original/unicode-jsx.json": {
+    "sha256": "16806f077a1e882fad15ee5dd28a31209e19258d3affd73ffa4504570bf7e0a7",
+    "bytes": 4239
+  },
+  "test/highlight-compat/goldens/raw/tsx/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-brackets.tsx.json": {
+    "sha256": "c7f002a84f5f64a7fe8bd6017fe95d5f95145ca38d886abe27bd3529565272c9",
+    "bytes": 7072
+  },
+  "test/highlight-compat/goldens/raw/markdown/original/fences.json": {
+    "sha256": "7b6ba2877b0759ddf1e738e6d6dff2878f566a562ef0494828950ab70f4d3dc5",
+    "bytes": 3780
+  },
+  "test/highlight-compat/goldens/raw/json/original/bom.json": {
+    "sha256": "22e38c08c07b52b17c4acee4b81035dcbb079cd773b26024edbc120e1c23793a",
+    "bytes": 2848
+  },
+  "test/highlight-compat/goldens/raw/json/original/crlf.json": {
+    "sha256": "e360ade22b5ba8d4e9844e37bf81505a3ca99bea75c4db663070226448fcc543",
+    "bytes": 3696
+  },
+  "test/highlight-compat/goldens/raw/json/original/empty-line-object.json": {
+    "sha256": "f6cde4604f44e0db434d6f89a8b226ed4e8de26f11ad2a802c425a45d1082769",
+    "bytes": 3217
+  },
+  "test/highlight-compat/goldens/raw/json/original/empty.json": {
+    "sha256": "ee6401517f2ac17c5cb05a4b950f92eaec32c2c6d9f9db87f41587aa5d6c83d5",
+    "bytes": 858
+  },
+  "test/highlight-compat/goldens/raw/json/original/line-20000.json": {
+    "sha256": "76516b6bee363e0b522ed70db8973594634550a23fbdfec894cf428c773d034c",
+    "bytes": 3263
+  },
+  "test/highlight-compat/goldens/raw/json/original/no-trailing-newline.json": {
+    "sha256": "61569a2dcdb1fc1dcfdd4b4aae6c96bd9380376c60b30125c5334b142640af29",
+    "bytes": 2167
+  },
+  "test/highlight-compat/goldens/raw/json/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test.json.json": {
+    "sha256": "909564b36f4d3321750531a365dd2f6f3ba7b4764f49d9054027137af60eb179",
+    "bytes": 12174
+  },
+  "test/highlight-compat/goldens/raw/javascript/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test.js.json": {
+    "sha256": "3adbe3dc461f7ed2c70db84d75baf249681896b2b42e571b5a4e12c694908275",
+    "bytes": 33491
+  },
+  "test/highlight-compat/goldens/raw/javascript/tree-sitter-highlight/test/highlight/functions.js.json": {
+    "sha256": "79c082fe0c6a878ae48320c5fa8739cb1909fd3ae16488653491017b4974454b",
+    "bytes": 22663
+  },
+  "test/highlight-compat/goldens/raw/javascript/tree-sitter-highlight/test/highlight/imports.js.json": {
+    "sha256": "a049dd29fddf019b75898e8351da5078e96d5d75aa14df4d899105b45e33a444",
+    "bytes": 4609
+  },
+  "test/highlight-compat/goldens/raw/javascript/tree-sitter-highlight/test/highlight/injection.js.json": {
+    "sha256": "e229f4567ac6f4f0b14b00a7d8eb14d6b07d2c91c0c7ad2b76d613a29ffcf4c0",
+    "bytes": 3617
+  },
+  "test/highlight-compat/goldens/raw/javascript/tree-sitter-highlight/test/highlight/keywords.js.json": {
+    "sha256": "533157130b42088acef9eeb74f5f205068c9db3c5fad18957d89c0a34b49f56a",
+    "bytes": 5556
+  },
+  "test/highlight-compat/goldens/raw/javascript/tree-sitter-highlight/test/highlight/variables.js.json": {
+    "sha256": "d3aacd3f4fb5e9b6d8bee4f8eec2a7034bf6a29e222b39122b7090e227852f7e",
+    "bytes": 24506
+  },
+  "test/highlight-compat/goldens/raw/javascript/textmate-grammars-themes/samples/javascript.sample.json": {
+    "sha256": "9e23ef8eee182649a5cdaf017178050a128a5ee43ffbefb6f89e95fd645cc716",
+    "bytes": 98284
+  },
+  "test/highlight-compat/goldens/product/typescript/original/bom.json": {
+    "sha256": "8bc4f8a6a6f09c6889e487f0855e370bd5dbb006e0d4f52f0e0bc09a8788a4bf",
+    "bytes": 2728
+  },
+  "test/highlight-compat/goldens/product/typescript/original/crlf-then-trailing-cr.json": {
+    "sha256": "59f0f5ef9d17873f8345e018b9aa199e1a6b1b4caebc498d7e4b89660ef34855",
+    "bytes": 3337
+  },
+  "test/highlight-compat/goldens/product/typescript/original/crlf.json": {
+    "sha256": "0008bcea12c2e8dbd479fa0f7fb0b43ebb9f1e538a7c2c5e2a6f5e9e1b4abb57",
+    "bytes": 4070
+  },
+  "test/highlight-compat/goldens/product/typescript/original/empty-line-block-comment.json": {
+    "sha256": "a14afbf7d55aabd6f3a40f7e2db687feba8be48a57bee99edae46b69b3081cb3",
+    "bytes": 3610
+  },
+  "test/highlight-compat/goldens/product/typescript/original/empty-line-declaration.json": {
+    "sha256": "a21273af4ff0382ffe3e9ba066c5fdb69a70cddd2cb38809351bf25568b936bd",
+    "bytes": 2810
+  },
+  "test/highlight-compat/goldens/product/typescript/original/empty-line-template.json": {
+    "sha256": "926b7cecd1ca123b80a369e13e89551e2017c9a195fced3456a9b12e5131a7f0",
+    "bytes": 4718
+  },
+  "test/highlight-compat/goldens/product/typescript/original/empty.json": {
+    "sha256": "8c99095612ef111f3a75eaefc92ca339badae70079b8835c525f742580664bfd",
+    "bytes": 778
+  },
+  "test/highlight-compat/goldens/product/typescript/original/line-19999.json": {
+    "sha256": "5bf24b311033752d71c988c8cfce9e39272959a1152e6fccfc2f34f0c72776f5",
+    "bytes": 3476
+  },
+  "test/highlight-compat/goldens/product/typescript/original/line-20000.json": {
+    "sha256": "beac0f3a4fe4d6a61922e21e447d0b3676ea1e2fbb6869908fc8e7edf6868fcf",
+    "bytes": 3476
+  },
+  "test/highlight-compat/goldens/product/typescript/original/line-20001-closes-open-comment.json": {
+    "sha256": "1ebc68343880eb1cd99c7dea86894e54a59505282f21a0414444bea3c71b3b09",
+    "bytes": 2245
+  },
+  "test/highlight-compat/goldens/product/typescript/original/line-20001.json": {
+    "sha256": "38c877885fee8b45feeb0677c63b75c5ebc1f935b1554c6eb094164cce6d7cf9",
+    "bytes": 3213
+  },
+  "test/highlight-compat/goldens/product/typescript/original/lone-cr.json": {
+    "sha256": "bf83fafee04e3f8ff02100c87020d13803ca3d37006d50e6cd9a7c9dd371bcaa",
+    "bytes": 3441
+  },
+  "test/highlight-compat/goldens/product/typescript/original/mixed-eol.json": {
+    "sha256": "1fcb32d94cf7767afe36165efa32e92cc316c86e793f9539bd49fc62db408200",
+    "bytes": 4808
+  },
+  "test/highlight-compat/goldens/product/typescript/original/no-trailing-newline.json": {
+    "sha256": "ec34a37c2e1ad6aa5c575b5e23ff98861b5efb45b998402a2280002c8cedb787",
+    "bytes": 2481
+  },
+  "test/highlight-compat/goldens/product/typescript/original/only-cr.json": {
+    "sha256": "be2c18eda20f5f1a5cd4fa8e02150b11488024e5d2d20ec8589124c092f99480",
+    "bytes": 1239
+  },
+  "test/highlight-compat/goldens/product/typescript/original/trailing-lone-cr.json": {
+    "sha256": "dbe9f86f8f351ca110161ff901b58d50b60c19fd50ba625384693fa14d839e1e",
+    "bytes": 2609
+  },
+  "test/highlight-compat/goldens/product/typescript/original/unicode.json": {
+    "sha256": "2e1fd23ca0e2b1ff37b8096dc30d6848041a8fdf61419d0b33cdf804cc9f484c",
+    "bytes": 4435
+  },
+  "test/highlight-compat/goldens/product/typescript/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-keywords.ts.json": {
+    "sha256": "f844217a7dfa309c3079291eac2d304d39bf29907e006c3f3535ace00d2b9172",
+    "bytes": 4811
+  },
+  "test/highlight-compat/goldens/product/typescript/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-object-literals.ts.json": {
+    "sha256": "c0d49e39a9343553d2b586ddef9b0f2ec223cc092b23eb290c5b2b1540d1f884",
+    "bytes": 5379
+  },
+  "test/highlight-compat/goldens/product/typescript/typescript-tmlanguage/tests/cases/AsConstSatisfies.ts.json": {
+    "sha256": "79b235ddb3b9f07526b0e87538bba65bd981aa3bbb8b2e3259be85e1b0b97461",
+    "bytes": 3955
+  },
+  "test/highlight-compat/goldens/product/typescript/typescript-tmlanguage/tests/cases/autoAccessor.ts.json": {
+    "sha256": "4efe2ea5e27d4301dd0292caa2a937f177cafaed39db77b02188a82c40a53aaa",
+    "bytes": 7219
+  },
+  "test/highlight-compat/goldens/product/typescript/typescript-tmlanguage/tests/cases/awaitUsing.ts.json": {
+    "sha256": "7f640a8f725b99a6ca33e049c7ffd534309fa223c50095e382eddd83c0404172",
+    "bytes": 137832
+  },
+  "test/highlight-compat/goldens/product/typescript/typescript-tmlanguage/tests/cases/constTypeParameter.ts.json": {
+    "sha256": "0d6fd5d1744bfa995de74b68eb210c495cd29e61c31dd747affdab1788704332",
+    "bytes": 57818
+  },
+  "test/highlight-compat/goldens/product/typescript/textmate-grammars-themes/samples/typescript.sample.json": {
+    "sha256": "cc5f886f64478f5e90dac01a0c6ca3dcdca6d6228e6a81418689dd942df33225",
+    "bytes": 79069
+  },
+  "test/highlight-compat/goldens/product/tsx/original/crlf.json": {
+    "sha256": "2386e861ff159854bac44732f5c193d0f00fe68a775bfcdc8c0bb63443f492e8",
+    "bytes": 3561
+  },
+  "test/highlight-compat/goldens/product/tsx/original/empty-line-jsx.json": {
+    "sha256": "2a81f69251265f25339c726f9d7bf943558aa2862c5e8c2c0a9f8859bfd0f2f5",
+    "bytes": 4861
+  },
+  "test/highlight-compat/goldens/product/tsx/original/line-20000.json": {
+    "sha256": "5b515aed50da92d8f2b2eca7df6f4a093a8c9ea05ab3cb767b6eb5bbca46ae5c",
+    "bytes": 4413
+  },
+  "test/highlight-compat/goldens/product/tsx/original/unicode-jsx.json": {
+    "sha256": "c56974a0fbc1c37c3d3eb23b079b74f4b4520beea79795cfcb9fc913bf75b66f",
+    "bytes": 4559
+  },
+  "test/highlight-compat/goldens/product/tsx/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test-brackets.tsx.json": {
+    "sha256": "0946f1f1ac2a5f653b3996f35e35b10de03988cd8bcb73fdf33bdc93373c3841",
+    "bytes": 8005
+  },
+  "test/highlight-compat/goldens/product/markdown/original/fences.json": {
+    "sha256": "ab5e644b0bcf25fa61fda13a5c03be9d6216430588a9670a48cb717bef95313f",
+    "bytes": 3982
+  },
+  "test/highlight-compat/goldens/product/json/original/bom.json": {
+    "sha256": "ee15ed5ac2e8451d39d7db6604dbb242ec9c6fbf58fb082518b4397d970434db",
+    "bytes": 3019
+  },
+  "test/highlight-compat/goldens/product/json/original/crlf.json": {
+    "sha256": "fe9b7adfd127c76cf4f07a98db08408d07c373f680523a83435d124509bbed33",
+    "bytes": 3915
+  },
+  "test/highlight-compat/goldens/product/json/original/empty-line-object.json": {
+    "sha256": "2ea6e75f80a1b0f78a3a6df265dd2f6e89785980a2abbd9895a07ae1890cc455",
+    "bytes": 3284
+  },
+  "test/highlight-compat/goldens/product/json/original/empty.json": {
+    "sha256": "ad656e7ce3a97431e1bbfb67589d234b7a9225b05586519600bd0e01074ecf2e",
+    "bytes": 772
+  },
+  "test/highlight-compat/goldens/product/json/original/line-20000.json": {
+    "sha256": "5e4f274bad071db5f6c2d5e614d3ff2a49c7dd9e121c50e387a93ce25f770d45",
+    "bytes": 3456
+  },
+  "test/highlight-compat/goldens/product/json/original/no-trailing-newline.json": {
+    "sha256": "011edf99ed6b00ffc7aa315b17742d3ef596b6f35a1c0abfd59fd5cfbea9ef02",
+    "bytes": 2149
+  },
+  "test/highlight-compat/goldens/product/json/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test.json.json": {
+    "sha256": "62d9881956da88c09fc903619f0589d9cc017dd2aacd05912ca9bb5b877fddb1",
+    "bytes": 15819
+  },
+  "test/highlight-compat/goldens/product/javascript/vscode-colorize/extensions/vscode-colorize-tests/test/colorize-fixtures/test.js.json": {
+    "sha256": "9c5038b96097a4dee43823b8ac5649c4c62d5170e433d601c3dcf7a91b1fc404",
+    "bytes": 47564
+  },
+  "test/highlight-compat/goldens/product/javascript/tree-sitter-highlight/test/highlight/functions.js.json": {
+    "sha256": "3d2d0763c0dcdfe924cdacc0336a9881da6d5344baf077d13a69b12a143c0228",
+    "bytes": 28875
+  },
+  "test/highlight-compat/goldens/product/javascript/tree-sitter-highlight/test/highlight/imports.js.json": {
+    "sha256": "d031010fc10c60ea9b273094f6293562d9916e67096e41f15654679de4bf03f0",
+    "bytes": 5543
+  },
+  "test/highlight-compat/goldens/product/javascript/tree-sitter-highlight/test/highlight/injection.js.json": {
+    "sha256": "7d9f535643421c508057abf5fcd2db74e4788e67dd2eb722d4da1d168fb17122",
+    "bytes": 4081
+  },
+  "test/highlight-compat/goldens/product/javascript/tree-sitter-highlight/test/highlight/keywords.js.json": {
+    "sha256": "c3019edd115e505ac2f80e61f57d3566b92616e03399cf47af8b6049f7b34e2c",
+    "bytes": 7433
+  },
+  "test/highlight-compat/goldens/product/javascript/tree-sitter-highlight/test/highlight/variables.js.json": {
+    "sha256": "3a347daf50cef445b0a9bab1cbadab7e655092cdbb90596912034d1cd44ffff3",
+    "bytes": 32156
+  },
+  "test/highlight-compat/goldens/product/javascript/textmate-grammars-themes/samples/javascript.sample.json": {
+    "sha256": "405e17f4c31ff3ba13c17c855803101a76fa86a8183676f78a0453db6d8b0e06",
+    "bytes": 136021
+  },
+  "test/highlight-compat/goldens/product+warm/typescript/original/bom.json": {
+    "sha256": "048f5b49e199668961e990f19f792d463964ff2258f56e65e646c571813b531b",
+    "bytes": 2758
+  },
+  "test/highlight-compat/goldens/product+warm/typescript/original/crlf-then-trailing-cr.json": {
+    "sha256": "4f0b77c12d03dd1af20566d880cab3676196df8edb6ac984fe187b452db1c932",
+    "bytes": 3367
+  },
+  "test/highlight-compat/goldens/product+warm/typescript/original/crlf.json": {
+    "sha256": "05a7cd8b4a2f60253c9ddda5e1224823b2dd92e02451b7b039779b7cc27aef4e",
+    "bytes": 4100
+  },
+  "test/highlight-compat/goldens/product+warm/typescript/original/empty-line-block-comment.json": {
+    "sha256": "834fdb4db8381445146c5d51609eb60028e029d02019aab3b200985516214a08",
+    "bytes": 3640
+  },
+  "test/highlight-compat/goldens/product+warm/typescript/original/empty-line-declaration.json": {
+    "sha256": "2a2b6858db09eec4edcf59ad780cdde069c14b69ac768e72816812d7a3b668f6",
+    "bytes": 2840
+  },
+  "test/highlight-compat/goldens/product+warm/typescript/original/empty-line-template.json": {
+    "sha256": "4317c5d111459af9325cbd71d00810070ddf949c35183782374c80ace770991f",
+    "bytes": 4748
+  },
+  "test/highlight-compat/goldens/product+warm/typescript/original/empty.json": {
+    "sha256": "7d741f800e7c004000143def0e9315716336ca0a67a2cdd303a396d331ecb157",
+    "bytes": 808
+  },
+  "test/highlight-compat/goldens/product+warm/typescript/original/line-19999.json": {
+    "sha256": "90220aadf8fc56ec464c9461a80949b905f1481a8932e7e806d2b73d4027435c",
+    "bytes": 3506
+  },
+  "test/highlight-compat/goldens/product+warm/typescript/original/line-20000.json": {
+    "sha256": "b619b97877952f815807f7eca7471608413ed00f190e93ab4cbb30bad5b0272f",
+    "bytes": 3506
+  },
+  "test/highlight-compat/goldens/product+warm/typescript/original/line-20001-closes-open-comment.json": {
+    "sha256": "99e01e1b76f4fd607a3af76a364afc7043e0490e02a7fed56d509b3a53a0fa68",
+    "bytes": 2275
+  },
+  "test/highlight-compat/goldens/product+warm/typescript/original/line-20001.json": {
+    "sha256": "7f6a8eb85940c6ae3e435019cb3c7870608eb0165f59b55f4b6dc18f1fdac8cc",
+    "bytes": 3243
+  },
+  "test/highlight-compat/goldens/product+warm/typescript/original/lone-cr.json": {
+    "sha256": "104790392071a08dffba0515f194e14613176d19a2568455165de1e8e00ee02d",
+    "bytes": 3471
+  },
+  "test/highlight-compat/goldens/product+warm/typescript/original/mixed-eol.json": {
+    "sha256": "c483afcb22dfe2230d9fa8ff2a829a2b30c975b309841a63b99839122b3d20e8",
+    "bytes": 4838
+  },
+  "test/highlight-compat/goldens/product+warm/typescript/original/no-trailing-newline.json": {
+    "sha256": "e002cd79a3c1dd520cdf85eacdd32cb045bea52cdc720618ace1984761d21599",
+    "bytes": 2511
+  },
+  "test/highlight-compat/goldens/product+warm/typescript/original/only-cr.json": {
+    "sha256": "919563a9e75b3cf90eb7a9cf9b4f56eaa085d9ae888721f92442e237248094e2",
+    "bytes": 1269
+  },
+  "test/highlight-compat/goldens/product+warm/typescript/original/trailing-lone-cr.json": {
+    "sha256": "9269a1881bbab54fa25164a3c4bfa79ec4bc09b3575f7ea002e814df647bc3c3",
+    "bytes": 2639
+  },
+  "test/highlight-compat/goldens/product+warm/typescript/original/unicode.json": {
+    "sha256": "7f19bd12d4606893d110732a1b941e3f998d9b6a03d720ab9bf3a16acbf399a4",
+    "bytes": 4465
+  },
+  "test/highlight-compat/goldens/product+warm/tsx/original/crlf.json": {
+    "sha256": "baa9396658e6b37ff2d3459cacefc736e1d8f8bf124c0830431c7e7a74d04b5c",
+    "bytes": 3591
+  },
+  "test/highlight-compat/goldens/product+warm/tsx/original/empty-line-jsx.json": {
+    "sha256": "62f12b067df6d7b60d9bd5896107c5673c92e192b2dcbe8ca097de2a3b95cc2b",
+    "bytes": 4891
+  },
+  "test/highlight-compat/goldens/product+warm/tsx/original/line-20000.json": {
+    "sha256": "28282f7e314d43df6833e17018271835c858f97eb2a6b4399264c8194e5e9709",
+    "bytes": 4443
+  },
+  "test/highlight-compat/goldens/product+warm/tsx/original/unicode-jsx.json": {
+    "sha256": "8c7507fa69d59196e6934f9bbcf729685996c9340bce54f074f73fe491df3d13",
+    "bytes": 4589
+  },
+  "test/highlight-compat/goldens/product+warm/markdown/original/fences.json": {
+    "sha256": "46205fe39c320b7e1bc4c17621ad470439b895de9eaab9c8f31d8ae04b2930b7",
+    "bytes": 9094
+  },
+  "test/highlight-compat/goldens/product+warm/json/original/bom.json": {
+    "sha256": "9d6b6b88e224c86d52694c62e32df2577a8b24bac53777b8d133dbc91b13c479",
+    "bytes": 3049
+  },
+  "test/highlight-compat/goldens/product+warm/json/original/crlf.json": {
+    "sha256": "ca8d25e5aa1ef7798178f025daf7ddd248d880a3b04cd4089d9099225dfbb182",
+    "bytes": 3945
+  },
+  "test/highlight-compat/goldens/product+warm/json/original/empty-line-object.json": {
+    "sha256": "cd7260dddd03b451cfcf891396577308480decbf28880e96a1237f0623cd39f5",
+    "bytes": 3314
+  },
+  "test/highlight-compat/goldens/product+warm/json/original/empty.json": {
+    "sha256": "b3c4a6055a60a5ed47aa0e5f15a21a74164e37dc3b5d596dcba8442ba2d6a33d",
+    "bytes": 802
+  },
+  "test/highlight-compat/goldens/product+warm/json/original/line-20000.json": {
+    "sha256": "67451fbb5a4f3a2e3f1ad941d15c061611c41a809aa2f7df3d43f22576f61db1",
+    "bytes": 3486
+  },
+  "test/highlight-compat/goldens/product+warm/json/original/no-trailing-newline.json": {
+    "sha256": "0b20051466d6c149e4c39fa2d72be2bda627f939787037a617226b802959ccf4",
+    "bytes": 2179
+  },
+  "test/highlight-compat/manifest/assets.json": {
+    "sha256": "4420d263057a708c61429b2704ff1f4ff4d3ea1e0538df9eec7b3b295bd5c078",
+    "bytes": 128662
+  },
+  "test/highlight-compat/manifest/extract-product-profile.mjs": {
+    "sha256": "be3eb15e654329336926fabf8f9246ee6689ba429bac3d503e0177720b14bba9",
+    "bytes": 67888
+  },
+  "test/highlight-compat/manifest/extract-product-profile.platform.test.mjs": {
+    "sha256": "5f5baea6c714caa3c2a4a14e62f4035425e6f9e48720bcee226ab5bd25cafee3",
+    "bytes": 23688
+  },
+  "test/highlight-compat/manifest/extract-product-profile.test.mjs": {
+    "sha256": "06bb17f4da187a919e334cf732aceff61be9a3ce43471a46f0eaea2d9b0f1c3c",
+    "bytes": 5016
+  },
+  "test/highlight-compat/manifest/fixture-sources.json": {
+    "sha256": "760054a3c6346c09ec8f354d8ea604bc3e15afd5c8eadf187e2cb8751f44ffef",
+    "bytes": 4770836
+  },
+  "test/highlight-compat/manifest/inventory.test.mjs": {
+    "sha256": "751e4fdc3e5b67258025823d0351483e483c46806a5c5db82f359f4485f660a3",
+    "bytes": 8475
+  },
+  "test/highlight-compat/manifest/product-profile.json": {
+    "sha256": "504fff03a8d6ac408e20550466d8bc15d394e818cdaf0f4942dcff45d0c12b2a",
+    "bytes": 353543
+  },
+  "test/highlight-compat/manifest/tree-sitter-languages.json": {
+    "sha256": "1ff865a2c52f28b07da40ad8dcd9709a155504832c44dbd05a313a07dc09d3b6",
+    "bytes": 91461
+  }
+}

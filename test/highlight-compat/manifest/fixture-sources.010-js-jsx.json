@@ -1,0 +1,947 @@
+{
+  "schema": "fixture-sources-additions/review-packet@1",
+  "operation": "proposed additions only; original fixture-sources.json unchanged",
+  "repositories": [
+    {
+      "id": "tc39/test262",
+      "url": "https://github.com/tc39/test262",
+      "revision": "e4fbf57745c6aae3d1f12f181ecef78b1665d812"
+    },
+    {
+      "id": "preactjs/preact-www",
+      "url": "https://github.com/preactjs/preact-www",
+      "revision": "8854f888e5bbe726ed1ec2d956a8822f73458cbb"
+    }
+  ],
+  "sources": [
+    {
+      "id": "010-original-development",
+      "split": "development",
+      "family": "original-010",
+      "fileIds": [
+        "development/original/javascript/ordinary.js",
+        "development/original/javascript/unsupported.js",
+        "development/original/javascript/delimiter.js",
+        "development/original/javascript/string.js",
+        "development/original/javascript/utf16.js",
+        "development/original/javascript/line-limit.js",
+        "development/original/javascript/empty.js",
+        "development/original/jsx/ordinary.jsx",
+        "development/original/jsx/delimiter.jsx",
+        "development/original/jsx/string.jsx",
+        "development/original/jsx/utf16.jsx",
+        "development/original/jsx/line-limit.jsx",
+        "development/original/jsx/empty.jsx",
+        "development/original/jsx/unsupported.jsx"
+      ]
+    },
+    {
+      "id": "010-independent-evaluation",
+      "split": "evaluation",
+      "families": [
+        "caitlin-potter-test262",
+        "preact-www-authored-application"
+      ],
+      "fileIds": [
+        "evaluation/tc39/test262/test/language/expressions/arrow-function/ArrowFunction_restricted-properties.js",
+        "evaluation/preactjs/preact-www/src/lib/use-resource.js",
+        "evaluation/preactjs/preact-www/src/components/time/index.jsx",
+        "evaluation/preactjs/preact-www/src/components/footer/index.jsx"
+      ]
+    }
+  ],
+  "licenses": [
+    {
+      "path": "licenses/tc39/test262/LICENSE",
+      "sha256": "4dd9244dfe8197c75348c4b24ab53d29d3b1cfad143ac76b5a3d8942aa354ce0",
+      "bytes": 2213,
+      "id": "licenses/tc39/test262/LICENSE",
+      "roles": [
+        "license-evidence"
+      ],
+      "licenseId": "test262-bsd",
+      "spdx": "BSD-3-Clause",
+      "repository": "tc39/test262",
+      "revision": "e4fbf57745c6aae3d1f12f181ecef78b1665d812",
+      "upstreamPath": "LICENSE",
+      "url": "https://raw.githubusercontent.com/tc39/test262/e4fbf57745c6aae3d1f12f181ecef78b1665d812/LICENSE",
+      "noticeSurvey": "evidence/tc39--test262-ancestor-notices.json"
+    },
+    {
+      "path": "licenses/preactjs/preact-www/LICENSE",
+      "sha256": "acbf83d8b25602d28e6e7c775dff02d97befe7fd64250f8476d2a1c7e5d0c434",
+      "bytes": 1087,
+      "id": "licenses/preactjs/preact-www/LICENSE",
+      "roles": [
+        "license-evidence"
+      ],
+      "licenseId": "preact-www-mit",
+      "spdx": "MIT",
+      "repository": "preactjs/preact-www",
+      "revision": "8854f888e5bbe726ed1ec2d956a8822f73458cbb",
+      "upstreamPath": "LICENSE",
+      "url": "https://raw.githubusercontent.com/preactjs/preact-www/8854f888e5bbe726ed1ec2d956a8822f73458cbb/LICENSE",
+      "noticeSurvey": "evidence/preactjs--preact-www-ancestor-notices.json"
+    },
+    {
+      "path": "licenses/original-010/LICENSE",
+      "sha256": "c5cfb43042b6b72045f4ba997834d0a7786d2793d91680868b5815b39f14fc78",
+      "bytes": 1080,
+      "id": "licenses/original-010/LICENSE",
+      "roles": [
+        "license-evidence"
+      ],
+      "licenseId": "original-010-mit",
+      "spdx": "MIT",
+      "repository": "original-010",
+      "revision": "sha256:c5cfb43042b6b72045f4ba997834d0a7786d2793d91680868b5815b39f14fc78",
+      "upstreamPath": "LICENSE",
+      "noticeSurvey": "evidence/original-authorship.json"
+    }
+  ],
+  "noticeAssets": [
+    {
+      "path": "development/NOTICE",
+      "sha256": "d276b25b1de0aaaf9b1a0fd506d962779a70b781bffa381a5ec79b2ad3002798",
+      "bytes": 345,
+      "id": "development/NOTICE",
+      "roles": [
+        "copyright-notice"
+      ]
+    },
+    {
+      "path": "evaluation/NOTICE",
+      "sha256": "e7798068573fb363ec0976c0ca5827f3af8242cc04b5a19c36af9ac24ccc8338",
+      "bytes": 843,
+      "id": "evaluation/NOTICE",
+      "roles": [
+        "copyright-notice"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "path": "development/original/javascript/ordinary.js",
+      "sha256": "3e74a57759a1f8ff923a695905c4a13c73905e9b7fe1c7bdf04dd796826614ae",
+      "bytes": 168,
+      "id": "development/original/javascript/ordinary.js",
+      "roles": [
+        "source-input"
+      ],
+      "repository": "original-010",
+      "revision": "sha256:3e74a57759a1f8ff923a695905c4a13c73905e9b7fe1c7bdf04dd796826614ae",
+      "upstreamPath": "ordinary.js",
+      "languageId": "javascript",
+      "split": "development",
+      "family": "original-010",
+      "derivationFamilies": [
+        "original-010"
+      ],
+      "kind": "original-syntax-control",
+      "lane": "ordinary",
+      "features": [
+        "import-export",
+        "declarations",
+        "calls",
+        "members",
+        "arrow",
+        "template-substitution"
+      ],
+      "licenseRefs": [
+        "original-010-mit"
+      ],
+      "authorship": "New commissioned development data written for this audit; no TS/TSX fixture adaptation.",
+      "derivationEvidence": [
+        "evidence/original-authorship.json"
+      ],
+      "generated": false,
+      "generation": null,
+      "mandatoryExact": true,
+      "unsupportedRegions": [],
+      "utf16Units": 168,
+      "referenceState": "not-requested",
+      "sourceTransform": "none; exact bytes, UTF-8 decoded without newline/BOM normalization"
+    },
+    {
+      "path": "development/original/javascript/unsupported.js",
+      "sha256": "508bd26f567027c52203497ecfe4005abf29d903e8ae196b7c45bf404381cbc9",
+      "bytes": 156,
+      "id": "development/original/javascript/unsupported.js",
+      "roles": [
+        "source-input"
+      ],
+      "repository": "original-010",
+      "revision": "sha256:508bd26f567027c52203497ecfe4005abf29d903e8ae196b7c45bf404381cbc9",
+      "upstreamPath": "unsupported.js",
+      "languageId": "javascript",
+      "split": "development",
+      "family": "original-010",
+      "derivationFamilies": [
+        "original-010"
+      ],
+      "kind": "original-syntax-control",
+      "lane": "unsupported-regions",
+      "features": [
+        "regex",
+        "jsdoc",
+        "locals",
+        "tagged-template"
+      ],
+      "licenseRefs": [
+        "original-010-mit"
+      ],
+      "authorship": "New commissioned development data written for this audit; no TS/TSX fixture adaptation.",
+      "derivationEvidence": [
+        "evidence/original-authorship.json"
+      ],
+      "generated": false,
+      "generation": null,
+      "mandatoryExact": false,
+      "unsupportedRegions": [
+        {
+          "from": 4,
+          "to": 35,
+          "text": "@param {number} v documentation",
+          "reason": "jsdoc-injection-unavailable"
+        },
+        {
+          "from": 104,
+          "to": 109,
+          "text": "a[b]+",
+          "reason": "regex-injection-unavailable"
+        },
+        {
+          "from": 83,
+          "to": 89,
+          "text": "local;",
+          "reason": "semantic-local-binding-unavailable"
+        },
+        {
+          "from": 135,
+          "to": 138,
+          "text": "<b>",
+          "reason": "tagged-template-language-injection-unavailable"
+        },
+        {
+          "from": 149,
+          "to": 153,
+          "text": "</b>",
+          "reason": "tagged-template-language-injection-unavailable"
+        }
+      ],
+      "utf16Units": 156,
+      "referenceState": "not-requested",
+      "sourceTransform": "none; exact bytes, UTF-8 decoded without newline/BOM normalization"
+    },
+    {
+      "path": "development/original/javascript/delimiter.js",
+      "sha256": "e3482ba8fde53c53c22e8e36a3baccd23674db1aa1c7ff4f06d1fac35625c2a6",
+      "bytes": 37,
+      "id": "development/original/javascript/delimiter.js",
+      "roles": [
+        "source-input"
+      ],
+      "repository": "original-010",
+      "revision": "sha256:e3482ba8fde53c53c22e8e36a3baccd23674db1aa1c7ff4f06d1fac35625c2a6",
+      "upstreamPath": "delimiter.js",
+      "languageId": "javascript",
+      "split": "development",
+      "family": "original-010",
+      "derivationFamilies": [
+        "original-010"
+      ],
+      "kind": "original-syntax-control",
+      "lane": "recovery",
+      "features": [
+        "incomplete-delimiters"
+      ],
+      "licenseRefs": [
+        "original-010-mit"
+      ],
+      "authorship": "New commissioned development data written for this audit; no TS/TSX fixture adaptation.",
+      "derivationEvidence": [
+        "evidence/original-authorship.json"
+      ],
+      "generated": false,
+      "generation": null,
+      "mandatoryExact": true,
+      "unsupportedRegions": [],
+      "utf16Units": 37,
+      "referenceState": "not-requested",
+      "sourceTransform": "none; exact bytes, UTF-8 decoded without newline/BOM normalization"
+    },
+    {
+      "path": "development/original/javascript/string.js",
+      "sha256": "72002058c84f64a8a9abc368be58d742097545458a6e77bdb0ce757eb318473b",
+      "bytes": 38,
+      "id": "development/original/javascript/string.js",
+      "roles": [
+        "source-input"
+      ],
+      "repository": "original-010",
+      "revision": "sha256:72002058c84f64a8a9abc368be58d742097545458a6e77bdb0ce757eb318473b",
+      "upstreamPath": "string.js",
+      "languageId": "javascript",
+      "split": "development",
+      "family": "original-010",
+      "derivationFamilies": [
+        "original-010"
+      ],
+      "kind": "original-syntax-control",
+      "lane": "recovery",
+      "features": [
+        "unterminated-string",
+        "post-error-source"
+      ],
+      "licenseRefs": [
+        "original-010-mit"
+      ],
+      "authorship": "New commissioned development data written for this audit; no TS/TSX fixture adaptation.",
+      "derivationEvidence": [
+        "evidence/original-authorship.json"
+      ],
+      "generated": false,
+      "generation": null,
+      "mandatoryExact": true,
+      "unsupportedRegions": [],
+      "utf16Units": 38,
+      "referenceState": "not-requested",
+      "sourceTransform": "none; exact bytes, UTF-8 decoded without newline/BOM normalization"
+    },
+    {
+      "path": "development/original/javascript/utf16.js",
+      "sha256": "2f1b939a35197b48645c27259e4a2918f07c31a10d991e0579d048a18a54b6a9",
+      "bytes": 81,
+      "id": "development/original/javascript/utf16.js",
+      "roles": [
+        "source-input"
+      ],
+      "repository": "original-010",
+      "revision": "sha256:2f1b939a35197b48645c27259e4a2918f07c31a10d991e0579d048a18a54b6a9",
+      "upstreamPath": "utf16.js",
+      "languageId": "javascript",
+      "split": "development",
+      "family": "original-010",
+      "derivationFamilies": [
+        "original-010"
+      ],
+      "kind": "original-syntax-control",
+      "lane": "utf16",
+      "features": [
+        "bom",
+        "crlf",
+        "astral",
+        "combining",
+        "no-final-newline"
+      ],
+      "licenseRefs": [
+        "original-010-mit"
+      ],
+      "authorship": "New commissioned development data written for this audit; no TS/TSX fixture adaptation.",
+      "derivationEvidence": [
+        "evidence/original-authorship.json"
+      ],
+      "generated": false,
+      "generation": null,
+      "mandatoryExact": true,
+      "unsupportedRegions": [],
+      "utf16Units": 72,
+      "referenceState": "not-requested",
+      "sourceTransform": "none; exact bytes, UTF-8 decoded without newline/BOM normalization"
+    },
+    {
+      "path": "development/original/javascript/line-limit.js",
+      "sha256": "f45810d0741bb6956446a5071bdaa76e3a596d2d477143a901292abd31ab5b5d",
+      "bytes": 60019,
+      "id": "development/original/javascript/line-limit.js",
+      "roles": [
+        "source-input"
+      ],
+      "repository": "original-010",
+      "revision": "sha256:f45810d0741bb6956446a5071bdaa76e3a596d2d477143a901292abd31ab5b5d",
+      "upstreamPath": "line-limit.js",
+      "languageId": "javascript",
+      "split": "development",
+      "family": "original-010",
+      "derivationFamilies": [
+        "original-010"
+      ],
+      "kind": "original-syntax-control",
+      "lane": "line-limit",
+      "features": [
+        "line-length-19999",
+        "line-length-20000",
+        "line-length-20001",
+        "post-cap-line"
+      ],
+      "licenseRefs": [
+        "original-010-mit"
+      ],
+      "authorship": "New commissioned development data written for this audit; no TS/TSX fixture adaptation.",
+      "derivationEvidence": [
+        "evidence/original-authorship.json"
+      ],
+      "generated": true,
+      "generation": "Only ASCII padding to exact documented line lengths, generated by prepare-packet.py.",
+      "mandatoryExact": true,
+      "unsupportedRegions": [],
+      "utf16Units": 60019,
+      "referenceState": "not-requested",
+      "sourceTransform": "none; exact bytes, UTF-8 decoded without newline/BOM normalization"
+    },
+    {
+      "path": "development/original/javascript/empty.js",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "id": "development/original/javascript/empty.js",
+      "roles": [
+        "source-input"
+      ],
+      "repository": "original-010",
+      "revision": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "upstreamPath": "empty.js",
+      "languageId": "javascript",
+      "split": "development",
+      "family": "original-010",
+      "derivationFamilies": [
+        "original-010"
+      ],
+      "kind": "original-syntax-control",
+      "lane": "empty-lifecycle",
+      "features": [
+        "empty-source"
+      ],
+      "licenseRefs": [
+        "original-010-mit"
+      ],
+      "authorship": "New commissioned development data written for this audit; no TS/TSX fixture adaptation.",
+      "derivationEvidence": [
+        "evidence/original-authorship.json"
+      ],
+      "generated": false,
+      "generation": null,
+      "mandatoryExact": false,
+      "unsupportedRegions": [],
+      "utf16Units": 0,
+      "referenceState": "not-requested",
+      "sourceTransform": "none; exact bytes, UTF-8 decoded without newline/BOM normalization"
+    },
+    {
+      "path": "development/original/jsx/ordinary.jsx",
+      "sha256": "63bb981907b5975e7e834cf486dd12ce27dacb986af9017a9b2f720c7f48ce60",
+      "bytes": 233,
+      "id": "development/original/jsx/ordinary.jsx",
+      "roles": [
+        "source-input"
+      ],
+      "repository": "original-010",
+      "revision": "sha256:63bb981907b5975e7e834cf486dd12ce27dacb986af9017a9b2f720c7f48ce60",
+      "upstreamPath": "ordinary.jsx",
+      "languageId": "jsx",
+      "split": "development",
+      "family": "original-010",
+      "derivationFamilies": [
+        "original-010"
+      ],
+      "kind": "original-syntax-control",
+      "lane": "ordinary",
+      "features": [
+        "component",
+        "member-tag",
+        "attribute-string",
+        "attribute-boolean",
+        "attribute-expression",
+        "spread",
+        "text",
+        "entity",
+        "fragment",
+        "self-closing",
+        "js-jsx-transitions"
+      ],
+      "licenseRefs": [
+        "original-010-mit"
+      ],
+      "authorship": "New commissioned development data written for this audit; no TS/TSX fixture adaptation.",
+      "derivationEvidence": [
+        "evidence/original-authorship.json"
+      ],
+      "generated": false,
+      "generation": null,
+      "mandatoryExact": true,
+      "unsupportedRegions": [],
+      "utf16Units": 233,
+      "referenceState": "not-requested",
+      "sourceTransform": "none; exact bytes, UTF-8 decoded without newline/BOM normalization"
+    },
+    {
+      "path": "development/original/jsx/delimiter.jsx",
+      "sha256": "1dfc45244af6b6ff50decbd0e40d52e1da79c8df077a60f4bd8f07be95e42dfe",
+      "bytes": 35,
+      "id": "development/original/jsx/delimiter.jsx",
+      "roles": [
+        "source-input"
+      ],
+      "repository": "original-010",
+      "revision": "sha256:1dfc45244af6b6ff50decbd0e40d52e1da79c8df077a60f4bd8f07be95e42dfe",
+      "upstreamPath": "delimiter.jsx",
+      "languageId": "jsx",
+      "split": "development",
+      "family": "original-010",
+      "derivationFamilies": [
+        "original-010"
+      ],
+      "kind": "original-syntax-control",
+      "lane": "recovery",
+      "features": [
+        "incomplete-expression",
+        "incomplete-tag"
+      ],
+      "licenseRefs": [
+        "original-010-mit"
+      ],
+      "authorship": "New commissioned development data written for this audit; no TS/TSX fixture adaptation.",
+      "derivationEvidence": [
+        "evidence/original-authorship.json"
+      ],
+      "generated": false,
+      "generation": null,
+      "mandatoryExact": true,
+      "unsupportedRegions": [],
+      "utf16Units": 35,
+      "referenceState": "not-requested",
+      "sourceTransform": "none; exact bytes, UTF-8 decoded without newline/BOM normalization"
+    },
+    {
+      "path": "development/original/jsx/string.jsx",
+      "sha256": "f811045aa83925a35553a93af47309d3b906b24cf902aaa1b3ad507fc0be209e",
+      "bytes": 43,
+      "id": "development/original/jsx/string.jsx",
+      "roles": [
+        "source-input"
+      ],
+      "repository": "original-010",
+      "revision": "sha256:f811045aa83925a35553a93af47309d3b906b24cf902aaa1b3ad507fc0be209e",
+      "upstreamPath": "string.jsx",
+      "languageId": "jsx",
+      "split": "development",
+      "family": "original-010",
+      "derivationFamilies": [
+        "original-010"
+      ],
+      "kind": "original-syntax-control",
+      "lane": "recovery",
+      "features": [
+        "unterminated-attribute",
+        "post-error-source"
+      ],
+      "licenseRefs": [
+        "original-010-mit"
+      ],
+      "authorship": "New commissioned development data written for this audit; no TS/TSX fixture adaptation.",
+      "derivationEvidence": [
+        "evidence/original-authorship.json"
+      ],
+      "generated": false,
+      "generation": null,
+      "mandatoryExact": true,
+      "unsupportedRegions": [],
+      "utf16Units": 43,
+      "referenceState": "not-requested",
+      "sourceTransform": "none; exact bytes, UTF-8 decoded without newline/BOM normalization"
+    },
+    {
+      "path": "development/original/jsx/utf16.jsx",
+      "sha256": "113c7bc15b636f2196e782d09427cdcb77cf140ae8bd1073e6108b1f8c21b888",
+      "bytes": 79,
+      "id": "development/original/jsx/utf16.jsx",
+      "roles": [
+        "source-input"
+      ],
+      "repository": "original-010",
+      "revision": "sha256:113c7bc15b636f2196e782d09427cdcb77cf140ae8bd1073e6108b1f8c21b888",
+      "upstreamPath": "utf16.jsx",
+      "languageId": "jsx",
+      "split": "development",
+      "family": "original-010",
+      "derivationFamilies": [
+        "original-010"
+      ],
+      "kind": "original-syntax-control",
+      "lane": "utf16",
+      "features": [
+        "bom",
+        "crlf",
+        "astral-text",
+        "astral-attribute",
+        "astral-expression",
+        "combining",
+        "no-final-newline"
+      ],
+      "licenseRefs": [
+        "original-010-mit"
+      ],
+      "authorship": "New commissioned development data written for this audit; no TS/TSX fixture adaptation.",
+      "derivationEvidence": [
+        "evidence/original-authorship.json"
+      ],
+      "generated": false,
+      "generation": null,
+      "mandatoryExact": true,
+      "unsupportedRegions": [],
+      "utf16Units": 70,
+      "referenceState": "not-requested",
+      "sourceTransform": "none; exact bytes, UTF-8 decoded without newline/BOM normalization"
+    },
+    {
+      "path": "development/original/jsx/line-limit.jsx",
+      "sha256": "2ea1793f70de4ff2338b7cd6540e425283a9976276c9fd20922622cf86e01d61",
+      "bytes": 60019,
+      "id": "development/original/jsx/line-limit.jsx",
+      "roles": [
+        "source-input"
+      ],
+      "repository": "original-010",
+      "revision": "sha256:2ea1793f70de4ff2338b7cd6540e425283a9976276c9fd20922622cf86e01d61",
+      "upstreamPath": "line-limit.jsx",
+      "languageId": "jsx",
+      "split": "development",
+      "family": "original-010",
+      "derivationFamilies": [
+        "original-010"
+      ],
+      "kind": "original-syntax-control",
+      "lane": "line-limit",
+      "features": [
+        "line-length-19999",
+        "line-length-20000",
+        "line-length-20001",
+        "post-cap-line"
+      ],
+      "licenseRefs": [
+        "original-010-mit"
+      ],
+      "authorship": "New commissioned development data written for this audit; no TS/TSX fixture adaptation.",
+      "derivationEvidence": [
+        "evidence/original-authorship.json"
+      ],
+      "generated": true,
+      "generation": "Only ASCII padding to exact documented line lengths, generated by prepare-packet.py.",
+      "mandatoryExact": true,
+      "unsupportedRegions": [],
+      "utf16Units": 60019,
+      "referenceState": "not-requested",
+      "sourceTransform": "none; exact bytes, UTF-8 decoded without newline/BOM normalization"
+    },
+    {
+      "path": "development/original/jsx/empty.jsx",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "id": "development/original/jsx/empty.jsx",
+      "roles": [
+        "source-input"
+      ],
+      "repository": "original-010",
+      "revision": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "upstreamPath": "empty.jsx",
+      "languageId": "jsx",
+      "split": "development",
+      "family": "original-010",
+      "derivationFamilies": [
+        "original-010"
+      ],
+      "kind": "original-syntax-control",
+      "lane": "empty-lifecycle",
+      "features": [
+        "empty-source"
+      ],
+      "licenseRefs": [
+        "original-010-mit"
+      ],
+      "authorship": "New commissioned development data written for this audit; no TS/TSX fixture adaptation.",
+      "derivationEvidence": [
+        "evidence/original-authorship.json"
+      ],
+      "generated": false,
+      "generation": null,
+      "mandatoryExact": false,
+      "unsupportedRegions": [],
+      "utf16Units": 0,
+      "referenceState": "not-requested",
+      "sourceTransform": "none; exact bytes, UTF-8 decoded without newline/BOM normalization"
+    },
+    {
+      "path": "development/original/jsx/unsupported.jsx",
+      "sha256": "fc08fa6b4f3a460a9fb0b6469c7f42f956469cb893349191b3107f6b05589d17",
+      "bytes": 108,
+      "id": "development/original/jsx/unsupported.jsx",
+      "roles": [
+        "source-input"
+      ],
+      "repository": "original-010",
+      "revision": "sha256:fc08fa6b4f3a460a9fb0b6469c7f42f956469cb893349191b3107f6b05589d17",
+      "upstreamPath": "unsupported.jsx",
+      "languageId": "jsx",
+      "split": "development",
+      "family": "original-010",
+      "derivationFamilies": [
+        "original-010"
+      ],
+      "kind": "original-syntax-control",
+      "lane": "unsupported-regions",
+      "features": [
+        "regex-in-expression",
+        "jsdoc",
+        "tagged-template-in-expression"
+      ],
+      "licenseRefs": [
+        "original-010-mit"
+      ],
+      "authorship": "New commissioned development data written for this audit; no TS/TSX fixture adaptation.",
+      "derivationEvidence": [
+        "evidence/original-authorship.json"
+      ],
+      "generated": false,
+      "generation": null,
+      "mandatoryExact": false,
+      "unsupportedRegions": [
+        {
+          "from": 4,
+          "to": 39,
+          "text": "@param {string} label documentation",
+          "reason": "jsdoc-injection-unavailable"
+        },
+        {
+          "from": 68,
+          "to": 70,
+          "text": "a+",
+          "reason": "regex-injection-unavailable"
+        },
+        {
+          "from": 83,
+          "to": 86,
+          "text": "<b>",
+          "reason": "tagged-template-language-injection-unavailable"
+        },
+        {
+          "from": 94,
+          "to": 98,
+          "text": "</b>",
+          "reason": "tagged-template-language-injection-unavailable"
+        }
+      ],
+      "utf16Units": 108,
+      "referenceState": "not-requested",
+      "sourceTransform": "none; exact bytes, UTF-8 decoded without newline/BOM normalization"
+    },
+    {
+      "path": "evaluation/tc39/test262/test/language/expressions/arrow-function/ArrowFunction_restricted-properties.js",
+      "sha256": "eb73a6df89af546bd73970fb9836a9a7965d01fe5245c97d5ccfd881d94b8559",
+      "bytes": 934,
+      "id": "evaluation/tc39/test262/test/language/expressions/arrow-function/ArrowFunction_restricted-properties.js",
+      "roles": [
+        "source-input"
+      ],
+      "repository": "tc39/test262",
+      "revision": "e4fbf57745c6aae3d1f12f181ecef78b1665d812",
+      "upstreamPath": "test/language/expressions/arrow-function/ArrowFunction_restricted-properties.js",
+      "url": "https://raw.githubusercontent.com/tc39/test262/e4fbf57745c6aae3d1f12f181ecef78b1665d812/test/language/expressions/arrow-function/ArrowFunction_restricted-properties.js",
+      "languageId": "javascript",
+      "split": "evaluation",
+      "family": "caitlin-potter-test262",
+      "derivationFamilies": [
+        "caitlin-potter-test262"
+      ],
+      "kind": "test-snippet",
+      "lane": "independent-snippet",
+      "features": [
+        "bounded-independent-evaluation"
+      ],
+      "licenseRefs": [
+        "test262-bsd"
+      ],
+      "authorship": "File copyright Caitlin Potter, 2015; original added commit authored by Caitlin Potter.",
+      "originCommits": [
+        "f398421ee709dd5cf526ce3df31c9dcda7572a9c"
+      ],
+      "derivationEvidence": [
+        "evidence/histories/tc39/test262/test/language/expressions/arrow-function/ArrowFunction_restricted-properties.js.json",
+        "evidence/histories/tc39/test262/test/language/arrow-function/ArrowFunction_restricted-properties.js.json",
+        "evidence/commits/tc39--test262-f398421ee709dd5cf526ce3df31c9dcda7572a9c.json",
+        "evidence/commits/tc39--test262-93e9da29a0604e9c2742436979eb1074eb301758.json"
+      ],
+      "generated": false,
+      "mandatoryExact": false,
+      "unsupportedRegions": [],
+      "authorshipDecision": "selected-for-independent-review",
+      "scopeLimit": "Whole file remains scored; unsupported regex/JSDoc/locals/tagged-template internals can never imply successful parity. Imported dependencies are not fetched or executed.",
+      "utf16Units": 934,
+      "referenceState": "not-requested",
+      "sourceTransform": "none; exact bytes, UTF-8 decoded without newline/BOM normalization"
+    },
+    {
+      "path": "evaluation/preactjs/preact-www/src/lib/use-resource.js",
+      "sha256": "5b107a5efa1e96e6b7a1f64826950776f57e53ff5dc78f0e3936596f0b5fbd48",
+      "bytes": 1622,
+      "id": "evaluation/preactjs/preact-www/src/lib/use-resource.js",
+      "roles": [
+        "source-input"
+      ],
+      "repository": "preactjs/preact-www",
+      "revision": "8854f888e5bbe726ed1ec2d956a8822f73458cbb",
+      "upstreamPath": "src/lib/use-resource.js",
+      "url": "https://raw.githubusercontent.com/preactjs/preact-www/8854f888e5bbe726ed1ec2d956a8822f73458cbb/src/lib/use-resource.js",
+      "languageId": "javascript",
+      "split": "evaluation",
+      "family": "preact-www-authored-application",
+      "derivationFamilies": [
+        "preact-www-authored-application"
+      ],
+      "kind": "real-application-module",
+      "lane": "independent-real-code",
+      "features": [
+        "bounded-independent-evaluation"
+      ],
+      "licenseRefs": [
+        "preact-www-mit"
+      ],
+      "authorship": "Ryan Christian; original commit co-authored by Marvin Hagemeister; later maintainers in full path history. Backport #793 is within this same application family.",
+      "originCommits": [
+        "089b99ed5acc4a0007ee34309c6d5075c5789612"
+      ],
+      "derivationEvidence": [
+        "evidence/histories/preactjs/preact-www/src/lib/use-resource.js.json",
+        "evidence/commits/preactjs--preact-www-089b99ed5acc4a0007ee34309c6d5075c5789612.json"
+      ],
+      "generated": false,
+      "mandatoryExact": false,
+      "unsupportedRegions": [
+        {
+          "from": 53,
+          "to": 232,
+          "text": "/**\n * @typedef {Object} CacheEntry\n * @property {Promise<any>} promise\n * @property {'pending'|'success'|'error'} status\n * @property {any} result\n * @property {number} users\n */",
+          "reason": "jsdoc-injection-unavailable"
+        },
+        {
+          "from": 234,
+          "to": 272,
+          "text": "/** @type {Map<string, CacheEntry>} */",
+          "reason": "jsdoc-injection-unavailable"
+        },
+        {
+          "from": 937,
+          "to": 1080,
+          "text": "/**\n * @param {() => Promise<any>} fn\n * @param {string} cacheKey\n * @param {(state: CacheEntry) => void} [update]\n * @returns {CacheEntry}\n */",
+          "reason": "jsdoc-injection-unavailable"
+        },
+        {
+          "from": 1138,
+          "to": 1163,
+          "text": "/** @type {CacheEntry} */",
+          "reason": "jsdoc-injection-unavailable"
+        }
+      ],
+      "authorshipDecision": "selected-for-independent-review",
+      "scopeLimit": "Whole file remains scored; unsupported regex/JSDoc/locals/tagged-template internals can never imply successful parity. Imported dependencies are not fetched or executed.",
+      "utf16Units": 1622,
+      "referenceState": "not-requested",
+      "sourceTransform": "none; exact bytes, UTF-8 decoded without newline/BOM normalization"
+    },
+    {
+      "path": "evaluation/preactjs/preact-www/src/components/time/index.jsx",
+      "sha256": "e62d02a0923d3a515b355f460477c1a3ce5480623f31b23d2ab1f86bbadf2265",
+      "bytes": 293,
+      "id": "evaluation/preactjs/preact-www/src/components/time/index.jsx",
+      "roles": [
+        "source-input"
+      ],
+      "repository": "preactjs/preact-www",
+      "revision": "8854f888e5bbe726ed1ec2d956a8822f73458cbb",
+      "upstreamPath": "src/components/time/index.jsx",
+      "url": "https://raw.githubusercontent.com/preactjs/preact-www/8854f888e5bbe726ed1ec2d956a8822f73458cbb/src/components/time/index.jsx",
+      "languageId": "jsx",
+      "split": "evaluation",
+      "family": "preact-www-authored-application",
+      "derivationFamilies": [
+        "preact-www-authored-application"
+      ],
+      "kind": "real-application-module",
+      "lane": "independent-real-code",
+      "features": [
+        "bounded-independent-evaluation"
+      ],
+      "licenseRefs": [
+        "preact-www-mit"
+      ],
+      "authorship": "Marvin Hagemeister original application component; Ryan Christian extension rename; later maintainers in path histories.",
+      "originCommits": [
+        "de7dd5aa1df0a0428fa075318ad1e771e8aba559"
+      ],
+      "derivationEvidence": [
+        "evidence/histories/preactjs/preact-www/src/components/time/index.jsx.json",
+        "evidence/commits/preactjs--preact-www-de7dd5aa1df0a0428fa075318ad1e771e8aba559.json",
+        "evidence/histories/preactjs/preact-www/src/components/time/index.js.json",
+        "evidence/commits/preactjs--preact-www-fd278cf66a1ce15665c702debcf4595af247373a.json"
+      ],
+      "generated": false,
+      "mandatoryExact": false,
+      "unsupportedRegions": [],
+      "authorshipDecision": "selected-for-independent-review",
+      "scopeLimit": "Whole file remains scored; unsupported regex/JSDoc/locals/tagged-template internals can never imply successful parity. Imported dependencies are not fetched or executed.",
+      "utf16Units": 293,
+      "referenceState": "not-requested",
+      "sourceTransform": "none; exact bytes, UTF-8 decoded without newline/BOM normalization"
+    },
+    {
+      "path": "evaluation/preactjs/preact-www/src/components/footer/index.jsx",
+      "sha256": "b5ed699a6d6e802c47bca1398f74ac7357c442d7dc5a5096a3e964ffeead0795",
+      "bytes": 2366,
+      "id": "evaluation/preactjs/preact-www/src/components/footer/index.jsx",
+      "roles": [
+        "source-input"
+      ],
+      "repository": "preactjs/preact-www",
+      "revision": "8854f888e5bbe726ed1ec2d956a8822f73458cbb",
+      "upstreamPath": "src/components/footer/index.jsx",
+      "url": "https://raw.githubusercontent.com/preactjs/preact-www/8854f888e5bbe726ed1ec2d956a8822f73458cbb/src/components/footer/index.jsx",
+      "languageId": "jsx",
+      "split": "evaluation",
+      "family": "preact-www-authored-application",
+      "derivationFamilies": [
+        "preact-www-authored-application"
+      ],
+      "kind": "real-application-module",
+      "lane": "independent-real-code",
+      "features": [
+        "bounded-independent-evaluation"
+      ],
+      "licenseRefs": [
+        "preact-www-mit"
+      ],
+      "authorship": "Jason Miller initial authored application component; Ryan Christian extension rename; later maintainers in path histories.",
+      "originCommits": [
+        "f2dbabdf3fb06a4e7506ca1a1ee7a65092479c57"
+      ],
+      "derivationEvidence": [
+        "evidence/histories/preactjs/preact-www/src/components/footer/index.jsx.json",
+        "evidence/commits/preactjs--preact-www-f2dbabdf3fb06a4e7506ca1a1ee7a65092479c57.json",
+        "evidence/histories/preactjs/preact-www/src/components/footer/index.js.json",
+        "evidence/commits/preactjs--preact-www-fd278cf66a1ce15665c702debcf4595af247373a.json"
+      ],
+      "generated": false,
+      "mandatoryExact": false,
+      "unsupportedRegions": [
+        {
+          "from": 990,
+          "to": 1048,
+          "text": "/**\n * Display a random contributor of the list above.\n */",
+          "reason": "jsdoc-injection-unavailable"
+        }
+      ],
+      "authorshipDecision": "selected-for-independent-review",
+      "scopeLimit": "Whole file remains scored; unsupported regex/JSDoc/locals/tagged-template internals can never imply successful parity. Imported dependencies are not fetched or executed.",
+      "utf16Units": 2366,
+      "referenceState": "not-requested",
+      "sourceTransform": "none; exact bytes, UTF-8 decoded without newline/BOM normalization"
+    }
+  ]
+}
