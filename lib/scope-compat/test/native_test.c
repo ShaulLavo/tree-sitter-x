@@ -151,7 +151,7 @@ static void source_gap_roles(void) {
   source_gap_failure("((number) @prior @_first (#eq? @_first \"1\")) "
     "((array (number) @_n (string)? @_missing) @_array (#source-gap? @_n @_n \"x\") "
     "(#source-gap? @_n @_missing \"\"))", 2);
-  source_gap_failure("((array (number) @_n @_n) (#set! priority \"0\") (#source-gap? @_n @_n \"\"))", 1);
+  source_gap_failure("((array (number) @_n @_n) (#eq? @_n @_n) (#source-gap? @_n @_n \"\"))", 1);
   source_gap_failure("((array (number) @_n (string)? @_missing) (#eq? @_n \"never\") "
     "(#source-gap? @_missing @_n \"\"))", 1);
   source_gap_failure("((array (number) @_n (string)? @_missing) (#text-class? @_n \"[a]\" \"[a]\") "
@@ -164,7 +164,7 @@ static void source_gap_literals(void) {
   const uint32_t values[] = {3, 5, 4, 4, 4, 4, 4};
   for (uint32_t i = 0; i < sizeof arguments / sizeof *arguments; ++i) {
     char query[192];
-    int size = snprintf(query, sizeof query, "((number) @_n (#set! priority \"0\") (#source-gap? %s))", arguments[i]);
+    int size = snprintf(query, sizeof query, "((number) @_n (#eq? @_n @_n) (#source-gap? %s))", arguments[i]);
     assert(size > 0 && size < (int)sizeof query);
     ScopeCompatPack *p = scope_compat_pack_new(tree_sitter_json(), query, (uint32_t)size, "source.json", 11, ".json", 5);
     assert(p && p->status == SCOPE_COMPAT_INVALID && p->detail == SCOPE_COMPAT_DETAIL_BAD_ARGUMENTS);
@@ -208,7 +208,7 @@ static void source_gap_validation(void) {
 }
 
 static void source_gap_eof(void) {
-  const char *queries[] = {"((MISSING) @_n (#set! priority \"0\") (#source-gap? @_n @_n \"\"))",
+  const char *queries[] = {"((MISSING) @_n (#eq? @_n @_n) (#source-gap? @_n @_n \"\"))",
     "((MISSING) @_n (#source-gap? @_n @_n \"\\n\"))"};
   for (uint32_t i = 0; i < 2; ++i) {
     Fixture f = fixture(queries[i], "{\"a\":1");
