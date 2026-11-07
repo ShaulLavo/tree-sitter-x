@@ -1,11 +1,13 @@
 import type { LanguageRegistration } from 'shiki/core'
 import { ResultBuilder } from '../build.ts'
-import type { CompleteResult, ReferenceProfileId, Style } from '../schema.ts'
+import type { DocumentResult, ReferenceProfileId, Style } from '../schema.ts'
 import { languageRegistrations, themeModule, type ThemeModule } from './assets.ts'
 import { type LineSpan, SEPARATOR_SCOPES, SEPARATOR_STYLE, sourceLines, writeTrack } from './lines.ts'
 import { PINS, pinLabel } from './pins.ts'
 import { resolvedStyle } from './resolved-style.ts'
-import type { GrammarSet, RawTheme, TextmateEngine, TextmateGrammar, TextmateState, TextmateToken } from './textmate.ts'
+import { canonicalRoot, LanguageCodebook, ReferenceMetadataCapture, requireReferenceMetadata, rootSemanticsGap, type BinaryObserver } from './metadata.ts'
+import { validateMetadataOption } from './request.ts'
+import type { GrammarSet, RawTheme, TextmateEngine, TextmateGrammar, TextmateRegistry, TextmateState, TextmateToken } from './textmate.ts'
 
 // Bit layout of vscode-textmate's EncodedTokenAttributes (src/encodedTokenAttributes.ts at the pinned
 // commit), which the package does not export at runtime.
@@ -33,10 +35,11 @@ export function tokenizeScopes(grammar: TextmateGrammar, lines: readonly string[
 }
 
 /** Styles from the registry's current theme; a theme change needs a fresh pass from the initial state. */
-export function tokenizeStyles(grammar: TextmateGrammar, lines: readonly string[], colorMap: readonly string[]): LineSpan<Style>[][] {
+export function tokenizeStyles(grammar: TextmateGrammar, lines: readonly string[], colorMap: readonly string[], observe?: BinaryObserver): LineSpan<Style>[][] {
   let state: TextmateState | null = null
   return lines.map((line, index) => {
     const result = checked(grammar.tokenizeLine2(line, state), index)
+    observe?.(line, result)
     state = result.ruleStack
     const spans: LineSpan<Style>[] = []
     for (let token = 0; token < result.tokens.length; token += 2) {
@@ -70,6 +73,9 @@ type RawThemeSetting = RawTheme['settings'][number]
 const dottedPrefixes = (scopeName: string): string[] =>
   scopeName.split('.').map((_part, index, parts) => parts.slice(0, index + 1).join('.'))
 
+const injectsToPrefix = (entry: LanguageRegistration, prefixes: readonly string[]): boolean =>
+  entry.injectTo?.some(target => prefixes.includes(target)) ?? false
+
 /** The product's registration closure: first registration per scope wins; injectTo applies to every dotted prefix. */
 export function registrationGrammarSet(grammar: string, registrations: readonly LanguageRegistration[]): GrammarSet {
   const byScope = new Map<string, LanguageRegistration>()
@@ -83,16 +89,20 @@ export function registrationGrammarSet(grammar: string, registrations: readonly 
     grammar: (scopeName) => byScope.get(scopeName),
     injections: (scopeName) => {
       const prefixes = dottedPrefixes(scopeName)
-      const injectors = [...byScope.values()].filter((entry) => entry.injectTo?.some((target) => prefixes.includes(target)))
+      const injectors = Array.from(byScope.values()).filter(entry => injectsToPrefix(entry, prefixes))
       return injectors.length === 0 ? undefined : injectors.map((entry) => entry.scopeName)
     },
   }
 }
 
-export async function loadRootGrammar(engine: TextmateEngine, grammars: GrammarSet) {
+export async function loadRootGrammar(engine: TextmateEngine, grammars: GrammarSet, configuration?: { initialLanguage: number; embeddedLanguages?: Record<string, number> }) {
   const registry = engine.createRegistry(grammars)
-  const grammar = await registry.loadGrammar(grammars.rootScope)
-  if (grammar === null) throw new Error(`no grammar for ${grammars.rootScope}`)
+  const grammar = configuration === undefined ? await registry.loadGrammar(grammars.rootScope)
+    : await registry.loadGrammarWithConfiguration(grammars.rootScope, configuration.initialLanguage, configuration)
+  if (grammar === null) {
+    registry.dispose()
+    throw new Error(`no grammar for ${grammars.rootScope}`)
+  }
   return { registry, grammar }
 }
 
@@ -101,11 +111,25 @@ export interface RawDocumentRequest {
   readonly languageId: string
   readonly source: string
   readonly themeIds: readonly string[]
+  readonly metadata?: 'required-language-v1'
 }
 
-export async function rawDocument(engine: TextmateEngine, request: RawDocumentRequest): Promise<CompleteResult> {
-  const grammars = registrationGrammarSet(request.languageId, await languageRegistrations(request.languageId))
-  const { registry, grammar } = await loadRootGrammar(engine, grammars)
+export async function rawDocument(engine: TextmateEngine, request: RawDocumentRequest): Promise<DocumentResult> {
+  validateMetadataOption(request)
+  const registrations = await languageRegistrations(request.languageId)
+  const grammars = registrationGrammarSet(request.languageId, registrations)
+  const capture = request.metadata === undefined ? undefined : new ReferenceMetadataCapture(request.source, request.profileId,
+    new LanguageCodebook([canonicalRoot(request.languageId, registrations)]), rootSemanticsGap(request.languageId, request.source.length))
+  const { registry, grammar } = await loadRootGrammar(engine, grammars, capture && { initialLanguage: 1 })
+  try {
+    return await tokenizeDocument(engine, request, registry, grammar, capture)
+  } finally {
+    registry.dispose()
+  }
+}
+
+async function tokenizeDocument(engine: TextmateEngine, request: RawDocumentRequest, registry: TextmateRegistry,
+  grammar: TextmateGrammar, capture: ReferenceMetadataCapture | undefined): Promise<DocumentResult> {
   const lines = sourceLines(request.source)
   const texts = lines.map((line) => line.text)
   const identity = {
@@ -119,10 +143,10 @@ export async function rawDocument(engine: TextmateEngine, request: RawDocumentRe
   const scopes = tokenizeScopes(grammar, texts)
   const scopeSpans = (line: number) => (scopes[line] ?? []).map((token) => ({ from: token.startIndex, to: token.endIndex, value: token.scopes }))
   writeTrack(lines, scopeSpans, (from, to, value) => builder.scope(from, to, value), SEPARATOR_SCOPES)
-  for (const themeId of request.themeIds) {
+  for (const [index, themeId] of request.themeIds.entries()) {
     registry.setTheme(vscodeRawTheme(await themeModule(themeId)))
-    const styles = tokenizeStyles(grammar, texts, registry.getColorMap())
+    const styles = tokenizeStyles(grammar, texts, registry.getColorMap(), index === 0 ? capture?.observe : undefined)
     writeTrack(lines, (line) => styles[line] ?? [], (from, to, value) => builder.style(themeId, from, to, value), SEPARATOR_STYLE)
   }
-  return builder.complete()
+  return requireReferenceMetadata(request, builder.complete(), capture?.outcome())
 }

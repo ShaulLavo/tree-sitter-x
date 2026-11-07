@@ -1,6 +1,6 @@
 import type { ThemedToken } from 'shiki/core'
 import { ResultBuilder } from '../../build.ts'
-import type { CompleteResult, ReferenceProfileId } from '../../schema.ts'
+import type { DocumentResult, ReferenceProfileId } from '../../schema.ts'
 import { languageRegistrations, themeModule, warmLanguages } from '../assets.ts'
 import { type LineSpan, SEPARATOR_SCOPES, SEPARATOR_STYLE, type SourceLine, sourceLines, writeTrack } from '../lines.ts'
 import { PINS, pinLabel, readProductProfile } from '../pins.ts'
@@ -9,6 +9,8 @@ import { tokenScopes } from './scopedTokens.ts'
 import { workerThemeRegistration } from './theme.ts'
 import { createIncrementalTokenizer, type TokenLineSnapshot } from './tokenizer.ts'
 import { ensureHighlighter, ensureLanguages, uniqueLanguageRegistrations } from './worker.ts'
+import { canonicalRoot, LanguageCodebook, ReferenceMetadataCapture, requireReferenceMetadata, rootSemanticsGap } from '../metadata.ts'
+import { validateMetadataOption } from '../request.ts'
 
 /** `cold` registers the document grammar's module only; `warm` also every language it lazily embeds. */
 export type Registration = 'cold' | 'warm'
@@ -18,6 +20,7 @@ export interface ProductRequest {
   readonly languageId: string
   readonly source: string
   readonly themeIds: readonly string[]
+  readonly metadata?: 'required-language-v1'
 }
 
 async function highlighterFor(request: ProductRequest, registration: Registration) {
@@ -54,16 +57,31 @@ function productLines(source: string, snapshot: readonly TokenLineSnapshot[]): S
 const tokenSpans = <V>(line: TokenLineSnapshot | undefined, value: (token: ThemedToken) => V): LineSpan<V>[] =>
   (line?.tokens ?? []).map((token) => ({ from: token.offset, to: token.offset + token.content.length, value: value(token) }))
 
-export async function productDocument(request: ProductRequest, registration: Registration): Promise<CompleteResult> {
+export async function productDocument(request: ProductRequest, registration: Registration): Promise<DocumentResult> {
+  validateMetadataOption(request)
   const profile = readProductProfile()
   const maxLineLength = profile.tokenization.lineLimit.settingDefault
   const { highlighter, embedded } = await highlighterFor(request, registration)
+  try {
+    return await tokenizeDocument(request, registration, highlighter, embedded, maxLineLength)
+  } finally {
+    highlighter.dispose()
+  }
+}
+
+async function tokenizeDocument(request: ProductRequest, registration: Registration,
+  highlighter: Awaited<ReturnType<typeof highlighterFor>>['highlighter'], embedded: string[], maxLineLength: number): Promise<DocumentResult> {
+  const profile = readProductProfile()
+  const root = request.metadata === undefined ? undefined : canonicalRoot(request.languageId, await languageRegistrations(request.languageId))
+  if (root && highlighter.getLanguage(request.languageId).name !== root.languageId) throw new Error('selected product canonical language differs from the pinned registration')
+  const capture = root && new ReferenceMetadataCapture(request.source, request.profileId, new LanguageCodebook([root]), rootSemanticsGap(root.languageId, request.source.length))
   const { tokenizer } = await createIncrementalTokenizer({
     lang: request.languageId,
     theme: request.themeIds[0] ?? '',
     code: request.source,
     highlighter,
     maxLineLength,
+    ...(capture ? { binaryObserver: capture.observe } : {}),
   })
   const snapshot = tokenizer.getSnapshot().lines
   const lines = productLines(request.source, snapshot)
@@ -88,5 +106,5 @@ export async function productDocument(request: ProductRequest, registration: Reg
     const styled = (token: ThemedToken) => resolvedStyle(token.color ?? '', token.fontStyle ?? 0)
     writeTrack(lines, (line) => tokenSpans(snapshot[line], styled), (from, to, value) => builder.style(themeId, from, to, value), SEPARATOR_STYLE)
   })
-  return builder.complete()
+  return requireReferenceMetadata(request, builder.complete(), capture?.outcome())
 }

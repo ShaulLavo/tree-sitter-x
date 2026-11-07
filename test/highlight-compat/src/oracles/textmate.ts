@@ -37,8 +37,10 @@ export interface RawTheme {
 
 export interface TextmateRegistry {
   loadGrammar(scopeName: string): Promise<TextmateGrammar | null>
+  loadGrammarWithConfiguration(scopeName: string, initialLanguage: number, configuration: { embeddedLanguages?: Record<string, number> }): Promise<TextmateGrammar | null>
   setTheme(theme: RawTheme): void
   getColorMap(): string[]
+  dispose(): void
 }
 
 /** The grammars a registry may load and the injections it reports, by scope name. */
@@ -89,8 +91,10 @@ function upstreamEngine(lib: OnigLib): TextmateEngine {
       })
       return {
         loadGrammar: async (scopeName) => (await registry.loadGrammar(scopeName)) as TextmateGrammar | null,
+        loadGrammarWithConfiguration: async (scopeName, initialLanguage, configuration) => (await registry.loadGrammarWithConfiguration(scopeName, initialLanguage, configuration)) as TextmateGrammar | null,
         setTheme: (theme) => registry.setTheme(theme as upstream.IRawTheme),
         getColorMap: () => registry.getColorMap(),
+        dispose: () => registry.dispose(),
       }
     },
   }
@@ -107,8 +111,10 @@ function forkEngine(lib: OnigLib): TextmateEngine {
       })
       return {
         loadGrammar: async (scopeName) => registry.loadGrammar(scopeName) as TextmateGrammar | null,
+        loadGrammarWithConfiguration: async (scopeName, initialLanguage, configuration) => registry.loadGrammarWithConfiguration(scopeName, initialLanguage, configuration) as TextmateGrammar | null,
         setTheme: (theme) => registry.setTheme(theme as fork.IRawTheme),
         getColorMap: () => registry.getColorMap(),
+        dispose: () => registry.dispose(),
       }
     },
   }
