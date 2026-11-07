@@ -119,7 +119,8 @@ static bool atom(const uint8_t *p, uint32_t length, uint32_t start, ThWork *w) {
 
 static bool name_span(const ThPacket *p, uint32_t id, uint32_t *start, uint32_t *length, ThWork *w) {
   *start = th_name(p, id, length);
-  if (!*length || *start < p->strings || *start > p->bytes || *length > p->bytes - *start)
+  if (!*length || *start < p->strings || *start - p->strings > p->string_bytes ||
+      *length > p->string_bytes - (*start - p->strings))
     return th_fail(w, SCOPE_COMPAT_INVALID, SC_THEME_PACKET, *start, p->names + id * 8);
   if (*length > 256) return th_fail(w, SCOPE_COMPAT_BUDGET, SC_THEME_ATOM_BYTES, 256, TH_NONE);
   return true;

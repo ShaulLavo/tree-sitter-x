@@ -40,7 +40,7 @@ function resource(input: AcquiredInput['resources'][number], bounds: InputLimits
     if (input.format === 'jsonc' || input.format === 'plist') reject({kind:'unsupported',code:'input-format',location});
     schema(location);
   }
-  const bytes = input.bytes.slice();
+  const bytes = new Uint8Array(input.bytes);
   let document: unknown;
   try { document = JSON.parse(decoder.decode(bytes)); }
   catch { reject({kind:'invalid',code:'json',location}); }
@@ -228,7 +228,21 @@ export function normalizeTheme(input: InputSnapshot, profile: Profile, targetIde
   const warnings: OutsideScore[] = [];
   const snapshot = snapshots.get(input);
   if (!snapshot) throw new Error('Unknown input snapshot');
-  return attempt(() => normalize(input,profile,targetIdentity,limits(snapshot.bounds,options,true),warnings),warnings);
+  return attempt(() => {
+    const bounds = limits(snapshot.bounds,options,true);
+    acquisitionCaps(snapshot.resources,bounds);
+    return normalize(input,profile,targetIdentity,bounds,warnings);
+  },warnings);
+}
+function acquisitionCaps(resources: readonly Resource[], bounds: InputLimits): void {
+  cap(resources.length,bounds.resources,'resources');
+  let bytes = 0;
+  for (const resource of resources) {
+    bytes += resource.bytes.length;
+    cap(bytes,bounds.inputBytes,'input-bytes');
+    cap(encoder.encode(resource.id).length,bounds.resourceIdBytes,'resource-id-bytes');
+  }
+  cap(Math.max(0,resources.length-1),bounds.includeDepth,'include-depth');
 }
 function normalize(input: InputSnapshot, profile: Profile, targetIdentity: string, bounds: InputLimits, warnings: OutsideScore[]): NormalizedTheme {
   const snapshot = snapshots.get(input);

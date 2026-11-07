@@ -27,7 +27,7 @@ export class NativeTheme {
     return NativeTheme.compileOwned(normalizedPacket(input),options);
   }
   static compilePacket(packet: Uint8Array, options: Partial<CompileLimits> = {}): Promise<Outcome<NativeTheme> | OperationalFailure> {
-    return NativeTheme.compileOwned(packet.slice(),options);
+    return NativeTheme.compileOwned(new Uint8Array(packet),options);
   }
   private static async compileOwned(packet: Uint8Array, options: Partial<CompileLimits>): Promise<Outcome<NativeTheme> | OperationalFailure> {
     const checked = attempt(() => limits(COMPILE_DEFAULTS,options));

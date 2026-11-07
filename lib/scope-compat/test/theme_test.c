@@ -183,6 +183,26 @@ static void bounded_packet_mutations(void) {
   scope_compat_theme_delete(t); assert(scope_compat_live_allocations() == 0);
 }
 
+static void reordered_name_regions(void) {
+  Packet p = {.words={0x31544853,1,96,1,52,1,88,0,0,4,48,0,
+    0x78787878,0,0,0,0,0,1,0x656d616e,0,0,48,4}, .bytes=96};
+  ScopeCompatTheme *t = compile(&p);
+  assert(t && scope_compat_theme_status(t) == 0);
+  Packet paths = {.words={0x31504853,1,64,1,56,2,40,4,36,0x656d616e,
+    UINT32_MAX,UINT32_MAX,0,0,36,4}, .bytes=64};
+  ScopeCompatThemeResult *r = scope_compat_theme_resolve(t,(uint8_t *)paths.words,paths.bytes,1048576,24);
+  assert(r && !r->status); scope_compat_theme_result_delete(r);
+  paths.words[14] = 48;
+  r = scope_compat_theme_resolve(t,(uint8_t *)paths.words,paths.bytes,1048576,24);
+  assert(r && r->status == 3 && r->detail == SC_THEME_PACKET && r->detail_value == 48);
+  scope_compat_theme_result_delete(r); scope_compat_theme_delete(t);
+  p.words[22] = 76;
+  t = compile(&p);
+  assert(t && scope_compat_theme_status(t) == 3 && scope_compat_theme_detail(t) == SC_THEME_PACKET);
+  assert(scope_compat_theme_error_offset(t) == 88);
+  scope_compat_theme_delete(t); assert(scope_compat_live_allocations() == 0);
+}
+
 static void allocation_failures(void) {
   Packet p = rules_packet(), paths = reference_paths();
   bool success = false;
@@ -211,7 +231,7 @@ static void allocation_failures(void) {
 }
 
 void sc_theme_tests(void) {
-  empty_and_limits(); exact_specification(); malformed_packets(); construction_bounds(); bounded_packet_mutations(); allocation_failures();
+  empty_and_limits(); exact_specification(); malformed_packets(); construction_bounds(); bounded_packet_mutations(); reordered_name_regions(); allocation_failures();
   puts("scope-compat theme packet controls passed");
 }
 #ifdef SC_THEME_STANDALONE

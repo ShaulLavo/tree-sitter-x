@@ -60,7 +60,7 @@ export function limits<T extends object>(defaults: T, options: Partial<T>, ceili
   if (typeof options !== 'object' || options === null || Array.isArray(options)) reject({kind:'invalid',code:'schema',location:{kind:'request'}});
   const result = { ...defaults };
   for (const [key, value] of Object.entries(options)) {
-    if (!(key in defaults) || typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > NONE)
+    if (!Object.hasOwn(defaults,key) || typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > NONE)
       reject({kind:'invalid', code:'schema', location:{kind:'request'}});
     Object.assign(result, { [key]:value });
   }
