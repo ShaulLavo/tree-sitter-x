@@ -1,0 +1,36 @@
+{
+  "repository": "preactjs/preact-www",
+  "sha": "fd278cf66a1ce15665c702debcf4595af247373a",
+  "url": "https://github.com/preactjs/preact-www/commit/fd278cf66a1ce15665c702debcf4595af247373a",
+  "author": "Ryan Christian",
+  "message": "chore: Convert all modules using JSX to `.jsx` extension",
+  "parents": [
+    "bd23e1b37d80b5c9f14fa615d66a40474f7e0108"
+  ],
+  "files": [
+    {
+      "sha": "1937629190448354d3a9d342c9c9552c0e116e52",
+      "filename": "src/components/footer/index.jsx",
+      "status": "renamed",
+      "additions": 0,
+      "deletions": 0,
+      "changes": 0,
+      "blob_url": "https://github.com/preactjs/preact-www/blob/fd278cf66a1ce15665c702debcf4595af247373a/src%2Fcomponents%2Ffooter%2Findex.jsx",
+      "raw_url": "https://github.com/preactjs/preact-www/raw/fd278cf66a1ce15665c702debcf4595af247373a/src%2Fcomponents%2Ffooter%2Findex.jsx",
+      "contents_url": "https://api.github.com/repos/preactjs/preact-www/contents/src%2Fcomponents%2Ffooter%2Findex.jsx?ref=fd278cf66a1ce15665c702debcf4595af247373a",
+      "previous_filename": "src/components/footer/index.js"
+    },
+    {
+      "sha": "cb547619a21c5ba2b037566c3fdd977f9843b1bb",
+      "filename": "src/components/time/index.jsx",
+      "status": "renamed",
+      "additions": 0,
+      "deletions": 0,
+      "changes": 0,
+      "blob_url": "https://github.com/preactjs/preact-www/blob/fd278cf66a1ce15665c702debcf4595af247373a/src%2Fcomponents%2Ftime%2Findex.jsx",
+      "raw_url": "https://github.com/preactjs/preact-www/raw/fd278cf66a1ce15665c702debcf4595af247373a/src%2Fcomponents%2Ftime%2Findex.jsx",
+      "contents_url": "https://api.github.com/repos/preactjs/preact-www/contents/src%2Fcomponents%2Ftime%2Findex.jsx?ref=fd278cf66a1ce15665c702debcf4595af247373a",
+      "previous_filename": "src/components/time/index.js"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "repository": "tc39/test262",
+  "sha": "f398421ee709dd5cf526ce3df31c9dcda7572a9c",
+  "url": "https://github.com/tc39/test262/commit/f398421ee709dd5cf526ce3df31c9dcda7572a9c",
+  "author": "Caitlin Potter",
+  "message": "Add tests for %FunctionPrototype% restricted properties",
+  "parents": [
+    "afa25f6cdc198b5ba0124284063fdb2c35db5f01"
+  ],
+  "files": [
+    {
+      "sha": "14daf5814a4fc1e40c9a528464674845601fa017",
+      "filename": "test/language/arrow-function/ArrowFunction_restricted-properties.js",
+      "status": "added",
+      "additions": 31,
+      "deletions": 0,
+      "changes": 31,
+      "blob_url": "https://github.com/tc39/test262/blob/f398421ee709dd5cf526ce3df31c9dcda7572a9c/test%2Flanguage%2Farrow-function%2FArrowFunction_restricted-properties.js",
+      "raw_url": "https://github.com/tc39/test262/raw/f398421ee709dd5cf526ce3df31c9dcda7572a9c/test%2Flanguage%2Farrow-function%2FArrowFunction_restricted-properties.js",
+      "contents_url": "https://api.github.com/repos/tc39/test262/contents/test%2Flanguage%2Farrow-function%2FArrowFunction_restricted-properties.js?ref=f398421ee709dd5cf526ce3df31c9dcda7572a9c",
+      "patch": "@@ -0,0 +1,31 @@\n+// Copyright (C) 2015 Caitlin Potter. All rights reserved.\n+// This code is governed by the BSD license found in the LICENSE file.\n+\n+/*--- \n+description: >\n+    Functions created using ArrowFunction syntactic form do not have\n+    own properties \"caller\" or \"arguments\", but inherit them from\n+    %FunctionPrototype%.\n+es6id: 16.1\n+---*/\n+\n+var arrowFn = () => {};\n+\n+assert.sameValue(arrowFn.hasOwnProperty('caller'), false, 'Functions created using ArrowFunction syntactic form do not have own property \"caller\"');\n+assert.sameValue(arrowFn.hasOwnProperty('arguments'), false, 'Functions created using ArrowFunction syntactic form do not have own property \"arguments\"');\n+\n+assert.throws(TypeError, function() {\n+  return arrowFn.caller;\n+});\n+\n+assert.throws(TypeError, function() {\n+  arrowFn.caller = {};\n+});\n+\n+assert.throws(TypeError, function() {\n+  return arrowFn.arguments;\n+});\n+\n+assert.throws(TypeError, function() {\n+  arrowFn.arguments = {};\n+});"
+    }
+  ]
+}

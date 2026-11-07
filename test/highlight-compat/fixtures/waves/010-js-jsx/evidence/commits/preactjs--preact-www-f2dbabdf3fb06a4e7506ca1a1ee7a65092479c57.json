@@ -1,0 +1,22 @@
+{
+  "repository": "preactjs/preact-www",
+  "sha": "f2dbabdf3fb06a4e7506ca1a1ee7a65092479c57",
+  "url": "https://github.com/preactjs/preact-www/commit/f2dbabdf3fb06a4e7506ca1a1ee7a65092479c57",
+  "author": "Jason Miller",
+  "message": "Initial commit!",
+  "parents": [],
+  "files": [
+    {
+      "sha": "e580c28c244c21eeb58e826c4878b2f2efecff6b",
+      "filename": "src/components/footer/index.js",
+      "status": "added",
+      "additions": 18,
+      "deletions": 0,
+      "changes": 18,
+      "blob_url": "https://github.com/preactjs/preact-www/blob/f2dbabdf3fb06a4e7506ca1a1ee7a65092479c57/src%2Fcomponents%2Ffooter%2Findex.js",
+      "raw_url": "https://github.com/preactjs/preact-www/raw/f2dbabdf3fb06a4e7506ca1a1ee7a65092479c57/src%2Fcomponents%2Ffooter%2Findex.js",
+      "contents_url": "https://api.github.com/repos/preactjs/preact-www/contents/src%2Fcomponents%2Ffooter%2Findex.js?ref=f2dbabdf3fb06a4e7506ca1a1ee7a65092479c57",
+      "patch": "@@ -0,0 +1,18 @@\n+import { h, Component } from 'preact';\n+import style from './style';\n+import config from '../../config';\n+\n+export default class Footer extends Component {\n+\trender() {\n+\t\treturn (\n+\t\t\t<footer class={style.footer}>\n+\t\t\t\t<div class={style.inner}>\n+\t\t\t\t\t<p>\n+\t\t\t\t\t\tBuilt by <a href=\"https://github.com/developit\" target=\"_blank\">@developit</a>{' '}\n+\t\t\t\t\t\tand a bunch of <a href=\"https://github.com/developit/preact/graphs/contributors\" target=\"_blank\">lovely people</a>.\n+\t\t\t\t\t</p>\n+\t\t\t\t</div>\n+\t\t\t</footer>\n+\t\t);\n+\t}\n+}"
+    }
+  ]
+}

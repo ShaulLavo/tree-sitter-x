@@ -1,0 +1,24 @@
+{
+  "repository": "tc39/test262",
+  "sha": "93e9da29a0604e9c2742436979eb1074eb301758",
+  "url": "https://github.com/tc39/test262/commit/93e9da29a0604e9c2742436979eb1074eb301758",
+  "author": "Rick Waldron",
+  "message": "14.2 Arrow Function Definitions",
+  "parents": [
+    "b9e4a43f5e4e0d3d0d6a0972bd6a7ece0efb7c20"
+  ],
+  "files": [
+    {
+      "sha": "14daf5814a4fc1e40c9a528464674845601fa017",
+      "filename": "test/language/expressions/arrow-function/ArrowFunction_restricted-properties.js",
+      "status": "renamed",
+      "additions": 0,
+      "deletions": 0,
+      "changes": 0,
+      "blob_url": "https://github.com/tc39/test262/blob/93e9da29a0604e9c2742436979eb1074eb301758/test%2Flanguage%2Fexpressions%2Farrow-function%2FArrowFunction_restricted-properties.js",
+      "raw_url": "https://github.com/tc39/test262/raw/93e9da29a0604e9c2742436979eb1074eb301758/test%2Flanguage%2Fexpressions%2Farrow-function%2FArrowFunction_restricted-properties.js",
+      "contents_url": "https://api.github.com/repos/tc39/test262/contents/test%2Flanguage%2Fexpressions%2Farrow-function%2FArrowFunction_restricted-properties.js?ref=93e9da29a0604e9c2742436979eb1074eb301758",
+      "previous_filename": "test/language/arrow-function/ArrowFunction_restricted-properties.js"
+    }
+  ]
+}

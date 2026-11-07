@@ -32,13 +32,7 @@ it('rehashes every selected artifact and rejects every unregistered file', () =>
     allowed.add(artifact.path)
     const bytes = readFileSync(new URL(artifact.path, harnessRoot))
     expect(hash(bytes), artifact.path).toBe(artifact.sha256)
-    for (const origin of artifact.provenance) {
-      const recorded = selected.find(({ file }) => file.id === origin.manifestFileId)!
-      expect(recorded.file.sha256).toBe(hash(bytes))
-      expect(recorded.file.bytes).toBe(bytes.byteLength)
-      expect(origin.revision).toBe(recorded.file.revision)
-      expect(origin.upstreamPath).toBe(recorded.file.path)
-    }
+    verifyArtifactOrigins(artifact, selected, bytes)
   }
   for (const family of new Set(fixtureArtifacts.map(artifact => artifact.family))) {
     allowed.add(`fixtures/${family}/NOTICE`)
@@ -47,8 +41,9 @@ it('rehashes every selected artifact and rejects every unregistered file', () =>
     const root = new URL('./', harnessRoot).pathname
     for (const file of files) expect(allowed.has(file.slice(root.length)), file).toBe(true)
   }
+  expect(readdirSync(new URL('fixtures/waves/', harnessRoot))).toEqual(['010-js-jsx'])
   const actualFamilies = readdirSync(new URL('fixtures/', harnessRoot))
-  expect(actualFamilies.filter(family => family !== 'original').sort()).toEqual([...new Set(fixtureArtifacts.map(artifact => artifact.family))].sort())
+  expect(actualFamilies.filter(family => family !== 'original' && family !== 'waves').sort()).toEqual([...new Set(fixtureArtifacts.map(artifact => artifact.family))].sort())
   expect(new Set(fixtureArtifacts.flatMap(artifact => artifact.provenance.map(origin => origin.manifestFileId))).size).toBe(27)
 })
 
@@ -197,3 +192,14 @@ it('derives report accounting when a source/baseline selection is removed', () =
   expect(report).toContain('15 runnable source fixtures; 25 vendored primary artifacts')
   expect(report).toContain('The 25 artifacts comprise 15 source inputs and 10 stored expectations.')
 })
+
+function verifyArtifactOrigins(artifact: (typeof fixtureArtifacts)[number], selected: ReturnType<typeof selectedArtifacts>, bytes: Uint8Array): void {
+  for (const origin of artifact.provenance) {
+    const recorded = selected.find(({ file }) => file.id === origin.manifestFileId)
+    if (!recorded) throw new Error('Unregistered artifact origin')
+    expect(recorded.file.sha256).toBe(hash(bytes))
+    expect(recorded.file.bytes).toBe(bytes.byteLength)
+    expect(origin.revision).toBe(recorded.file.revision)
+    expect(origin.upstreamPath).toBe(recorded.file.path)
+  }
+}

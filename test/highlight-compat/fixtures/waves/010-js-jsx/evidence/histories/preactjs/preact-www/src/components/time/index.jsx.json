@@ -1,0 +1,23 @@
+{
+  "repository": "preactjs/preact-www",
+  "revision": "8854f888e5bbe726ed1ec2d956a8822f73458cbb",
+  "path": "src/components/time/index.jsx",
+  "url": "https://api.github.com/repos/preactjs/preact-www/commits?sha=8854f888e5bbe726ed1ec2d956a8822f73458cbb&path=src%2Fcomponents%2Ftime%2Findex.jsx&per_page=100",
+  "pagination": null,
+  "commits": [
+    {
+      "sha": "ca19a50a1d423eea31454ad089342d49c1bb0beb",
+      "author": "Ryan Christian",
+      "date": "2024-04-08T11:09:37Z",
+      "message": "chore: Misc minor adjustments (#1111)\n\n* fix: Netlify lambdas in dev & preview\r\n\r\n* feat: Reload Netlify lambdas when changed\r\n\r\n* feat: Optimize REPL deps to avoid flash in dev\r\n\r\n* chore: Drop preact-iso patch now that it's fixed\r\n\r\n* refactor: Create Repl shell page\r\n\r\n* refactor: Use Vite's types directly\r\n\r\n* refactor: Loading bar types & rename to better describe it\r\n\r\n* misc: Fix types & remove unused stylesheet\r\n\r\n* chore: Remove unused prop in ToC\r\n\r\n* chore: Re-enabled devtools",
+      "url": "https://github.com/preactjs/preact-www/commit/ca19a50a1d423eea31454ad089342d49c1bb0beb"
+    },
+    {
+      "sha": "fd278cf66a1ce15665c702debcf4595af247373a",
+      "author": "Ryan Christian",
+      "date": "2024-02-13T02:08:43Z",
+      "message": "chore: Convert all modules using JSX to `.jsx` extension",
+      "url": "https://github.com/preactjs/preact-www/commit/fd278cf66a1ce15665c702debcf4595af247373a"
+    }
+  ]
+}

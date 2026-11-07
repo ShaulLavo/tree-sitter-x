@@ -1,0 +1,190 @@
+{
+  "repository": "preactjs/preact-www",
+  "revision": "8854f888e5bbe726ed1ec2d956a8822f73458cbb",
+  "path": "src/components/footer/index.js",
+  "pagination": null,
+  "commits": [
+    {
+      "sha": "fd278cf66a1ce15665c702debcf4595af247373a",
+      "author": "Ryan Christian",
+      "date": "2024-02-13T02:08:43Z",
+      "message": "chore: Convert all modules using JSX to `.jsx` extension",
+      "url": "https://github.com/preactjs/preact-www/commit/fd278cf66a1ce15665c702debcf4595af247373a"
+    },
+    {
+      "sha": "089b99ed5acc4a0007ee34309c6d5075c5789612",
+      "author": "Ryan Christian",
+      "date": "2024-02-05T07:18:58Z",
+      "message": "chore: Backport much of #793\n\nCo-authored-by: Marvin Hagemeister <hello@marvinh.dev>",
+      "url": "https://github.com/preactjs/preact-www/commit/089b99ed5acc4a0007ee34309c6d5075c5789612"
+    },
+    {
+      "sha": "2312f8f73c09a3213cc4d0218d43144e020e672b",
+      "author": "Ryan Christian",
+      "date": "2023-10-24T04:01:23Z",
+      "message": "chore: CLI now uses automatic JSX transform, so remove h imports",
+      "url": "https://github.com/preactjs/preact-www/commit/2312f8f73c09a3213cc4d0218d43144e020e672b"
+    },
+    {
+      "sha": "c18ac8bc8ea4d326eedf3cd6bbb7306bce5b959b",
+      "author": "Ryan Christian",
+      "date": "2023-12-05T04:04:10Z",
+      "message": "refactor: The great un-less-ening",
+      "url": "https://github.com/preactjs/preact-www/commit/c18ac8bc8ea4d326eedf3cd6bbb7306bce5b959b"
+    },
+    {
+      "sha": "1deddd4f33685a2299b75fa3c4b584319434c793",
+      "author": "Jason Miller",
+      "date": "2022-01-03T19:34:15Z",
+      "message": "Tweak for dynamic contrib list (#812)\n\n* chore: Update contributors list for footer (#742)\r\n\r\n* chore: Update contributors list for footer\r\n\r\n* refactor: All names, all repos\r\n\r\n* refactor: Updating contributor list + retrieval method\r\n\r\n* docs: Adding additional comment to contributors list update\r\n\r\n* fix: Typo in jsdoc\r\n\r\n* filter contribs to 2+ to keep size down\r\n\r\n* Update index.js\r\n\r\nCo-authored-by: Ryan Christian <33403762+rschristian@users.noreply.github.com>",
+      "url": "https://github.com/preactjs/preact-www/commit/1deddd4f33685a2299b75fa3c4b584319434c793"
+    },
+    {
+      "sha": "2e2b7a8327b55012f4e62f76740e047385d0a138",
+      "author": "Marvin Hagemeister",
+      "date": "2021-08-29T16:43:31Z",
+      "message": "Use explicit `*.module.less` for CSS modules",
+      "url": "https://github.com/preactjs/preact-www/commit/2e2b7a8327b55012f4e62f76740e047385d0a138"
+    },
+    {
+      "sha": "4526d1b1fe20e0bedf3e4e697353eb6143e501bc",
+      "author": "Marvin Hagemeister",
+      "date": "2021-08-29T16:28:35Z",
+      "message": "Use explicit `.json` extension for json imports",
+      "url": "https://github.com/preactjs/preact-www/commit/4526d1b1fe20e0bedf3e4e697353eb6143e501bc"
+    },
+    {
+      "sha": "a748693babb95f260970500215cc11678c851218",
+      "author": "Marvin Hagemeister",
+      "date": "2020-08-11T20:50:16Z",
+      "message": "Add footer page navigation",
+      "url": "https://github.com/preactjs/preact-www/commit/a748693babb95f260970500215cc11678c851218"
+    },
+    {
+      "sha": "30005ed14879be1e051f8005b628081f16e7a607",
+      "author": "Marvin Hagemeister",
+      "date": "2019-08-03T08:54:20Z",
+      "message": "Revert always append language to url",
+      "url": "https://github.com/preactjs/preact-www/commit/30005ed14879be1e051f8005b628081f16e7a607"
+    },
+    {
+      "sha": "836e049a415f07e87a21f30cb2d714a8d9fbe563",
+      "author": "Marvin Hagemeister",
+      "date": "2019-08-02T06:32:06Z",
+      "message": "Refactor query based language handling",
+      "url": "https://github.com/preactjs/preact-www/commit/836e049a415f07e87a21f30cb2d714a8d9fbe563"
+    },
+    {
+      "sha": "714d3b688eee88358789c378d924c123101d7edc",
+      "author": "Marvin Hagemeister",
+      "date": "2019-08-01T20:19:41Z",
+      "message": "Refactor language handling",
+      "url": "https://github.com/preactjs/preact-www/commit/714d3b688eee88358789c378d924c123101d7edc"
+    },
+    {
+      "sha": "fa7d7c564efaa003fad0036f7388d662071e01ca",
+      "author": "Marvin Hagemeister",
+      "date": "2019-07-31T21:14:52Z",
+      "message": "Fix missing document language",
+      "url": "https://github.com/preactjs/preact-www/commit/fa7d7c564efaa003fad0036f7388d662071e01ca"
+    },
+    {
+      "sha": "875c71332675ef45e348bfc6d8fef8330ba4d0c0",
+      "author": "Marvin Hagemeister",
+      "date": "2019-07-24T14:24:43Z",
+      "message": "Move \"edit this page\" button next to page title",
+      "url": "https://github.com/preactjs/preact-www/commit/875c71332675ef45e348bfc6d8fef8330ba4d0c0"
+    },
+    {
+      "sha": "049a9a57f264958eced8607736ba59f559ebac5c",
+      "author": "Marvin Hagemeister",
+      "date": "2019-07-13T05:33:21Z",
+      "message": "Format previously missed files",
+      "url": "https://github.com/preactjs/preact-www/commit/049a9a57f264958eced8607736ba59f559ebac5c"
+    },
+    {
+      "sha": "9e26c7e0f181b9c11b2552d32557f253d13204ce",
+      "author": "Jason Miller",
+      "date": "2019-07-09T14:42:47Z",
+      "message": "Sharing Footer (#300)\n\n* automatically rotate through contribs in footer instead of always putting my name\r\n\r\n* oh and skip running the netlify plugin on the SSR build\r\n\r\n* the preact authors\r\n\r\n* Update index.js",
+      "url": "https://github.com/preactjs/preact-www/commit/9e26c7e0f181b9c11b2552d32557f253d13204ce"
+    },
+    {
+      "sha": "27e9ffa3f3e72a2429f36a44cec82b964996175c",
+      "author": "Jason Miller",
+      "date": "2019-07-08T14:45:49Z",
+      "message": "Switch to newer lint config, tidy up all issues, switch linkState to direct usage.",
+      "url": "https://github.com/preactjs/preact-www/commit/27e9ffa3f3e72a2429f36a44cec82b964996175c"
+    },
+    {
+      "sha": "0f995cbefef591e308edd9220163185efeea586c",
+      "author": "Jason Miller",
+      "date": "2019-02-14T11:31:38Z",
+      "message": "move from custom store to unistore, drop some deps",
+      "url": "https://github.com/preactjs/preact-www/commit/0f995cbefef591e308edd9220163185efeea586c"
+    },
+    {
+      "sha": "22a85c85cedb93a94d9e53003b0d64d60201b9e0",
+      "author": "Jason Miller",
+      "date": "2018-07-20T01:52:32Z",
+      "message": "Update index.js",
+      "url": "https://github.com/preactjs/preact-www/commit/22a85c85cedb93a94d9e53003b0d64d60201b9e0"
+    },
+    {
+      "sha": "752a1185e3d0440a034ca05dd899a7a684c891a8",
+      "author": "Jason Miller",
+      "date": "2018-07-20T01:42:26Z",
+      "message": "add dynamic lang",
+      "url": "https://github.com/preactjs/preact-www/commit/752a1185e3d0440a034ca05dd899a7a684c891a8"
+    },
+    {
+      "sha": "93f689cc61f1e2d28ccd605c9641ac1dadec1b75",
+      "author": "Jason Miller",
+      "date": "2017-02-03T00:00:04Z",
+      "message": "Alt text and color fixes.",
+      "url": "https://github.com/preactjs/preact-www/commit/93f689cc61f1e2d28ccd605c9641ac1dadec1b75"
+    },
+    {
+      "sha": "090c1f32cee77a13713efb1a1709a88807d09523",
+      "author": "Artem Sapegin",
+      "date": "2017-01-18T20:18:07Z",
+      "message": "Fix edit link in the footer after navigation to another page (#86)",
+      "url": "https://github.com/preactjs/preact-www/commit/090c1f32cee77a13713efb1a1709a88807d09523"
+    },
+    {
+      "sha": "c65e16767b4131842c5517ca68348e017a73310f",
+      "author": "Jason Miller",
+      "date": "2016-12-02T16:00:12Z",
+      "message": "Fix `?lang=xx` flag being overridden by browser locale, fix footer language picker not respecting active language, show tip beside language picker indicating how to share that language",
+      "url": "https://github.com/preactjs/preact-www/commit/c65e16767b4131842c5517ca68348e017a73310f"
+    },
+    {
+      "sha": "14d8a334783f91af8374f5492c457dc3a4d77f9b",
+      "author": "Fernando Montoya",
+      "date": "2016-12-02T15:33:32Z",
+      "message": "Update Edit page link to support i18n",
+      "url": "https://github.com/preactjs/preact-www/commit/14d8a334783f91af8374f5492c457dc3a4d77f9b"
+    },
+    {
+      "sha": "b5601e6430fc8b0644f3eed93061f5ae2a499fad",
+      "author": "Jason Miller",
+      "date": "2016-10-29T03:55:52Z",
+      "message": "Move translations into a `lang` folder.",
+      "url": "https://github.com/preactjs/preact-www/commit/b5601e6430fc8b0644f3eed93061f5ae2a499fad"
+    },
+    {
+      "sha": "9ea93fb9c9b33e0f385ea9a50d5d01d2a62eb529",
+      "author": "Jason Miller",
+      "date": "2016-10-28T23:16:43Z",
+      "message": "Add simple centralized state implementation and use it to add a persistent language picker.",
+      "url": "https://github.com/preactjs/preact-www/commit/9ea93fb9c9b33e0f385ea9a50d5d01d2a62eb529"
+    },
+    {
+      "sha": "f2dbabdf3fb06a4e7506ca1a1ee7a65092479c57",
+      "author": "Jason Miller",
+      "date": "2016-04-03T23:03:11Z",
+      "message": "Initial commit!",
+      "url": "https://github.com/preactjs/preact-www/commit/f2dbabdf3fb06a4e7506ca1a1ee7a65092479c57"
+    }
+  ]
+}

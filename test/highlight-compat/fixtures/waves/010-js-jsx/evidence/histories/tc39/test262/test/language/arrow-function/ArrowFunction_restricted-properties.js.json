@@ -1,0 +1,22 @@
+{
+  "repository": "tc39/test262",
+  "revision": "e4fbf57745c6aae3d1f12f181ecef78b1665d812",
+  "path": "test/language/arrow-function/ArrowFunction_restricted-properties.js",
+  "pagination": null,
+  "commits": [
+    {
+      "sha": "93e9da29a0604e9c2742436979eb1074eb301758",
+      "author": "Rick Waldron",
+      "date": "2015-04-13T18:35:06Z",
+      "message": "14.2 Arrow Function Definitions",
+      "url": "https://github.com/tc39/test262/commit/93e9da29a0604e9c2742436979eb1074eb301758"
+    },
+    {
+      "sha": "f398421ee709dd5cf526ce3df31c9dcda7572a9c",
+      "author": "Caitlin Potter",
+      "date": "2015-03-27T01:36:22Z",
+      "message": "Add tests for %FunctionPrototype% restricted properties",
+      "url": "https://github.com/tc39/test262/commit/f398421ee709dd5cf526ce3df31c9dcda7572a9c"
+    }
+  ]
+}
