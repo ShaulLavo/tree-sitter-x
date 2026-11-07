@@ -30,6 +30,7 @@ export interface WaveInput {
 
 export interface JsJsxIntake {
   readonly selectionSha256: string
+  readonly validation?: { readonly selected: FixtureSplit; readonly deferred: FixtureSplit }
   readonly inputs: readonly WaveInput[]
   readonly profiles: readonly ReferenceProfileId[]
   readonly themes: readonly string[]
@@ -172,26 +173,12 @@ function checkOrigins(row: Record<string, unknown>, licenses: ReadonlySet<string
 }
 
 function checkProvenance(wave: Record<string, unknown>, additions: Record<string, unknown>, inputs: readonly WaveInput[], read: Read): void {
-  same(additions.files, wave.fixtures, 'Fixture addition closure')
-  same(additions.licenses, wave.licenses, 'License addition closure')
-  same(additions.noticeAssets, wave.noticeAssets, 'Notice addition closure')
+  checkSplitDeclarations(wave, additions, inputs)
   const licenses = records(wave.licenses)
-  const ids = new Set(licenses.map(row => string(row.licenseId)))
-  need(ids.size === 3 && licenses.length === 3, 'Missing/duplicate license')
+  const ids = licenseIds(wave)
   for (const row of licenses) { asset(row, read); JSON.parse(text(read(packetPath(string(row.noticeSurvey))))) }
   for (const row of records(wave.noticeAssets)) asset(row, read)
   for (const row of records(wave.fixtures)) checkOrigins(row, ids, read)
-  const selected = records(additions.sources).flatMap(source => {
-    const members = strings(source.fileIds)
-    const splitMembers = new Set(inputs.filter(input => input.split === source.split).map(input => input.id))
-    need(members.every(id => splitMembers.has(id)), 'Wrong addition split')
-    return members
-  })
-  same(selected.toSorted(), records(wave.fixtures).map(row => string(row.id)).sort(), 'Addition membership closure')
-  const development = new Set(inputs.filter(input => input.split === 'development').flatMap(input => input.derivationFamilies))
-  need(inputs.filter(input => input.split === 'evaluation').every(input => input.derivationFamilies.every(family => !development.has(family))), 'Derivation family overlap')
-  const nonempty = inputs.filter(input => input.utf16Units > 0).map(input => input.sha256)
-  need(new Set(nonempty).size === nonempty.length, 'Duplicate nonempty source')
 }
 
 function checkPolicy(wave: Record<string, unknown>): void {
@@ -294,10 +281,86 @@ export function readJsJsxIntake(read: Read = readHarness): JsJsxIntake {
   need(inputs.filter(input => input.split === 'development').length === 21 && inputs.filter(input => input.split === 'evaluation').length === 4, 'Split denominator changed')
   checkProvenance(wave, json(read, ADDITIONS), inputs, read)
   checkPreserved(read)
-  const intake: JsJsxIntake = {
-    selectionSha256: LOCK, inputs, profiles: array(wave.profiles).map(profile), themes: records(wave.themes).map(row => string(row.id)),
-    requiredTracks: strings(object(wave.rowsContract).requiredTracks), metadataAvailability: 'unavailable', nonPassing: strings(object(wave.rowsContract).nonPassing),
-  }
+  const intake = intakeFrom(wave, inputs)
   checkRows(intake, read)
   return intake
+}
+
+/** Select before opening any source or provenance payload. The full offline API above stays strict. */
+export function readJsJsxSplit(split: FixtureSplit, read: Read = readHarness): JsJsxIntake {
+  need(split === 'development' || split === 'evaluation', 'Invalid split')
+  const bytes = read(ROOT + 'selection-lock.json')
+  need(sha(bytes) === LOCK, 'Changed frozen selection identity')
+  const wave = json(read, WAVE), additions = json(read, ADDITIONS)
+  checkPolicy(wave)
+  checkInventory(wave, read)
+  const existing = records(wave.existingDevelopment), selected = records(wave.fixtures)
+  const declarations = existing.map(row => declaredInput(row, true)).concat(selected.map(row => declaredInput(row, false)))
+  same(existing.map(row => row.id), fixtures.filter(fixture => fixture.languageId === 'javascript').map(fixture => fixture.id), 'Existing development membership changed')
+  need(existing.length === 7 && selected.length === 18 && new Set(declarations.map(input => input.id)).size === 25, 'Wrong source membership')
+  need(declarations.filter(input => input.split === 'development').length === 21 && declarations.filter(input => input.split === 'evaluation').length === 4, 'Split denominator changed')
+  checkSplitDeclarations(wave, additions, declarations)
+  const all = intakeFrom(wave, declarations)
+  checkRows(all, read)
+  checkSplitLocks(wave, object(JSON.parse(text(bytes))), split, read)
+  const inputs = existing.filter(row => row.split === split).map(row => parseInput(row, read, true))
+    .concat(selected.filter(row => row.split === split).map(row => parseInput(row, read, false)))
+  const licenses = licenseIds(wave)
+  for (const row of selected.filter(row => row.split === split)) checkOrigins(row, licenses, read)
+  checkPreserved(read)
+  return { ...intakeFrom(wave, inputs), validation: { selected: split, deferred: split === 'development' ? 'evaluation' : 'development' } }
+}
+
+function declaredInput(row: Record<string, unknown>, existing: boolean): WaveInput {
+  const languageId = row.languageId, split = row.split
+  if (languageId !== 'javascript' && languageId !== 'jsx') throw new Error('Wrong language')
+  if (split !== 'development' && split !== 'evaluation') throw new Error('Wrong split')
+  const path = string(row.path)
+  safePath(path)
+  return { id: string(row.id), languageId, split, path: existing ? path : packetPath(path), sha256: string(row.sha256),
+    utf16Units: integer(row.utf16Units), storage: existing ? 'existing-repository' : 'wave-packet', derivationFamilies: strings(row.derivationFamilies) }
+}
+
+function intakeFrom(wave: Record<string, unknown>, inputs: readonly WaveInput[]): JsJsxIntake {
+  return { selectionSha256: LOCK, inputs, profiles: array(wave.profiles).map(profile), themes: records(wave.themes).map(row => string(row.id)),
+    requiredTracks: strings(object(wave.rowsContract).requiredTracks), metadataAvailability: 'unavailable', nonPassing: strings(object(wave.rowsContract).nonPassing) }
+}
+
+function checkSplitDeclarations(wave: Record<string, unknown>, additions: Record<string, unknown>, inputs: readonly WaveInput[]): void {
+  licenseIds(wave)
+  same(additions.files, wave.fixtures, 'Fixture addition closure')
+  same(additions.licenses, wave.licenses, 'License addition closure')
+  same(additions.noticeAssets, wave.noticeAssets, 'Notice addition closure')
+  const selected = records(additions.sources).flatMap(source => {
+    const members = strings(source.fileIds), splitMembers = new Set(inputs.filter(input => input.split === source.split).map(input => input.id))
+    need(members.every(id => splitMembers.has(id)), 'Wrong addition split')
+    return members
+  })
+  same(selected.toSorted(), records(wave.fixtures).map(row => string(row.id)).sort(), 'Addition membership closure')
+  const development = new Set(inputs.filter(input => input.split === 'development').flatMap(input => input.derivationFamilies))
+  need(inputs.filter(input => input.split === 'evaluation').every(input => input.derivationFamilies.every(family => !development.has(family))), 'Derivation family overlap')
+  const nonempty = inputs.filter(input => input.utf16Units > 0).map(input => input.sha256)
+  need(new Set(nonempty).size === nonempty.length, 'Duplicate nonempty source')
+}
+
+function checkSplitLocks(wave: Record<string, unknown>, lock: Record<string, unknown>, split: FixtureSplit, read: Read): void {
+  const allowed = new Set(['expected-rows.tsv', 'scope-requests.tsv', 'inventory-accounting.json', 'evidence/preserved-repository-files.json', WAVE, 'manifest/fixture-sources.additions.json'])
+  const selected = records(wave.fixtures).filter(row => row.split === split)
+  const licenseIds = new Set(selected.flatMap(row => strings(row.licenseRefs)))
+  for (const row of selected) { allowed.add(string(row.path)); strings(row.derivationEvidence).forEach(path => allowed.add(path)) }
+  for (const row of records(wave.licenses).filter(row => licenseIds.has(string(row.licenseId)))) {
+    allowed.add(string(row.path)); allowed.add(string(row.noticeSurvey))
+  }
+  for (const row of records(wave.noticeAssets).filter(row => string(row.path).startsWith(split + '/'))) allowed.add(string(row.path))
+  const files = object(lock.files)
+  for (const path of allowed) {
+    if (path === 'scope-requests.tsv') continue // Independently checked against the complete fixed declarations.
+    need(path in files && sha(read(packetPath(path))) === string(files[path]), `Changed locked asset: ${path}`)
+  }
+}
+
+function licenseIds(wave: Record<string, unknown>): ReadonlySet<string> {
+  const licenses = records(wave.licenses), ids = new Set(licenses.map(row => string(row.licenseId)))
+  need(ids.size === 3 && licenses.length === 3, 'Missing/duplicate license')
+  return ids
 }
