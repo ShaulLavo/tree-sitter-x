@@ -3982,6 +3982,10 @@ fn test_query_predicates_with_empty_string_args() {
                 r#"((identifier) @a (#something! @a "" "x" ""))"#,
                 vec!["", "x", ""],
             ),
+            (
+                r#"((identifier) @a (#something! @a "\0." "\0*" "\0."))"#,
+                vec!["\0.", "\0*", "\0."],
+            ),
         ] {
             let query = Query::new(&language, source).unwrap();
             let expected = std::iter::once(QueryPredicateArg::Capture(0))

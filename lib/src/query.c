@@ -932,7 +932,7 @@ static int symbol_table_id_for_name(
     Slice slice = *array_get(&self->slices, i);
     if (slice.length != length) continue;
     if (length == 0) return i;
-    if (!strncmp(array_get(&self->characters, slice.offset), name, length)) return i;
+    if (!memcmp(array_get(&self->characters, slice.offset), name, length)) return i;
   }
   return -1;
 }

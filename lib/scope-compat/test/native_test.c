@@ -187,6 +187,27 @@ static void source_gap_literals(void) {
   assert(scope_compat_live_allocations() == 0);
 }
 
+static void source_gap_nul_literals(void) {
+  const char *query = "((array \",\" @_a (number) @_b) @first (#source-gap? @_a @_b \"\\0.\")) "
+    "((array \",\" @_a (number) @_b) @second (#source-gap? @_a @_b \"\\0*\"))";
+  Fixture f = fixture(query, "[1,  2]");
+  f.source[3] = 0; f.source[4] = '*';
+  ts_tree_delete(f.tree);
+  f.tree = ts_parser_parse_string_encoding(f.parser, NULL, (const char *)f.source, f.length * 2, TSInputEncodingUTF16LE);
+  assert(f.tree);
+  ScopeCompatResult *r = run(&f);
+  assert(r && r->status == SCOPE_COMPAT_OK && r->intervals_kept == 1);
+  ScopeCompatExplain *e = scope_compat_explain(f.pack, f.tree, f.source, f.length, 1, 0, f.length, 0, 0);
+  assert(e && e->status == SCOPE_COMPAT_OK && e->interval_count == 1);
+  assert(e->intervals[3] == 1);
+  ScText first = f.pack->strings[f.pack->predicates[0].data.gap.literal];
+  ScText second = f.pack->strings[f.pack->predicates[1].data.gap.literal];
+  assert(first.length == 2 && first.text[0] == 0 && first.text[1] == '.');
+  assert(second.length == 2 && second.text[0] == 0 && second.text[1] == '*');
+  scope_compat_result_delete(r); scope_compat_explain_delete(e); dispose(&f);
+  assert(scope_compat_live_allocations() == 0);
+}
+
 static void source_gap_validation(void) {
   Fixture f = fixture("((number) @_n (#source-gap? @_n @_n \"x\"))", "12");
   TSQueryCapture captures[] = {{ts_node_named_child(ts_tree_root_node(f.tree), 0), 0}};
@@ -664,6 +685,7 @@ int main(int argc, char **argv) {
   source_gap_reads();
   source_gap_roles();
   source_gap_literals();
+  source_gap_nul_literals();
   source_gap_validation();
   source_gap_eof();
   source_gap_late_unwind();
