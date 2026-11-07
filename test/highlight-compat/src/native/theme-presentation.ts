@@ -2,16 +2,17 @@ import type { ScopeSession } from './incremental.ts';
 import type { ViewId } from './owner-state.ts';
 import type { NormalizedTheme } from './theme-input.ts';
 import type { CompileLimits, Failure, InputLimits, OperationalFailure, Outcome, ResolveLimits } from './theme-contract.ts';
-import { attempt, limits, COMPILE_DEFAULTS, INPUT_DEFAULTS, RESOLVE_DEFAULTS } from './theme-contract.ts';
+import { attempt, limits, reject, COMPILE_DEFAULTS, INPUT_DEFAULTS, RESOLVE_DEFAULTS } from './theme-contract.ts';
 import { NativeTheme } from './theme.ts';
 import { ThemeCache, clipStyles } from './theme-cache.ts';
 import type { StyleRun, ThemePair } from './theme-cache.ts';
 import { clipSnapshot, OutputBudgetError } from './scope-output.ts';
-import type { ScopeLease, ScopeSnapshot, Publication } from './scope-output.ts';
+import type { FramingPolicy, ScopeLease, ScopeSnapshot, Publication } from './scope-output.ts';
 
 export interface PresentationKey {
   readonly owner: ScopeSnapshot['owner']; readonly generation: ScopeSnapshot['generation']; readonly work: ScopeSnapshot['work'];
   readonly view: Publication; readonly themeRevision: string; readonly profile: NormalizedTheme['profile'];
+  readonly framing: FramingPolicy;
 }
 export interface StyleSnapshot { readonly key: PresentationKey; readonly scopes: ScopeSnapshot; readonly runs: readonly StyleRun[]; readonly metadata: null }
 export interface PresentationLease { readonly snapshot: StyleSnapshot; retain(): PresentationLease; release(): void }
@@ -19,6 +20,7 @@ export type PresentationOutcome = Readonly<{ kind: 'complete'; key: Presentation
   | Readonly<{ kind: 'unavailable'; reason: 'scope-not-current' | 'closed' }>
   | Readonly<{ kind: 'canceled' | 'discarded' }> | Readonly<{ kind: 'incomplete'; reason: 'budget' }>;
 export interface PresentationOptions {
+  readonly framing?: FramingPolicy;
   readonly signal?: AbortSignal; readonly compile?: Partial<CompileLimits>; readonly input?: Partial<InputLimits>; readonly resolve?: Partial<ResolveLimits>;
 }
 interface Request {
@@ -89,6 +91,7 @@ export class ThemePresentation {
     catch { return this.current(request) ? { kind: 'error', code: 'acquisition-failed', location: { kind: 'request' } } : this.terminal(request); }
     if (!this.current(request)) return this.terminal(request);
     if (normalized.kind !== 'ok') return normalized;
+    if (request.options.framing === 'future010-product-lines-v1' && normalized.value.profile !== 'product') return { kind: 'unsupported', code: 'profile', location: { kind: 'request' } };
     const compiled = await NativeTheme.compile(normalized.value, request.options.compile);
     if (compiled.kind !== 'ok') return this.current(request) ? compiled : this.terminal(request);
     try {
@@ -99,7 +102,7 @@ export class ThemePresentation {
   private publish(request: Request, normalized: NormalizedTheme, theme: NativeTheme): PresentationOutcome {
     let pair: ThemePair | undefined;
     try {
-      const resolved = this.#cache.acquire(request.scope, normalized, theme, request.options.input ?? {}, request.options.resolve ?? {});
+      const resolved = this.#cache.acquire(request.scope, normalized, theme, request.options.input ?? {}, request.options.resolve ?? {}, request.options.framing);
       if (resolved.kind !== 'ok') return this.current(request) ? resolved : this.terminal(request);
       pair = resolved.value;
       if (!this.current(request)) return this.terminal(request);
@@ -107,7 +110,7 @@ export class ThemePresentation {
       if (!publication) throw new Error('Missing scope view identity');
       const scope = request.scope.snapshot;
       const key = Object.freeze({ owner: scope.owner, generation: scope.generation, work: scope.work, view: publication,
-        themeRevision: normalized.contentRevision, profile: normalized.profile });
+        themeRevision: normalized.contentRevision, profile: normalized.profile, framing: request.options.framing ?? 'identity-v1' });
       const output = new Output(pair, key).retain(); pair = undefined;
       if (!this.current(request)) { output.release(); return this.terminal(request); }
       this.#outputs.set(request.view, output);
@@ -151,7 +154,9 @@ export class ThemePresentation {
   }
 }
 function snapshotOptions(options: PresentationOptions): PresentationOptions {
-  return Object.freeze({ ...options,
+  const framing = options.framing === undefined ? 'identity-v1' : options.framing;
+  if (framing !== 'identity-v1' && framing !== 'future010-product-lines-v1') reject({ kind: 'invalid', code: 'schema', location: { kind: 'request' } });
+  return Object.freeze({ ...options, framing,
     compile: Object.freeze(limits(COMPILE_DEFAULTS, options.compile === undefined ? {} : options.compile)),
     input: Object.freeze(limits(INPUT_DEFAULTS, options.input === undefined ? {} : options.input, true)),
     resolve: Object.freeze(limits(RESOLVE_DEFAULTS, options.resolve === undefined ? {} : options.resolve)) });

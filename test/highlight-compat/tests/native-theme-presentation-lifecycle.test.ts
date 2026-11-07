@@ -173,7 +173,7 @@ function scopeReleases(session: Awaited<ReturnType<typeof context>>['session']) 
   const spy = vi.spyOn(session, 'acquireFull').mockImplementation(view => {
     const lease = original.call(session, view);
     if (!lease) return undefined;
-    return { get snapshot() { return lease.snapshot; }, publication: lease.publication, retain: lease.retain, reserve: lease.reserve,
+    return { get snapshot() { return lease.snapshot; }, publication: lease.publication, retain: lease.retain, reserve: lease.reserve, projectFraming: lease.projectFraming,
       release: () => { count++; lease.release(); } };
   });
   return { count: () => count, restore: () => spy.mockRestore() };
