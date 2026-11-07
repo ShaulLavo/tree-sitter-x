@@ -6,7 +6,7 @@ import { integer } from './edit-batch.ts';
 import type { TextSpan } from './edit-batch.ts';
 import { counter, sameOwner, sameWork } from './owner-state.ts';
 import type { OwnerKey, WorkKey, ViewId, InterestGeneration, ThemeGeneration } from './owner-state.ts';
-import { packIntervals, clipSnapshot, OutputStore, OutputBudgetError } from './scope-output.ts';
+import { packIntervals, clipSnapshot, OutputStore, OutputBudgetError, separatorSpans } from './scope-output.ts';
 import type { ScopeLease, ScopeSnapshot, Publication } from './scope-output.ts';
 import type { ScopeInterval } from '../baselines/compose.ts';
 export type ScopeOwner = PilotDocument | MarkdownPilotDocument;
@@ -38,6 +38,7 @@ export class ScopeSession {
   readonly #releasePacks: (() => void)[] = [];
   readonly #unsubscribe: () => void;
   readonly #views = new Map<ViewId, View>();
+  readonly #presentationListeners = new Set<(view: ViewId | null) => void>();
   #cache: ScopeLease | undefined;
   #pending: OwnerKey | undefined;
   #active: Work | undefined;
@@ -67,6 +68,7 @@ export class ScopeSession {
   request(id: ViewId, input: Readonly<{ viewport: TextSpan; theme: number }>): InterestGeneration {
     this.open(); this.viewport(input.viewport);
     const theme = counter<'ThemeGeneration'>(input.theme), view = this.view(id);
+    this.presentationChanged(id);
     const interest = counter<'InterestGeneration'>(view.interest + 1);
     view.viewport = Object.freeze({ ...input.viewport }); view.theme = theme; view.interest = interest; view.wants = true; view.outcome = undefined;
     this.#pending = this.#owner.key(); return interest;
@@ -74,12 +76,14 @@ export class ScopeSession {
   cancel(id: ViewId, interest: InterestGeneration): void {
     const view = this.#views.get(id);
     if (!view || view.interest !== interest) return;
+    this.presentationChanged(id);
     view.wants = false;
     view.outcome = { kind: 'canceled', work: this.#active?.key ?? this.workKey(this.#owner.key()), reason: 'explicit' };
     if (!this.interested()) { this.cancelActive(); this.#pending = undefined; }
   }
   detachView(id: ViewId): void {
     const view = this.#views.get(id); if (!view) return;
+    this.presentationChanged(id);
     view.output?.release(); this.#views.delete(id);
     if (this.#views.size) return;
     this.cancelActive();
@@ -88,6 +92,34 @@ export class ScopeSession {
   acquire(id: ViewId): ScopeLease | undefined {
     const output = this.#views.get(id)?.output;
     return output ? this.#outputs.retain(output.snapshot, output.publication) : undefined;
+  }
+  selectTheme(id: ViewId): ThemeGeneration | undefined {
+    const view = this.#views.get(id);
+    if (this.#disposed || !view) return undefined;
+    const theme = counter<'ThemeGeneration'>(view.theme + 1);
+    this.presentationChanged(id); view.theme = theme; return theme;
+  }
+  acquireFull(id: ViewId): ScopeLease | undefined {
+    const view = this.#views.get(id), snapshot = this.#cache?.snapshot;
+    if (this.#disposed || !view?.wants || !snapshot || view.outcome?.kind !== 'complete') return undefined;
+    if (this.#owner.observe().kind !== 'ready' || !sameOwner(this.#owner.key(), snapshot.owner)) return undefined;
+    if (view.output?.snapshot.generation !== snapshot.generation) return undefined;
+    return this.#outputs.retain(snapshot, Object.freeze({ view: id, interest: view.interest, theme: view.theme, viewport: view.viewport,
+      change: view.output.publication?.change ?? Object.freeze({ kind: 'reset' }) }));
+  }
+  presentationCurrent(lease: ScopeLease): boolean {
+    const publication = lease.publication, snapshot = lease.snapshot;
+    const view = publication && this.#views.get(publication.view);
+    if (!publication || !view || !view.wants || this.#disposed || this.#owner.observe().kind !== 'ready') return false;
+    return sameOwner(snapshot.owner, this.#owner.key()) && this.#cache?.snapshot === snapshot &&
+      view.output?.snapshot.generation === snapshot.generation && view.interest === publication.interest && view.theme === publication.theme &&
+      view.viewport.from === publication.viewport.from && view.viewport.to === publication.viewport.to;
+  }
+  onPresentationChange(listener: (view: ViewId | null) => void): () => void {
+    this.open(); this.#presentationListeners.add(listener); return () => { this.#presentationListeners.delete(listener); };
+  }
+  private presentationChanged(view: ViewId | null): void {
+    for (const listener of Array.from(this.#presentationListeners)) listener(view);
   }
   outcome(id: ViewId): ScopeOutcome | undefined { return this.#views.get(id)?.outcome; }
   retainedBytes(): number { return this.#outputs.bytes() + (this.#active?.progress.bytes ?? 0); }
@@ -126,12 +158,13 @@ export class ScopeSession {
       work.progress.intervals = []; work.progress.bytes = 0;
       for (const view of this.#views.values()) this.publish(view, work, snapshot);
       return true;
-    } catch (error) {
-      if (!this.current(work)) { this.terminal(work); return true; }
-      const diagnostic = error instanceof Error ? error.message : String(error);
-      const reason = (error instanceof ScopeFailure || error instanceof NativeScopeError) ? error.reason : /budget/i.test(diagnostic) ? 'budget' : /allocation failed/.test(diagnostic) ? 'no-memory' : 'invalid';
-      this.failure(work, reason, diagnostic); return true;
-    }
+    } catch (error) { return this.runFailure(work, error); }
+  }
+  private runFailure(work: Work, error: unknown): true {
+    if (!this.current(work)) { this.terminal(work); return true; }
+    const diagnostic = error instanceof Error ? error.message : String(error);
+    const reason = (error instanceof ScopeFailure || error instanceof NativeScopeError) ? error.reason : /budget/i.test(diagnostic) ? 'budget' : /allocation failed/.test(diagnostic) ? 'no-memory' : 'invalid';
+    this.failure(work, reason, diagnostic); return true;
   }
   private advance(work: Work): ScopeSnapshot | undefined {
     const owner = this.#owner;
@@ -140,7 +173,7 @@ export class ScopeSession {
     const progress = work.progress, count = owner.children.length;
     if (progress.next < count) {
       const intervals = owner.scopeChild(progress.next++, this.#packs, this.#limits);
-      const bytes = intervals.reduce((sum, interval) => sum + 16 + interval.scopes.reduce((n, name) => n + 8 + name.length * 2, 0), 0);
+      const bytes = intervals.reduce((sum, interval) => sum + intervalBytes(interval), 0);
       if (this.retainedBytes() + bytes > this.#limits.retainedBytes) throw new ScopeFailure('budget', 'Partial child scope byte budget');
       if (progress.intervals.length + intervals.length > this.#limits.maxSegments) throw new ScopeFailure('budget', 'Partial child segment budget');
       for (const interval of intervals) progress.intervals.push(interval);
@@ -155,7 +188,7 @@ export class ScopeSession {
     const owner = this.#owner;
     const injections = owner instanceof MarkdownPilotDocument ? owner.injectionCoverage : [];
     return Object.freeze({ ...packed, owner: owner.key(), work: work.key, generation: counter<'ResultGeneration'>(++this.#generation),
-      coverage: Object.freeze({ from: 0, to: owner.source.length }), sourceLength: owner.source.length, metadata: null,
+      coverage: Object.freeze({ from: 0, to: owner.source.length }), sourceLength: owner.source.length, metadata: null, separators: separatorSpans(owner.source),
       injections: Object.freeze(injections), diagnostics: Object.freeze(owner instanceof MarkdownPilotDocument ? Array.from(owner.diagnostics) : []) });
   }
   private rootIntervals(owner: PilotDocument): readonly ScopeInterval[] {
@@ -174,12 +207,13 @@ export class ScopeSession {
     const clipped = clipSnapshot(full, view.viewport);
     view.output = undefined; before?.release();
     try { view.output = this.#outputs.retain(clipped, publication); }
-    catch (error) {
-      if (!(error instanceof OutputBudgetError)) throw error;
-      view.outcome = { kind: 'incomplete', work: work.key, reason: 'budget', diagnostic: error.message }; return;
-    }
+    catch (error) { this.publicationFailure(view, work, error); return; }
     view.last = Object.freeze({ kind: 'replace', old: clipped.owner, generation: clipped.generation, coverage: clipped.coverage });
     view.outcome = { kind: 'complete', work: work.key };
+  }
+  private publicationFailure(view: View, work: Work, error: unknown): void {
+    if (!(error instanceof OutputBudgetError)) throw error;
+    view.outcome = { kind: 'incomplete', work: work.key, reason: 'budget', diagnostic: error.message };
   }
   private current(work: Work): boolean {
     return !this.#disposed && !work.canceled && this.interested() && this.#owner.observe().kind === 'ready' && sameOwner(this.#owner.key(), work.key) && !!this.#active && sameWork(this.#active.key, work.key);
@@ -196,6 +230,7 @@ export class ScopeSession {
     for (const view of this.#views.values()) { if (view.wants) view.outcome = { kind: 'incomplete', work: work.key, reason, diagnostic: diagnostic.slice(0, 1024) }; }
   }
   private invalidate(): void {
+    this.presentationChanged(null);
     this.cancelActive();
     this.#cache?.release(); this.#cache = undefined;
     for (const view of this.#views.values()) { view.output?.release(); view.output = undefined; }
@@ -213,6 +248,7 @@ export class ScopeSession {
   dispose(): void {
     if (this.#disposed) return;
     this.#disposed = true; ScopeSession.#attached.delete(this.#owner); this.#unsubscribe();
+    this.presentationChanged(null); this.#presentationListeners.clear();
     this.cancelActive();
     for (const id of this.#views.keys()) this.detachView(id);
     this.#cache?.release(); this.#cache = undefined; this.#pending = undefined;
@@ -220,4 +256,7 @@ export class ScopeSession {
   }
   private cancelActive(): void { if (this.#active) this.#active.canceled = true; this.#active = undefined; }
   private releasePacks(): void { for (const release of this.#releasePacks.splice(0)) release(); }
+}
+function intervalBytes(interval: ScopeInterval): number {
+  return 16 + interval.scopes.reduce((bytes, name) => bytes + 8 + name.length * 2, 0);
 }
