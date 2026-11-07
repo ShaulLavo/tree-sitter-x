@@ -1,0 +1,85 @@
+import type { ScopeInterval } from '../baselines/compose.ts';
+import type { OwnerKey, ResultGeneration, WorkKey, ViewId, InterestGeneration, ThemeGeneration } from './owner-state.ts';
+import type { TextSpan } from './edit-batch.ts';
+export interface ScopeDictionary { readonly names: readonly string[]; readonly paths: readonly (readonly number[])[] }
+export interface InjectionCoverage { readonly from: number; readonly to: number; readonly language: string | null; readonly reason: string | null }
+export interface ScopeSnapshot {
+  readonly owner: OwnerKey; readonly generation: ResultGeneration; readonly work: WorkKey;
+  readonly coverage: TextSpan; readonly sourceLength: number; readonly dictionary: ScopeDictionary;
+  readonly segments: readonly number[]; readonly metadata: null;
+  readonly injections: readonly InjectionCoverage[]; readonly diagnostics: readonly string[];
+}
+export interface Publication {
+  readonly view: ViewId; readonly interest: InterestGeneration; readonly theme: ThemeGeneration; readonly viewport: TextSpan;
+  readonly change: Readonly<{ kind: 'reset' }> | Readonly<{ kind: 'replace'; old: ScopeSnapshot['owner']; generation: ResultGeneration; coverage: TextSpan }>;
+}
+export interface ScopeLease { readonly snapshot: ScopeSnapshot; readonly publication: Publication | null; release(): void }
+export function packIntervals(intervals: readonly ScopeInterval[], length: number): { dictionary: ScopeDictionary; segments: readonly number[] } {
+  const names: string[] = [], paths: number[][] = [], segments: number[] = [];
+  const nameIds = new Map<string, number>(), pathIds = new Map<string, number>();
+  let end = 0;
+  for (const interval of intervals) {
+    if (!Number.isSafeInteger(interval.from) || !Number.isSafeInteger(interval.to) || interval.from !== end || interval.to <= interval.from || interval.to > length) throw new Error('Invalid full scope coverage');
+    const path = interval.scopes.map(name => internName(name, names, nameIds));
+    const key = JSON.stringify(path);
+    let id = pathIds.get(key);
+    if (id === undefined) { id = paths.length; paths.push(path); pathIds.set(key, id); }
+    if (segments.length && segments[segments.length - 1] === id) segments[segments.length - 2] = interval.to;
+    else segments.push(interval.from, interval.to, id);
+    end = interval.to;
+  }
+  if (end !== length) throw new Error('Incomplete full scope coverage');
+  return { dictionary: Object.freeze({ names: Object.freeze(names), paths: Object.freeze(paths.map(path => Object.freeze(path))) }), segments: Object.freeze(segments) };
+}
+function internName(name: string, names: string[], ids: Map<string, number>): number {
+  if (!name || /\s/.test(name)) throw new Error('Invalid scope name');
+  let id = ids.get(name);
+  if (id !== undefined) return id;
+  id = names.length; names.push(name); ids.set(name, id); return id;
+}
+export function clipSnapshot(full: ScopeSnapshot, coverage: TextSpan): ScopeSnapshot {
+  const segments: number[] = [];
+  for (let i = 0; i < full.segments.length; i += 3) {
+    const from = Math.max(coverage.from, full.segments[i]), to = Math.min(coverage.to, full.segments[i + 1]);
+    if (from < to) segments.push(from, to, full.segments[i + 2]);
+  }
+  const injections = full.injections.flatMap(item => {
+    const from = Math.max(coverage.from, item.from), to = Math.min(coverage.to, item.to);
+    return from < to ? [Object.freeze({ ...item, from, to })] : [];
+  });
+  return Object.freeze({ ...full, coverage, segments: Object.freeze(segments), injections: Object.freeze(injections) });
+}
+export function decodedSnapshot(snapshot: ScopeSnapshot): readonly ScopeInterval[] {
+  return Array.from({ length: snapshot.segments.length / 3 }, (_, index) => ({ from: snapshot.segments[index * 3], to: snapshot.segments[index * 3 + 1],
+    scopes: snapshot.dictionary.paths[snapshot.segments[index * 3 + 2]].map(id => snapshot.dictionary.names[id]) }));
+}
+export class OutputBudgetError extends Error {}
+export class OutputStore {
+  readonly #live = new Map<ScopeSnapshot, number>();
+  readonly #ceiling: number;
+  constructor(ceiling: number) { this.#ceiling = ceiling; }
+  bytes(extra?: ScopeSnapshot): number {
+    const snapshots = Array.from(this.#live.keys());
+    if (extra && !this.#live.has(extra)) snapshots.push(extra);
+    const dictionaries = new Set(snapshots.map(snapshot => snapshot.dictionary));
+    const dictionaryBytes = Array.from(dictionaries, dictionary => dictionary.names.reduce((sum, name) => sum + name.length * 2, 0) + dictionary.paths.reduce((sum, path) => sum + path.length * 8, 0)).reduce((a, b) => a + b, 0);
+    const segmentArrays = new Set(snapshots.map(snapshot => snapshot.segments));
+    const injectionArrays = new Set(snapshots.map(snapshot => snapshot.injections));
+    const diagnosticArrays = new Set(snapshots.map(snapshot => snapshot.diagnostics));
+    const segmentBytes = Array.from(segmentArrays, segments => segments.length * 8).reduce((a, b) => a + b, 0);
+    const injectionBytes = Array.from(injectionArrays, injections => injections.reduce((sum, item) => sum + 32 + (item.language?.length ?? 0) * 2 + (item.reason?.length ?? 0) * 2, 0)).reduce((a, b) => a + b, 0);
+    const diagnosticBytes = Array.from(diagnosticArrays, diagnostics => diagnostics.reduce((sum, text) => sum + text.length * 2, 0)).reduce((a, b) => a + b, 0);
+    return dictionaryBytes + segmentBytes + injectionBytes + diagnosticBytes + snapshots.length * 128;
+  }
+  retain(snapshot: ScopeSnapshot, publication: Publication | null = null): ScopeLease {
+    if (this.bytes(snapshot) > this.#ceiling) throw new OutputBudgetError('Retained scope byte budget');
+    this.#live.set(snapshot, (this.#live.get(snapshot) ?? 0) + 1);
+    let held: ScopeSnapshot | undefined = snapshot;
+    return Object.freeze({ get snapshot() { if (!held) throw new Error('Released scope lease'); return held; }, publication, release: () => {
+      const previous = held; if (!previous) return;
+      held = undefined;
+      const count = this.#live.get(previous) ?? 0;
+      if (count <= 1) this.#live.delete(previous); else this.#live.set(previous, count - 1);
+    } });
+  }
+}

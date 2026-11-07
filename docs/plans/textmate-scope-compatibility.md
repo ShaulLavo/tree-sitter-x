@@ -398,6 +398,8 @@ Two bounded pilot pack-authoring rounds now pass all required local strict-impro
 
 ### Phase 3: incrementality and injection ownership
 
+The private harness now has revisioned edits on the existing document owners, full-document scope sessions, bounded shared output leases, flat Markdown child reconciliation, exact supplied-map validation, and a bounded fresh-native replay command. Run `npm --prefix test/highlight-compat run replay:native -- --seed 1 --edits 32 --language markdown`. This is conservative full invalidation, with no native stateful ABI, local invalidation, worker changes, theme matching, or product promotion. Phase 3 acceptance remains open until independent review, actual selected CI and Complete CI pass, and the implementation is merged. Nested Markdown maps remain explicitly unsupported unless an owner supplies their exact ranges.
+
 - [ ] Implement conservative invalidation with old/new edit spans and declared rule dependencies.
 - [ ] Integrate borrowed injected trees or explicitly owned injection sessions with disposal and source maps.
 - [ ] Add seeded edit replay, same-shape predicate edits, viewport/full equivalence, batch edits, and undo/redo.

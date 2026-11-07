@@ -9,6 +9,7 @@
   },
   "scripts": {
     "test": "vitest run",
+    "replay:native": "node src/cli/replay-native.ts",
     "typecheck": "tsc --noEmit",
     "compare": "node src/cli/compare.ts",
     "measure": "node src/cli/measure.ts",
