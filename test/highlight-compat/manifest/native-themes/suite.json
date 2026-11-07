@@ -1,6 +1,6 @@
 {
   "schema": "native-theme-oracle/v1",
-  "identity": "fff0299933f585796ce95ffbbfc26be488d2c52fa412278afb95b2d5acc81834",
+  "identity": "f15b57bcab036a46dacbe5ba980c9e5585fdf6c57875cd98e03cda4fb39e4f7e",
   "targets": {
     "fork": {
       "version": "10.0.2",
@@ -23,7 +23,7 @@
     "product": {
       "commit": "7f0dfc9e29fa9e3ee90c981147f77f6fcb656481",
       "themeSha256": "13ad4303c85ae18e58ee9fba45d9e0ff0bd09ad4e268ef08c069d80eb35990e1",
-      "tokensSha256": "0844a69f94394a74957e085da519b1b8f14f56509be1717e4c49b25f2d9d4dfe"
+      "tokensSha256": "83ee87820aa07777c514631342fb48f9c217f4888e00f8056f71e2e07bf14c50"
     }
   },
   "fixtures": [
@@ -31,7 +31,7 @@
       "id": "inheritance",
       "profile": "raw",
       "acquisitionIdentity": "85d9a13fd1f42a64af18c970551b67f43d41b69ad77dca43533b0a8424a4aa36",
-      "contentIdentity": "94651839f299f7eadaf5c57ccf67000887af42c0605ca9401b76ae4ba6b75c9a",
+      "contentIdentity": "799a47d92a0e8e04c30eea9ed8d2e3b3d6878238b06e3e4a94417bf9cc282320",
       "normalizedSettingsIdentity": "321ab3b61c88479a0daee84c9c92967b2bcb571d5f6dc96ff6c0fcf2c4b6221f",
       "input": {
         "id": "inheritance",
@@ -1031,7 +1031,7 @@
       "id": "inheritance",
       "profile": "product",
       "acquisitionIdentity": "85d9a13fd1f42a64af18c970551b67f43d41b69ad77dca43533b0a8424a4aa36",
-      "contentIdentity": "4e8fcf7fea961445400cfeb826383364759f8495b67a13f8c674218dbe6d3043",
+      "contentIdentity": "1ee149440b92f465c03ef8b6c78ab58f5a9f0068eeddb0fa8eea58aea0fd1fa4",
       "normalizedSettingsIdentity": "decdde56e840096300b80a80d9a31242edf5d0b766952d31dec7a52d9f24d1a8",
       "input": {
         "id": "inheritance",
@@ -2021,7 +2021,7 @@
       "id": "inheritance-changed",
       "profile": "raw",
       "acquisitionIdentity": "81f5f122d3fcbf50f1d09f33bd20424cbf65091dd217bd02b88f1a37f472a39c",
-      "contentIdentity": "a5e083b5ab9453ea84af5cd99f86f77dc4cd74ac9f13d55f92f73bd3fab03d9a",
+      "contentIdentity": "8b801d35cb58e506293da344008b74347ad594536ee4500abce96c56f26b353f",
       "normalizedSettingsIdentity": "103bd3e19b01137f76da5881c7727295c1cc5b51454a7384bce324c74389afa2",
       "input": {
         "id": "inheritance-changed",
@@ -2845,7 +2845,7 @@
       "id": "inheritance-changed",
       "profile": "product",
       "acquisitionIdentity": "81f5f122d3fcbf50f1d09f33bd20424cbf65091dd217bd02b88f1a37f472a39c",
-      "contentIdentity": "14c9f35cc69be00fc83914dd39172b1aaa30e8dd03087e08937458dcc9d77c35",
+      "contentIdentity": "58d28dcb8635dbb9e1577460093ac52299a3ceb39a2ad3cf6a47170195ab5a03",
       "normalizedSettingsIdentity": "c141633ffda078f43d66d35dc651c448dbd6bf7d36d8af711a209711349abfac",
       "input": {
         "id": "inheritance-changed",
@@ -3656,7 +3656,7 @@
       "id": "contexts",
       "profile": "raw",
       "acquisitionIdentity": "ef202a254f2ba2ea37c418445bc0800acdb63ad689f7bcfeaeeee364a64078f4",
-      "contentIdentity": "fe12fe02d9a12f02a4f60313c9b3c44a920251c93f6bd0bfe2e36243b58795cb",
+      "contentIdentity": "c660a5c13e83d9cba3a7fc7cea29ef2d86720d08c6b14d30145720759e258ef6",
       "normalizedSettingsIdentity": "8a92e6ceae5baefe3959bce6f543e7360e3232b92e5f44f27b934ce58a4eadab",
       "input": {
         "id": "contexts",
@@ -6744,7 +6744,7 @@
       "id": "contexts",
       "profile": "product",
       "acquisitionIdentity": "ef202a254f2ba2ea37c418445bc0800acdb63ad689f7bcfeaeeee364a64078f4",
-      "contentIdentity": "f55c318a92ab95e0141bab1554eda8222bfdedf53dd62f968379997f4033cb58",
+      "contentIdentity": "95875b2dd5f760b0e1a101952dbbfeacfb94b6f1f74d0866565a87ce47393966",
       "normalizedSettingsIdentity": "feda96b764a8bb65a79b19d2812fc049d25612a050650122b9cc82a9c6599128",
       "input": {
         "id": "contexts",
@@ -9799,7 +9799,7 @@
       "id": "precedence",
       "profile": "raw",
       "acquisitionIdentity": "438408ecb5ff10c3d034b195ce90c321f97588e3e06982f25b8cc36990dd460d",
-      "contentIdentity": "2d944443f0f75861958a71b4974c0246b0df550c75950cde9ebb6e7b060e0e31",
+      "contentIdentity": "0208a51232234320edc80f7c0bb2dcfdcc27ce9013f113ba8e1b7a7b1e3548f2",
       "normalizedSettingsIdentity": "303960b793c2dd7fcc7e0b0ee331934a72b8d4b83739e5e7c1a8526d41020e02",
       "input": {
         "id": "precedence",
@@ -10647,7 +10647,7 @@
       "id": "precedence",
       "profile": "product",
       "acquisitionIdentity": "438408ecb5ff10c3d034b195ce90c321f97588e3e06982f25b8cc36990dd460d",
-      "contentIdentity": "d8e8df3d4b5040581aa36f14fed72dfddab5894fe0dfc525aa428b64f8208a12",
+      "contentIdentity": "b1c556bdc0b9c923fb47d02009a0821ef902f48e85f1103ab2216c7868ce8760",
       "normalizedSettingsIdentity": "0096506c824a60ed31f07ac7398c8f23d17ff0a47b5544b24c1bb8792330a515",
       "input": {
         "id": "precedence",
@@ -11496,7 +11496,7 @@
       "id": "empty-dark",
       "profile": "raw",
       "acquisitionIdentity": "7c17718885f7b1f12b4d5421576a35475fb133c2904368a0fc73be39f538025f",
-      "contentIdentity": "c1d1660b608ba21d7f7b4bfc4fa9e17eeb422a9c535255fd9e4083676c2bcb42",
+      "contentIdentity": "2ed9d39dbd173ec30e67ddd948ac346e6cd10f1caf96b24661f28cc8d8b5b5fc",
       "normalizedSettingsIdentity": "b90f79f999950f9f752754d12bb7fcb9cc54bfdd57406e340633c34b5c5bf71f",
       "input": {
         "id": "empty-dark",
@@ -12244,7 +12244,7 @@
       "id": "empty-dark",
       "profile": "product",
       "acquisitionIdentity": "7c17718885f7b1f12b4d5421576a35475fb133c2904368a0fc73be39f538025f",
-      "contentIdentity": "8032f5cc028fd8d42aa36af8030d0a31a6457582ead28aa10d167309359a9149",
+      "contentIdentity": "5da2620d4b416358180698515f081c660027d5df78f810b306b0aefe17bbd25e",
       "normalizedSettingsIdentity": "b90f79f999950f9f752754d12bb7fcb9cc54bfdd57406e340633c34b5c5bf71f",
       "input": {
         "id": "empty-dark",
@@ -12985,7 +12985,7 @@
       "id": "empty-light",
       "profile": "raw",
       "acquisitionIdentity": "82fc7a0ff8c74ca02088f2709a36015637a8e1017344fe5e8712f33c4cc72fd5",
-      "contentIdentity": "77004928d6dbfe1b8cffddff407efeff88fa15be2ffff764ea8a0392a1440ad5",
+      "contentIdentity": "d4c2fc146a3460eb75d66f23258ac59d41be0eba08ff8f664323fd1329f271cf",
       "normalizedSettingsIdentity": "6e6838061c9ce5dfed6bf849e5345b643ef01a96894cf5cbef306b05e99597e3",
       "input": {
         "id": "empty-light",
@@ -13733,7 +13733,7 @@
       "id": "empty-light",
       "profile": "product",
       "acquisitionIdentity": "82fc7a0ff8c74ca02088f2709a36015637a8e1017344fe5e8712f33c4cc72fd5",
-      "contentIdentity": "45bdf4098008c9ea290f7af4f43a3358239e1047a9fd5443a95924028aed4517",
+      "contentIdentity": "0f1472d8ceac691cfe179ec3c855be37cc74857be389ebbad58dee8a54bdc890",
       "normalizedSettingsIdentity": "6e6838061c9ce5dfed6bf849e5345b643ef01a96894cf5cbef306b05e99597e3",
       "input": {
         "id": "empty-light",
@@ -14474,7 +14474,7 @@
       "id": "outside-score",
       "profile": "raw",
       "acquisitionIdentity": "44b90160f2d08837c748d3981b2c06cef80cec9efd3437009aefdf3856ad2da1",
-      "contentIdentity": "51a2ecb3f82a28b678aa9bd4e48cbd07c8d3b810236ae26154fd7880df6389f8",
+      "contentIdentity": "00e50a95ef0b2a04b59ed574cdaef53b0b649dae94d67e188beb65032ccb5cfb",
       "normalizedSettingsIdentity": "dea9b5a73dc78f85dbcccb7b397b9e6364fa1608180509c099343dd652d17fb6",
       "input": {
         "id": "outside-score",
@@ -15271,7 +15271,7 @@
       "id": "outside-score",
       "profile": "product",
       "acquisitionIdentity": "44b90160f2d08837c748d3981b2c06cef80cec9efd3437009aefdf3856ad2da1",
-      "contentIdentity": "9db4f70105234641aac72d6074f9600c5d577d3212e40d978519e8eb26a41cc5",
+      "contentIdentity": "ccc63908a0e4df7bfcd6aef7f5d11c02e7ddfe139773b831cc0461807e59d88e",
       "normalizedSettingsIdentity": "0e263e2d4e185982b038e6329921cf8530817549e9ae89d9f73b7bbb9b3c4fd4",
       "input": {
         "id": "outside-score",
@@ -16065,7 +16065,7 @@
       "id": "included",
       "profile": "raw",
       "acquisitionIdentity": "7c7f584cf7e79e6fd894a169efbd4de4dcac528ceabb3d882d3a8dac9f4c961d",
-      "contentIdentity": "6a6dfdc675c38962247c6303b4905d8cd6e467bef4d8822d5355423a3df1c48d",
+      "contentIdentity": "4d7b53b48e98e79aa93ad5e8a01be0e08fbb92d1c9702d82f64a5147dbc6baa0",
       "normalizedSettingsIdentity": "18cd2546ab5f38036b9ef8b46ffa4e061a710f2e2ad6291d40ebd3f5f7e08c0a",
       "input": {
         "id": "included",
@@ -16370,7 +16370,7 @@
       "id": "included",
       "profile": "product",
       "acquisitionIdentity": "7c7f584cf7e79e6fd894a169efbd4de4dcac528ceabb3d882d3a8dac9f4c961d",
-      "contentIdentity": "0348d9fbd196dfc4e2b0e3f76f433e228c10f1a2b0eca95fecd696f33c099382",
+      "contentIdentity": "01f4d42b70cbdfe7c329c8675f880cd9efac9dcfcde631d870b0018badfc8f49",
       "normalizedSettingsIdentity": "e41d9ef8a4967804b603c214a50f73c076dca1009b943c963b1a3a20b13e1123",
       "input": {
         "id": "included",
@@ -16673,7 +16673,7 @@
       "id": "included-changed",
       "profile": "raw",
       "acquisitionIdentity": "53f733a0e711854900aeb4a1b12cad07d6c9a90670856e47908b2c13d4ee1c9d",
-      "contentIdentity": "7b4e37d8b64d9aed786c27c4d785bacf361089152fd2b51886bbed27e7707d55",
+      "contentIdentity": "d2794664c174b6c0ab7b56fbe4ddad6486b76996d6def3bb24fca86085f94274",
       "normalizedSettingsIdentity": "85e184a8be9eef4d2d68b359c241d3273dd9bfeed21a3d7618170ceef286e9f5",
       "input": {
         "id": "included-changed",
@@ -16978,7 +16978,7 @@
       "id": "included-changed",
       "profile": "product",
       "acquisitionIdentity": "53f733a0e711854900aeb4a1b12cad07d6c9a90670856e47908b2c13d4ee1c9d",
-      "contentIdentity": "40b48ec2abaa0554f1ff0ada5f9e6663cf1d65bd2d7872f3682e1a6cb13ade67",
+      "contentIdentity": "4e4c77360086896b9cea8f6bb4c49be3077fbb03fa9a5d574158369daaa8312f",
       "normalizedSettingsIdentity": "2b9d0275be2054cc0bd423b20833897ab8af3507f712eb04b0f4dc1297eb7189",
       "input": {
         "id": "included-changed",
@@ -17281,7 +17281,7 @@
       "id": "palette-foreground-253",
       "profile": "raw",
       "acquisitionIdentity": "63d4eb5036e588c39f22c4eb06b197441b01098518297fda2aafbc2446310e76",
-      "contentIdentity": "fc02b6e1ac1e66527576ed00dff977385cad3d39021ec3427a6d48b00cd8feec",
+      "contentIdentity": "f2b15f5badb414eba04a50b0675fca11a149814c63533e040a009cfccb31f1be",
       "normalizedSettingsIdentity": "a554fca988d7e0f911698209f4a0728be319b5c0e56ff9fa2f463acb03164391",
       "input": {
         "id": "palette-foreground-253",
@@ -20487,7 +20487,7 @@
       "id": "palette-foreground-253",
       "profile": "product",
       "acquisitionIdentity": "63d4eb5036e588c39f22c4eb06b197441b01098518297fda2aafbc2446310e76",
-      "contentIdentity": "5cbe966439dddf259920b090c1c5bfae7e9f70db14ef520a7ff4e1e39644c564",
+      "contentIdentity": "4c1c22ee1afc519451bd748148f2663b0e654497aa166481b2ef4fa9654b37b9",
       "normalizedSettingsIdentity": "9086003ffc304445a7ca44570245cf74c1beb1dffda9c5bbf22e1993176ad1de",
       "input": {
         "id": "palette-foreground-253",
@@ -23698,7 +23698,7 @@
       "id": "palette-background-253",
       "profile": "raw",
       "acquisitionIdentity": "021270281f4f6e15955f73a40422a658825e74944fe3ee279f616aea7d7386f6",
-      "contentIdentity": "c755b48e05cbf91fde4da31c42ff7079d29abbcbb1b0aade39f192d575f61217",
+      "contentIdentity": "477043d39769f46c93554c44a56ca9b86534abd33739da8a5a2c2a7d10c7304b",
       "normalizedSettingsIdentity": "6e5026ec8fa66707e356100c0d92ef7714bf47f1de6af6e64a81aec573a0bcfb",
       "input": {
         "id": "palette-background-253",
@@ -26904,7 +26904,7 @@
       "id": "palette-background-253",
       "profile": "product",
       "acquisitionIdentity": "021270281f4f6e15955f73a40422a658825e74944fe3ee279f616aea7d7386f6",
-      "contentIdentity": "8d3c037816037c11c00cdf453c4dcd7e527802d677037bee35a67a737818d90f",
+      "contentIdentity": "240dcac3ed452f2788de215ff03096983f33eeb93b07c886380d65a14f8d8b05",
       "normalizedSettingsIdentity": "eadbea701440880ab14edebe13ac6cb1abaadd1c2513bba950edafb268138fec",
       "input": {
         "id": "palette-background-253",

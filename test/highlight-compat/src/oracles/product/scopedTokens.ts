@@ -4,10 +4,12 @@
 // Changes: import paths carry .ts; constructor parameter properties are spelled as fields;
 // ScopedToken gains the static `scopes` reader and `tokenScopes` exposes it, so the oracle reads
 // the private scope path before packing.
-import type { HighlighterGeneric, ThemedToken } from 'shiki/core'
+// Reference diagnostics optionally observe binary output inside this same line owner.
+import type { Grammar, HighlighterGeneric, ThemedToken } from 'shiki/core'
 import { Theme, type StateStack } from 'shiki/textmate'
 import type { TokenizeLineFn, StatesEqualFn } from './tokenizer.ts'
 import { ScopePath } from './scopePath.ts'
+import type { BinaryObserver } from '../metadata.ts'
 
 type ScopeStyle = { path: ScopePath | null; color: string; fontStyle: number }
 
@@ -25,6 +27,7 @@ export function createScopedLineTokenizer(
   language: string,
   initialTheme: string,
   maxLineLength: number,
+  binaryObserver?: BinaryObserver,
 ): { tokenize: TokenizeLineFn; statesEqual: StatesEqualFn; setTheme: (name: string) => void } {
   const grammar = highlighter.getLanguage(language)
   const styles = new Map<string, ScopeStyle>()
@@ -56,6 +59,7 @@ export function createScopedLineTokenizer(
       }
 
     const result = grammar.tokenizeLine(line, state, 0)
+    if (binaryObserver) observeBinary(grammar, line, state, result, binaryObserver)
     return {
       tokens: result.tokens
         .filter((token) => token.startIndex < line.length)
@@ -74,6 +78,14 @@ export function createScopedLineTokenizer(
       for (const style of styles.values()) applyTheme(style, theme)
     },
   }
+}
+
+function observeBinary(grammar: Grammar, line: string, state: StateStack | null,
+  scopes: ReturnType<Grammar['tokenizeLine']>, observe: BinaryObserver): void {
+  const binary = grammar.tokenizeLine2(line, state, 0)
+  if (scopes.stoppedEarly || !binary.ruleStack.equals(scopes.ruleStack))
+    throw new Error('product reference observation diverged from the scope rule stack or stopped early')
+  observe(line, binary)
 }
 
 function scopedToken(line: string, start: number, end: number, style: ScopeStyle): ThemedToken {
