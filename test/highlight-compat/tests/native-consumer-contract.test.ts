@@ -151,7 +151,7 @@ it('distinguishes missing support, setup rejection, native budgets and disposed 
   try {
     const owner = await PilotDocument.open('json', '[1,2]');
     owners.push(owner);
-    await expect(loadLanguagePack('javascript')).rejects.toThrow('distinct variant');
+    await expect(loadLanguagePack('python')).rejects.toThrow('distinct variant');
     const unsupported = await nativeDocument(undefined, owner, 'product');
     expect(unsupported).toMatchObject({ status: 'unsupported', sourceLength: 5, documentRevision: 0, spans: [], paths: [], scopeNames: [], engine: {} });
     owner.borrow(pack.sameLanguage, borrow => {

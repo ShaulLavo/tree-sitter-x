@@ -95,9 +95,9 @@ describe('explicit native language variants', () => {
   });
   it.each(['typescript', 'tsx'] as const)('loads %s and completes its unchanged corpus', checkCorpus);
 
-  it('keeps JavaScript and JSX distinct and deferred', async () => {
-    await expect(loadLanguagePack('javascript')).rejects.toThrow('distinct variant');
-    await expect(loadLanguagePack('jsx')).rejects.toThrow('distinct variant');
+  it('keeps unimplemented variants deferred', async () => {
+    await expect(loadLanguagePack('python')).rejects.toThrow('distinct variant');
+    await expect(loadLanguagePack('rust')).rejects.toThrow('distinct variant');
   });
   it.each(['typescript', 'tsx'] as const)('adds zero scope parses for the actual %s pack after a positive baseline control', async language => {
     const runtime = await Runtime.load(), prototype = foreign(foreign(runtime.binding.Parser).prototype);

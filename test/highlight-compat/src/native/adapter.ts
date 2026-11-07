@@ -47,8 +47,10 @@ export async function nativeDocument(pack: NativePack | undefined, owner: PilotD
   const builder = new ResultBuilder({ profileId: 'native', languageId: owner.languageId, engine: pack?.engine ?? {} }, owner.source);
   try {
     pack?.assertLanguage(owner.languageId);
-    if (owner.languageId === 'javascript' || owner.languageId === 'jsx') return builder.incomplete('unsupported', `${owner.languageId}: distinct variant, no native pack in the pilot (Phase 5)`);
-    if (!pack) return builder.incomplete('unsupported', `No native pack for ${owner.languageId}`);
+    if (!pack) return builder.incomplete('unsupported',
+      owner.languageId === 'javascript' || owner.languageId === 'jsx'
+        ? `${owner.languageId}: distinct variant, no native pack in the pilot (Phase 5)`
+        : `No native pack for ${owner.languageId}`);
     const result = nativeScopes(pack, owner);
     if (result.status !== 0) return builder.incomplete(incomplete(result.status), `Native status ${result.status}, detail ${result.detail}, value ${result.value}`);
     const intervals = scopeIntervals(result, pack);
