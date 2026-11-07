@@ -92,6 +92,175 @@ static void query_capabilities(void) {
   assert(scope_compat_live_allocations() == 0);
 }
 
+static void source_gap_collection(void) {
+  const char *query = "((array \",\" @_left . (number) @_right .) @array "
+    "(#source-gap? @_left @_right \"\\n\"))";
+  Fixture f = fixture(query, "[1,\n2]");
+  assert(f.pack->order_policy == SC_LEGACY_ORDER);
+  ScopeCompatResult *r = run(&f);
+  assert(r->status == SCOPE_COMPAT_OK && r->intervals_kept == 1);
+  scope_compat_result_delete(r);
+  ScopeCompatExplain *e = scope_compat_explain(f.pack, f.tree, f.source, f.length, 1, 0, f.length, 0, 0);
+  assert(e && e->status == SCOPE_COMPAT_OK && e->interval_count == 1);
+  scope_compat_explain_delete(e); dispose(&f);
+  f = fixture("((array \",\" @_left . (number) @_right .) @array "
+    "(#source-gap? @_left @_right \"\\r\\n\"))", "[1,\r\n2]");
+  r = run(&f);
+  assert(r->status == SCOPE_COMPAT_OK && r->intervals_kept == 1);
+  scope_compat_result_delete(r); dispose(&f);
+  assert(scope_compat_live_allocations() == 0);
+}
+
+static void source_gap_reads(void) {
+  uint16_t literal[] = {0, '.', 0xd83d, 0xde00};
+  sc_gap_source_reads = 0;
+  assert(!sc_gap_matches(NULL, 0, 1u << 25, (ScText){literal, 2}));
+  assert(!sc_gap_matches(NULL, 9, 8, (ScText){literal, 0}));
+  assert(!sc_gap_matches(NULL, 1, 0, (ScText){literal, 1}));
+  assert(sc_gap_matches(NULL, 17, 17, (ScText){literal, 0}));
+  assert(sc_gap_source_reads == 0);
+  assert(sc_gap_matches(literal, 0, 2, (ScText){literal, 2}));
+  assert(sc_gap_source_reads == 2);
+  sc_gap_source_reads = 0;
+  assert(sc_gap_matches(literal, 2, 4, (ScText){literal + 2, 2}));
+  assert(sc_gap_source_reads == 2);
+  sc_gap_source_reads = 0;
+  assert(!sc_gap_matches(literal, 0, 2, (ScText){literal + 2, 2}));
+  assert(sc_gap_source_reads == 1);
+  printf("source-gap: large width mismatch, overlap, reversal and adjacency read zero units; equal gaps read two\n");
+}
+
+static void source_gap_failure(const char *query, uint32_t ordinal) {
+  Fixture f = fixture(query, "[1]");
+  uint32_t baseline = scope_compat_live_allocations();
+  sc_gap_source_reads = 0;
+  ScopeCompatResult *r = run(&f);
+  assert(r->status == SCOPE_COMPAT_INVALID && r->detail == SCOPE_COMPAT_DETAIL_BAD_ARGUMENTS && r->detail_value == ordinal);
+  schema(r, 0, f.length, scope_compat_pack_scope_count(f.pack));
+  scope_compat_result_delete(r);
+  ScopeCompatExplain *e = scope_compat_explain(f.pack, f.tree, f.source, f.length, 1, 0, f.length, 0, 0);
+  assert(e && e->status == SCOPE_COMPAT_INVALID && e->detail == SCOPE_COMPAT_DETAIL_BAD_ARGUMENTS && e->detail_value == ordinal);
+  assert(!e->interval_count && !e->intervals && !sc_gap_source_reads);
+  scope_compat_explain_delete(e);
+  assert(scope_compat_live_allocations() == baseline);
+  dispose(&f);
+  assert(scope_compat_live_allocations() == 0);
+}
+
+static void source_gap_roles(void) {
+  source_gap_failure("((number) @prior @_first (#eq? @_first \"1\")) "
+    "((array (number) @_n (string)? @_missing) @_array (#source-gap? @_n @_n \"x\") "
+    "(#source-gap? @_n @_missing \"\"))", 2);
+  source_gap_failure("((array (number) @_n @_n) (#set! priority \"0\") (#source-gap? @_n @_n \"\"))", 1);
+  source_gap_failure("((array (number) @_n (string)? @_missing) (#eq? @_n \"never\") "
+    "(#source-gap? @_missing @_n \"\"))", 1);
+  source_gap_failure("((array (number) @_n (string)? @_missing) (#text-class? @_n \"[a]\" \"[a]\") "
+    "(#source-gap? @_n @_missing \"\"))", 1);
+}
+
+static void source_gap_literals(void) {
+  const char *arguments[] = {"@_n @_n", "@_n @_n \"\" \"\"", "\"x\" @_n \"\"", "@_n \"x\" \"\"",
+    "@_n @_n @_n", "@_n @_n \"abc\"", "@_n @_n \"\xf0\x9f\x98\x80x\""};
+  const uint32_t values[] = {3, 5, 4, 4, 4, 4, 4};
+  for (uint32_t i = 0; i < sizeof arguments / sizeof *arguments; ++i) {
+    char query[192];
+    int size = snprintf(query, sizeof query, "((number) @_n (#set! priority \"0\") (#source-gap? %s))", arguments[i]);
+    assert(size > 0 && size < (int)sizeof query);
+    ScopeCompatPack *p = scope_compat_pack_new(tree_sitter_json(), query, (uint32_t)size, "source.json", 11, ".json", 5);
+    assert(p && p->status == SCOPE_COMPAT_INVALID && p->detail == SCOPE_COMPAT_DETAIL_BAD_ARGUMENTS);
+    assert(p->value == values[i] && p->error_pattern == 0 && p->error_offset == 0 && !strcmp(p->error_name, "source-gap?"));
+    scope_compat_pack_delete(p);
+  }
+  Fixture f = fixture("((number) @_n (#source-gap? @_n @_n \"\xf0\x9f\x98\x80\"))", "1");
+  ScText decoded = f.pack->strings[f.pack->predicates[0].data.gap.literal];
+  assert(decoded.length == 2 && decoded.text[0] == 0xd83d && decoded.text[1] == 0xde00);
+  uint16_t astral[] = {0xd83d, 0xde00};
+  assert(sc_gap_matches(astral, 0, 2, decoded));
+  dispose(&f);
+  f = fixture("((number) @_n (#source-gap? @_n @_n \"\\0.\"))", "1");
+  decoded = f.pack->strings[f.pack->predicates[0].data.gap.literal];
+  uint16_t nul_dot[] = {0, '.'};
+  assert(decoded.length == 2 && decoded.text[0] == 0 && decoded.text[1] == '.');
+  assert(sc_gap_matches(nul_dot, 0, 2, decoded));
+  assert(!sc_gap_matches(astral, 0, 2, decoded));
+  dispose(&f);
+  assert(scope_compat_live_allocations() == 0);
+}
+
+static void source_gap_validation(void) {
+  Fixture f = fixture("((number) @_n (#source-gap? @_n @_n \"x\"))", "12");
+  TSQueryCapture captures[] = {{ts_node_named_child(ts_tree_root_node(f.tree), 0), 0}};
+  TSQueryMatch match = {.captures=captures, .capture_count=1};
+  ScCollection c = {0};
+  sc_gap_source_reads = 0;
+  assert(!sc_accept_match(f.pack, &match, f.source, 4, &c) && !c.status);
+  captures[0].node.context[0] = 1;
+  assert(!sc_accept_match(f.pack, &match, f.source, 4, &c));
+  assert(c.status == SCOPE_COMPAT_INVALID && c.detail == SCOPE_COMPAT_DETAIL_ODD_OFFSET && c.value == 1);
+  captures[0].node = ts_node_named_child(ts_tree_root_node(f.tree), 0);
+  assert(!sc_accept_match(f.pack, &match, f.source, 2, &c));
+  assert(c.detail == SCOPE_COMPAT_DETAIL_TREE_EXCEEDS_SOURCE && c.value == 4 && !sc_gap_source_reads);
+  ScopeCompatResult *r = scope_compat_run(f.pack, f.tree, f.source, 1, 1, 0, 1, 0, 0, 0);
+  assert(r && r->status == SCOPE_COMPAT_INVALID && r->detail == SCOPE_COMPAT_DETAIL_TREE_EXCEEDS_SOURCE);
+  schema(r, 0, 1, scope_compat_pack_scope_count(f.pack));
+  scope_compat_result_delete(r); dispose(&f);
+  assert(scope_compat_live_allocations() == 0);
+}
+
+static void source_gap_eof(void) {
+  const char *queries[] = {"((MISSING) @_n (#set! priority \"0\") (#source-gap? @_n @_n \"\"))",
+    "((MISSING) @_n (#source-gap? @_n @_n \"\\n\"))"};
+  for (uint32_t i = 0; i < 2; ++i) {
+    Fixture f = fixture(queries[i], "{\"a\":1");
+    TSQueryCursor *cursor = ts_query_cursor_new();
+    ts_query_cursor_exec(cursor, f.pack->query, ts_tree_root_node(f.tree));
+    TSQueryMatch match;
+    assert(ts_query_cursor_next_match(cursor, &match) && match.capture_count == 1);
+    assert(ts_node_start_byte(match.captures[0].node) == f.length * 2);
+    ScCollection c = {0};
+    sc_gap_source_reads = 0;
+    assert(sc_accept_match(f.pack, &match, f.source, f.length * 2, &c) == (i == 0));
+    assert(!c.status && !sc_gap_source_reads);
+    ts_query_cursor_delete(cursor); dispose(&f);
+  }
+  assert(scope_compat_live_allocations() == 0);
+}
+
+static void source_gap_late_unwind(void) {
+  Fixture f = fixture("((number) @prior @_first (#eq? @_first \"1\")) "
+    "((array (number) @_n (string)? @_missing) @_array (#source-gap? @_n @_missing \"\"))", "[1]");
+  uint32_t baseline = scope_compat_live_allocations();
+  bool invalid = false;
+  for (uint32_t i = 0; i < 200 && !invalid; ++i) {
+    scope_compat_test_fail_after(i);
+    ScopeCompatResult *r = run(&f);
+    scope_compat_test_fail_after(UINT32_MAX);
+    if (r) {
+      invalid = r->status == SCOPE_COMPAT_INVALID;
+      assert(invalid || r->status == SCOPE_COMPAT_NO_MEMORY);
+      schema(r, 0, f.length, scope_compat_pack_scope_count(f.pack));
+    }
+    scope_compat_result_delete(r);
+    assert(scope_compat_live_allocations() == baseline);
+  }
+  assert(invalid);
+  invalid = false;
+  for (uint32_t i = 0; i < 200 && !invalid; ++i) {
+    scope_compat_test_fail_after(i);
+    ScopeCompatExplain *e = scope_compat_explain(f.pack, f.tree, f.source, f.length, 1, 0, f.length, 0, 0);
+    scope_compat_test_fail_after(UINT32_MAX);
+    if (e) {
+      invalid = e->status == SCOPE_COMPAT_INVALID;
+      assert(invalid || e->status == SCOPE_COMPAT_NO_MEMORY);
+      assert(!e->interval_count && !e->intervals);
+    }
+    scope_compat_explain_delete(e);
+    assert(scope_compat_live_allocations() == baseline);
+  }
+  assert(invalid); dispose(&f);
+  assert(scope_compat_live_allocations() == 0);
+}
+
 static void composition(void) {
   const uint16_t text[] = {'a','b','c','d','\r','\n','e','\r'};
   ScInterval items[] = {
@@ -262,6 +431,7 @@ static void ownership_query(const char *query) {
 }
 
 static void ownership_and_failures(void) {
+  ownership_query("((array . (number) @_left @number (number) @_right .) @array (#source-gap? @_left @_right \",\"))");
   ownership_query("(number) @constant.numeric ((array (number) @_first (number) @_last) (#make-range! \"meta.range\" @_first @_last))");
   ownership_query("((number) @_n @constant.numeric (#text-class? @_n \"[0-9]\" \"[0-9]\" \"[0-9]\") "
     "(#starts-with? @_n \"\") (#not-starts-with? @_n \"z\") (#not-text-class? @_n \"[a-z]\" \"[a-z]\") "
@@ -407,6 +577,17 @@ static void zero_width_resolver(void) {
   uint32_t depth = 0;
   while (!ts_node_is_null(parent)) { ++depth; parent = ts_node_parent(parent); }
   assert(ts_node_is_missing(missing) && ts_node_start_byte(missing) == ts_node_end_byte(missing));
+  const uint32_t end = ts_node_end_byte(missing) / 2;
+  assert(sc_gap_matches(NULL, end, end, (ScText){0}));
+  uint16_t lf = '\n';
+  assert(!sc_gap_matches(NULL, end, end, (ScText){&lf, 1}));
+  ScPredicate gap = {.kind=SC_GAP, .data.gap={.left=0, .right=0, .literal=0}};
+  ScText empty = {0};
+  ScPattern pattern = {.count=1};
+  ScopeCompatPack gap_pack = {.predicates=&gap, .patterns=&pattern, .strings=&empty};
+  ScCollection gap_collection = {0};
+  assert(sc_accept_match(&gap_pack, &found, f.source, f.length * 2, &gap_collection));
+  assert(!gap_collection.status);
   assert(depth > 64);
   const bool expected[] = {false, true, true, true};
   for (uint32_t i = 0; i < 4; ++i) assert(sc_predicate(f.pack, &f.pack->predicates[i], &found, f.source) == expected[i]);
@@ -479,6 +660,13 @@ int main(int argc, char **argv) {
   }
   smoke();
   query_capabilities();
+  source_gap_collection();
+  source_gap_reads();
+  source_gap_roles();
+  source_gap_literals();
+  source_gap_validation();
+  source_gap_eof();
+  source_gap_late_unwind();
   sc_theme_tests();
   composition();
   rejection();
