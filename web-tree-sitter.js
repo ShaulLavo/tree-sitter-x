@@ -2661,7 +2661,7 @@ function readQuery(address) {
       TRANSFER_BUFFER
     );
     const nameLength = C.getValue(TRANSFER_BUFFER, "i32");
-    stringValues[i] = C.UTF8ToString(valueAddress, nameLength);
+    stringValues[i] = C.UTF8ToString(valueAddress, nameLength, true);
   }
   const setProperties = new Array(patternCount);
   const assertedProperties = new Array(patternCount);
