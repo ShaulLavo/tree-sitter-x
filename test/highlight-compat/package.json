@@ -11,6 +11,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "compare": "node src/cli/compare.ts",
+    "measure": "node src/cli/measure.ts",
     "golden:update": "node src/cli/golden-update.ts",
     "report:references": "node src/cli/report-references.ts",
     "report:historical": "node src/cli/report-historical.ts",
