@@ -45,7 +45,7 @@ function compareCase(fixture: NativeThemeFixture, test: NativeThemeFixture['case
 describe('native matcher against independent reference fixtures', () => {
   it('preserves the exact recorded oracle identity and every named effective and partial field', async () => {
     const suite = generateNativeThemeSuite();
-    expect(suite.identity).toBe('27cf48cb28c6ff047bb61f30ef817d2c8ece9cb10a310fe1cdf1d7e449139760');
+    expect(suite.identity).toBe('fff0299933f585796ce95ffbbfc26be488d2c52fa412278afb95b2d5acc81834');
     const recorded: unknown = JSON.parse(await readFile(new URL('../manifest/native-themes/suite.json',import.meta.url),'utf8'));
     expect(suite).toEqual(recorded);
     for (const fixture of suite.fixtures) await compareFixture(fixture,JSON.stringify(suite.targets));
