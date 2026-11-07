@@ -63,6 +63,10 @@ export function checkHistoricalPack(pack: NativePack, expected: FixedPack): void
   }
 }
 
+function disposeHistoricalPacks(packs: ReadonlyMap<string, NativePack>): void {
+  for (const pack of packs.values()) pack.dispose();
+}
+
 export async function loadHistoricalPacks(): Promise<ReadonlyMap<string, NativePack>> {
   const loaded = new Map<string, NativePack>();
   try {
@@ -74,7 +78,7 @@ export async function loadHistoricalPacks(): Promise<ReadonlyMap<string, NativeP
     }
     return loaded;
   } catch (error) {
-    for (const pack of loaded.values()) pack.dispose();
+    disposeHistoricalPacks(loaded);
     throw error;
   }
 }
