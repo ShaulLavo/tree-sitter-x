@@ -1,0 +1,1528 @@
+{
+  "name": "native-theme-palette-background",
+  "type": "dark",
+  "colors": {
+    "editor.foreground": "#000000",
+    "editor.background": "#ffffff"
+  },
+  "tokenColors": [
+    {
+      "scope": "probe.c000",
+      "settings": {
+        "background": "#000001"
+      }
+    },
+    {
+      "scope": "probe.c001",
+      "settings": {
+        "background": "#000002"
+      }
+    },
+    {
+      "scope": "probe.c002",
+      "settings": {
+        "background": "#000003"
+      }
+    },
+    {
+      "scope": "probe.c003",
+      "settings": {
+        "background": "#000004"
+      }
+    },
+    {
+      "scope": "probe.c004",
+      "settings": {
+        "background": "#000005"
+      }
+    },
+    {
+      "scope": "probe.c005",
+      "settings": {
+        "background": "#000006"
+      }
+    },
+    {
+      "scope": "probe.c006",
+      "settings": {
+        "background": "#000007"
+      }
+    },
+    {
+      "scope": "probe.c007",
+      "settings": {
+        "background": "#000008"
+      }
+    },
+    {
+      "scope": "probe.c008",
+      "settings": {
+        "background": "#000009"
+      }
+    },
+    {
+      "scope": "probe.c009",
+      "settings": {
+        "background": "#00000a"
+      }
+    },
+    {
+      "scope": "probe.c010",
+      "settings": {
+        "background": "#00000b"
+      }
+    },
+    {
+      "scope": "probe.c011",
+      "settings": {
+        "background": "#00000c"
+      }
+    },
+    {
+      "scope": "probe.c012",
+      "settings": {
+        "background": "#00000d"
+      }
+    },
+    {
+      "scope": "probe.c013",
+      "settings": {
+        "background": "#00000e"
+      }
+    },
+    {
+      "scope": "probe.c014",
+      "settings": {
+        "background": "#00000f"
+      }
+    },
+    {
+      "scope": "probe.c015",
+      "settings": {
+        "background": "#000010"
+      }
+    },
+    {
+      "scope": "probe.c016",
+      "settings": {
+        "background": "#000011"
+      }
+    },
+    {
+      "scope": "probe.c017",
+      "settings": {
+        "background": "#000012"
+      }
+    },
+    {
+      "scope": "probe.c018",
+      "settings": {
+        "background": "#000013"
+      }
+    },
+    {
+      "scope": "probe.c019",
+      "settings": {
+        "background": "#000014"
+      }
+    },
+    {
+      "scope": "probe.c020",
+      "settings": {
+        "background": "#000015"
+      }
+    },
+    {
+      "scope": "probe.c021",
+      "settings": {
+        "background": "#000016"
+      }
+    },
+    {
+      "scope": "probe.c022",
+      "settings": {
+        "background": "#000017"
+      }
+    },
+    {
+      "scope": "probe.c023",
+      "settings": {
+        "background": "#000018"
+      }
+    },
+    {
+      "scope": "probe.c024",
+      "settings": {
+        "background": "#000019"
+      }
+    },
+    {
+      "scope": "probe.c025",
+      "settings": {
+        "background": "#00001a"
+      }
+    },
+    {
+      "scope": "probe.c026",
+      "settings": {
+        "background": "#00001b"
+      }
+    },
+    {
+      "scope": "probe.c027",
+      "settings": {
+        "background": "#00001c"
+      }
+    },
+    {
+      "scope": "probe.c028",
+      "settings": {
+        "background": "#00001d"
+      }
+    },
+    {
+      "scope": "probe.c029",
+      "settings": {
+        "background": "#00001e"
+      }
+    },
+    {
+      "scope": "probe.c030",
+      "settings": {
+        "background": "#00001f"
+      }
+    },
+    {
+      "scope": "probe.c031",
+      "settings": {
+        "background": "#000020"
+      }
+    },
+    {
+      "scope": "probe.c032",
+      "settings": {
+        "background": "#000021"
+      }
+    },
+    {
+      "scope": "probe.c033",
+      "settings": {
+        "background": "#000022"
+      }
+    },
+    {
+      "scope": "probe.c034",
+      "settings": {
+        "background": "#000023"
+      }
+    },
+    {
+      "scope": "probe.c035",
+      "settings": {
+        "background": "#000024"
+      }
+    },
+    {
+      "scope": "probe.c036",
+      "settings": {
+        "background": "#000025"
+      }
+    },
+    {
+      "scope": "probe.c037",
+      "settings": {
+        "background": "#000026"
+      }
+    },
+    {
+      "scope": "probe.c038",
+      "settings": {
+        "background": "#000027"
+      }
+    },
+    {
+      "scope": "probe.c039",
+      "settings": {
+        "background": "#000028"
+      }
+    },
+    {
+      "scope": "probe.c040",
+      "settings": {
+        "background": "#000029"
+      }
+    },
+    {
+      "scope": "probe.c041",
+      "settings": {
+        "background": "#00002a"
+      }
+    },
+    {
+      "scope": "probe.c042",
+      "settings": {
+        "background": "#00002b"
+      }
+    },
+    {
+      "scope": "probe.c043",
+      "settings": {
+        "background": "#00002c"
+      }
+    },
+    {
+      "scope": "probe.c044",
+      "settings": {
+        "background": "#00002d"
+      }
+    },
+    {
+      "scope": "probe.c045",
+      "settings": {
+        "background": "#00002e"
+      }
+    },
+    {
+      "scope": "probe.c046",
+      "settings": {
+        "background": "#00002f"
+      }
+    },
+    {
+      "scope": "probe.c047",
+      "settings": {
+        "background": "#000030"
+      }
+    },
+    {
+      "scope": "probe.c048",
+      "settings": {
+        "background": "#000031"
+      }
+    },
+    {
+      "scope": "probe.c049",
+      "settings": {
+        "background": "#000032"
+      }
+    },
+    {
+      "scope": "probe.c050",
+      "settings": {
+        "background": "#000033"
+      }
+    },
+    {
+      "scope": "probe.c051",
+      "settings": {
+        "background": "#000034"
+      }
+    },
+    {
+      "scope": "probe.c052",
+      "settings": {
+        "background": "#000035"
+      }
+    },
+    {
+      "scope": "probe.c053",
+      "settings": {
+        "background": "#000036"
+      }
+    },
+    {
+      "scope": "probe.c054",
+      "settings": {
+        "background": "#000037"
+      }
+    },
+    {
+      "scope": "probe.c055",
+      "settings": {
+        "background": "#000038"
+      }
+    },
+    {
+      "scope": "probe.c056",
+      "settings": {
+        "background": "#000039"
+      }
+    },
+    {
+      "scope": "probe.c057",
+      "settings": {
+        "background": "#00003a"
+      }
+    },
+    {
+      "scope": "probe.c058",
+      "settings": {
+        "background": "#00003b"
+      }
+    },
+    {
+      "scope": "probe.c059",
+      "settings": {
+        "background": "#00003c"
+      }
+    },
+    {
+      "scope": "probe.c060",
+      "settings": {
+        "background": "#00003d"
+      }
+    },
+    {
+      "scope": "probe.c061",
+      "settings": {
+        "background": "#00003e"
+      }
+    },
+    {
+      "scope": "probe.c062",
+      "settings": {
+        "background": "#00003f"
+      }
+    },
+    {
+      "scope": "probe.c063",
+      "settings": {
+        "background": "#000040"
+      }
+    },
+    {
+      "scope": "probe.c064",
+      "settings": {
+        "background": "#000041"
+      }
+    },
+    {
+      "scope": "probe.c065",
+      "settings": {
+        "background": "#000042"
+      }
+    },
+    {
+      "scope": "probe.c066",
+      "settings": {
+        "background": "#000043"
+      }
+    },
+    {
+      "scope": "probe.c067",
+      "settings": {
+        "background": "#000044"
+      }
+    },
+    {
+      "scope": "probe.c068",
+      "settings": {
+        "background": "#000045"
+      }
+    },
+    {
+      "scope": "probe.c069",
+      "settings": {
+        "background": "#000046"
+      }
+    },
+    {
+      "scope": "probe.c070",
+      "settings": {
+        "background": "#000047"
+      }
+    },
+    {
+      "scope": "probe.c071",
+      "settings": {
+        "background": "#000048"
+      }
+    },
+    {
+      "scope": "probe.c072",
+      "settings": {
+        "background": "#000049"
+      }
+    },
+    {
+      "scope": "probe.c073",
+      "settings": {
+        "background": "#00004a"
+      }
+    },
+    {
+      "scope": "probe.c074",
+      "settings": {
+        "background": "#00004b"
+      }
+    },
+    {
+      "scope": "probe.c075",
+      "settings": {
+        "background": "#00004c"
+      }
+    },
+    {
+      "scope": "probe.c076",
+      "settings": {
+        "background": "#00004d"
+      }
+    },
+    {
+      "scope": "probe.c077",
+      "settings": {
+        "background": "#00004e"
+      }
+    },
+    {
+      "scope": "probe.c078",
+      "settings": {
+        "background": "#00004f"
+      }
+    },
+    {
+      "scope": "probe.c079",
+      "settings": {
+        "background": "#000050"
+      }
+    },
+    {
+      "scope": "probe.c080",
+      "settings": {
+        "background": "#000051"
+      }
+    },
+    {
+      "scope": "probe.c081",
+      "settings": {
+        "background": "#000052"
+      }
+    },
+    {
+      "scope": "probe.c082",
+      "settings": {
+        "background": "#000053"
+      }
+    },
+    {
+      "scope": "probe.c083",
+      "settings": {
+        "background": "#000054"
+      }
+    },
+    {
+      "scope": "probe.c084",
+      "settings": {
+        "background": "#000055"
+      }
+    },
+    {
+      "scope": "probe.c085",
+      "settings": {
+        "background": "#000056"
+      }
+    },
+    {
+      "scope": "probe.c086",
+      "settings": {
+        "background": "#000057"
+      }
+    },
+    {
+      "scope": "probe.c087",
+      "settings": {
+        "background": "#000058"
+      }
+    },
+    {
+      "scope": "probe.c088",
+      "settings": {
+        "background": "#000059"
+      }
+    },
+    {
+      "scope": "probe.c089",
+      "settings": {
+        "background": "#00005a"
+      }
+    },
+    {
+      "scope": "probe.c090",
+      "settings": {
+        "background": "#00005b"
+      }
+    },
+    {
+      "scope": "probe.c091",
+      "settings": {
+        "background": "#00005c"
+      }
+    },
+    {
+      "scope": "probe.c092",
+      "settings": {
+        "background": "#00005d"
+      }
+    },
+    {
+      "scope": "probe.c093",
+      "settings": {
+        "background": "#00005e"
+      }
+    },
+    {
+      "scope": "probe.c094",
+      "settings": {
+        "background": "#00005f"
+      }
+    },
+    {
+      "scope": "probe.c095",
+      "settings": {
+        "background": "#000060"
+      }
+    },
+    {
+      "scope": "probe.c096",
+      "settings": {
+        "background": "#000061"
+      }
+    },
+    {
+      "scope": "probe.c097",
+      "settings": {
+        "background": "#000062"
+      }
+    },
+    {
+      "scope": "probe.c098",
+      "settings": {
+        "background": "#000063"
+      }
+    },
+    {
+      "scope": "probe.c099",
+      "settings": {
+        "background": "#000064"
+      }
+    },
+    {
+      "scope": "probe.c100",
+      "settings": {
+        "background": "#000065"
+      }
+    },
+    {
+      "scope": "probe.c101",
+      "settings": {
+        "background": "#000066"
+      }
+    },
+    {
+      "scope": "probe.c102",
+      "settings": {
+        "background": "#000067"
+      }
+    },
+    {
+      "scope": "probe.c103",
+      "settings": {
+        "background": "#000068"
+      }
+    },
+    {
+      "scope": "probe.c104",
+      "settings": {
+        "background": "#000069"
+      }
+    },
+    {
+      "scope": "probe.c105",
+      "settings": {
+        "background": "#00006a"
+      }
+    },
+    {
+      "scope": "probe.c106",
+      "settings": {
+        "background": "#00006b"
+      }
+    },
+    {
+      "scope": "probe.c107",
+      "settings": {
+        "background": "#00006c"
+      }
+    },
+    {
+      "scope": "probe.c108",
+      "settings": {
+        "background": "#00006d"
+      }
+    },
+    {
+      "scope": "probe.c109",
+      "settings": {
+        "background": "#00006e"
+      }
+    },
+    {
+      "scope": "probe.c110",
+      "settings": {
+        "background": "#00006f"
+      }
+    },
+    {
+      "scope": "probe.c111",
+      "settings": {
+        "background": "#000070"
+      }
+    },
+    {
+      "scope": "probe.c112",
+      "settings": {
+        "background": "#000071"
+      }
+    },
+    {
+      "scope": "probe.c113",
+      "settings": {
+        "background": "#000072"
+      }
+    },
+    {
+      "scope": "probe.c114",
+      "settings": {
+        "background": "#000073"
+      }
+    },
+    {
+      "scope": "probe.c115",
+      "settings": {
+        "background": "#000074"
+      }
+    },
+    {
+      "scope": "probe.c116",
+      "settings": {
+        "background": "#000075"
+      }
+    },
+    {
+      "scope": "probe.c117",
+      "settings": {
+        "background": "#000076"
+      }
+    },
+    {
+      "scope": "probe.c118",
+      "settings": {
+        "background": "#000077"
+      }
+    },
+    {
+      "scope": "probe.c119",
+      "settings": {
+        "background": "#000078"
+      }
+    },
+    {
+      "scope": "probe.c120",
+      "settings": {
+        "background": "#000079"
+      }
+    },
+    {
+      "scope": "probe.c121",
+      "settings": {
+        "background": "#00007a"
+      }
+    },
+    {
+      "scope": "probe.c122",
+      "settings": {
+        "background": "#00007b"
+      }
+    },
+    {
+      "scope": "probe.c123",
+      "settings": {
+        "background": "#00007c"
+      }
+    },
+    {
+      "scope": "probe.c124",
+      "settings": {
+        "background": "#00007d"
+      }
+    },
+    {
+      "scope": "probe.c125",
+      "settings": {
+        "background": "#00007e"
+      }
+    },
+    {
+      "scope": "probe.c126",
+      "settings": {
+        "background": "#00007f"
+      }
+    },
+    {
+      "scope": "probe.c127",
+      "settings": {
+        "background": "#000080"
+      }
+    },
+    {
+      "scope": "probe.c128",
+      "settings": {
+        "background": "#000081"
+      }
+    },
+    {
+      "scope": "probe.c129",
+      "settings": {
+        "background": "#000082"
+      }
+    },
+    {
+      "scope": "probe.c130",
+      "settings": {
+        "background": "#000083"
+      }
+    },
+    {
+      "scope": "probe.c131",
+      "settings": {
+        "background": "#000084"
+      }
+    },
+    {
+      "scope": "probe.c132",
+      "settings": {
+        "background": "#000085"
+      }
+    },
+    {
+      "scope": "probe.c133",
+      "settings": {
+        "background": "#000086"
+      }
+    },
+    {
+      "scope": "probe.c134",
+      "settings": {
+        "background": "#000087"
+      }
+    },
+    {
+      "scope": "probe.c135",
+      "settings": {
+        "background": "#000088"
+      }
+    },
+    {
+      "scope": "probe.c136",
+      "settings": {
+        "background": "#000089"
+      }
+    },
+    {
+      "scope": "probe.c137",
+      "settings": {
+        "background": "#00008a"
+      }
+    },
+    {
+      "scope": "probe.c138",
+      "settings": {
+        "background": "#00008b"
+      }
+    },
+    {
+      "scope": "probe.c139",
+      "settings": {
+        "background": "#00008c"
+      }
+    },
+    {
+      "scope": "probe.c140",
+      "settings": {
+        "background": "#00008d"
+      }
+    },
+    {
+      "scope": "probe.c141",
+      "settings": {
+        "background": "#00008e"
+      }
+    },
+    {
+      "scope": "probe.c142",
+      "settings": {
+        "background": "#00008f"
+      }
+    },
+    {
+      "scope": "probe.c143",
+      "settings": {
+        "background": "#000090"
+      }
+    },
+    {
+      "scope": "probe.c144",
+      "settings": {
+        "background": "#000091"
+      }
+    },
+    {
+      "scope": "probe.c145",
+      "settings": {
+        "background": "#000092"
+      }
+    },
+    {
+      "scope": "probe.c146",
+      "settings": {
+        "background": "#000093"
+      }
+    },
+    {
+      "scope": "probe.c147",
+      "settings": {
+        "background": "#000094"
+      }
+    },
+    {
+      "scope": "probe.c148",
+      "settings": {
+        "background": "#000095"
+      }
+    },
+    {
+      "scope": "probe.c149",
+      "settings": {
+        "background": "#000096"
+      }
+    },
+    {
+      "scope": "probe.c150",
+      "settings": {
+        "background": "#000097"
+      }
+    },
+    {
+      "scope": "probe.c151",
+      "settings": {
+        "background": "#000098"
+      }
+    },
+    {
+      "scope": "probe.c152",
+      "settings": {
+        "background": "#000099"
+      }
+    },
+    {
+      "scope": "probe.c153",
+      "settings": {
+        "background": "#00009a"
+      }
+    },
+    {
+      "scope": "probe.c154",
+      "settings": {
+        "background": "#00009b"
+      }
+    },
+    {
+      "scope": "probe.c155",
+      "settings": {
+        "background": "#00009c"
+      }
+    },
+    {
+      "scope": "probe.c156",
+      "settings": {
+        "background": "#00009d"
+      }
+    },
+    {
+      "scope": "probe.c157",
+      "settings": {
+        "background": "#00009e"
+      }
+    },
+    {
+      "scope": "probe.c158",
+      "settings": {
+        "background": "#00009f"
+      }
+    },
+    {
+      "scope": "probe.c159",
+      "settings": {
+        "background": "#0000a0"
+      }
+    },
+    {
+      "scope": "probe.c160",
+      "settings": {
+        "background": "#0000a1"
+      }
+    },
+    {
+      "scope": "probe.c161",
+      "settings": {
+        "background": "#0000a2"
+      }
+    },
+    {
+      "scope": "probe.c162",
+      "settings": {
+        "background": "#0000a3"
+      }
+    },
+    {
+      "scope": "probe.c163",
+      "settings": {
+        "background": "#0000a4"
+      }
+    },
+    {
+      "scope": "probe.c164",
+      "settings": {
+        "background": "#0000a5"
+      }
+    },
+    {
+      "scope": "probe.c165",
+      "settings": {
+        "background": "#0000a6"
+      }
+    },
+    {
+      "scope": "probe.c166",
+      "settings": {
+        "background": "#0000a7"
+      }
+    },
+    {
+      "scope": "probe.c167",
+      "settings": {
+        "background": "#0000a8"
+      }
+    },
+    {
+      "scope": "probe.c168",
+      "settings": {
+        "background": "#0000a9"
+      }
+    },
+    {
+      "scope": "probe.c169",
+      "settings": {
+        "background": "#0000aa"
+      }
+    },
+    {
+      "scope": "probe.c170",
+      "settings": {
+        "background": "#0000ab"
+      }
+    },
+    {
+      "scope": "probe.c171",
+      "settings": {
+        "background": "#0000ac"
+      }
+    },
+    {
+      "scope": "probe.c172",
+      "settings": {
+        "background": "#0000ad"
+      }
+    },
+    {
+      "scope": "probe.c173",
+      "settings": {
+        "background": "#0000ae"
+      }
+    },
+    {
+      "scope": "probe.c174",
+      "settings": {
+        "background": "#0000af"
+      }
+    },
+    {
+      "scope": "probe.c175",
+      "settings": {
+        "background": "#0000b0"
+      }
+    },
+    {
+      "scope": "probe.c176",
+      "settings": {
+        "background": "#0000b1"
+      }
+    },
+    {
+      "scope": "probe.c177",
+      "settings": {
+        "background": "#0000b2"
+      }
+    },
+    {
+      "scope": "probe.c178",
+      "settings": {
+        "background": "#0000b3"
+      }
+    },
+    {
+      "scope": "probe.c179",
+      "settings": {
+        "background": "#0000b4"
+      }
+    },
+    {
+      "scope": "probe.c180",
+      "settings": {
+        "background": "#0000b5"
+      }
+    },
+    {
+      "scope": "probe.c181",
+      "settings": {
+        "background": "#0000b6"
+      }
+    },
+    {
+      "scope": "probe.c182",
+      "settings": {
+        "background": "#0000b7"
+      }
+    },
+    {
+      "scope": "probe.c183",
+      "settings": {
+        "background": "#0000b8"
+      }
+    },
+    {
+      "scope": "probe.c184",
+      "settings": {
+        "background": "#0000b9"
+      }
+    },
+    {
+      "scope": "probe.c185",
+      "settings": {
+        "background": "#0000ba"
+      }
+    },
+    {
+      "scope": "probe.c186",
+      "settings": {
+        "background": "#0000bb"
+      }
+    },
+    {
+      "scope": "probe.c187",
+      "settings": {
+        "background": "#0000bc"
+      }
+    },
+    {
+      "scope": "probe.c188",
+      "settings": {
+        "background": "#0000bd"
+      }
+    },
+    {
+      "scope": "probe.c189",
+      "settings": {
+        "background": "#0000be"
+      }
+    },
+    {
+      "scope": "probe.c190",
+      "settings": {
+        "background": "#0000bf"
+      }
+    },
+    {
+      "scope": "probe.c191",
+      "settings": {
+        "background": "#0000c0"
+      }
+    },
+    {
+      "scope": "probe.c192",
+      "settings": {
+        "background": "#0000c1"
+      }
+    },
+    {
+      "scope": "probe.c193",
+      "settings": {
+        "background": "#0000c2"
+      }
+    },
+    {
+      "scope": "probe.c194",
+      "settings": {
+        "background": "#0000c3"
+      }
+    },
+    {
+      "scope": "probe.c195",
+      "settings": {
+        "background": "#0000c4"
+      }
+    },
+    {
+      "scope": "probe.c196",
+      "settings": {
+        "background": "#0000c5"
+      }
+    },
+    {
+      "scope": "probe.c197",
+      "settings": {
+        "background": "#0000c6"
+      }
+    },
+    {
+      "scope": "probe.c198",
+      "settings": {
+        "background": "#0000c7"
+      }
+    },
+    {
+      "scope": "probe.c199",
+      "settings": {
+        "background": "#0000c8"
+      }
+    },
+    {
+      "scope": "probe.c200",
+      "settings": {
+        "background": "#0000c9"
+      }
+    },
+    {
+      "scope": "probe.c201",
+      "settings": {
+        "background": "#0000ca"
+      }
+    },
+    {
+      "scope": "probe.c202",
+      "settings": {
+        "background": "#0000cb"
+      }
+    },
+    {
+      "scope": "probe.c203",
+      "settings": {
+        "background": "#0000cc"
+      }
+    },
+    {
+      "scope": "probe.c204",
+      "settings": {
+        "background": "#0000cd"
+      }
+    },
+    {
+      "scope": "probe.c205",
+      "settings": {
+        "background": "#0000ce"
+      }
+    },
+    {
+      "scope": "probe.c206",
+      "settings": {
+        "background": "#0000cf"
+      }
+    },
+    {
+      "scope": "probe.c207",
+      "settings": {
+        "background": "#0000d0"
+      }
+    },
+    {
+      "scope": "probe.c208",
+      "settings": {
+        "background": "#0000d1"
+      }
+    },
+    {
+      "scope": "probe.c209",
+      "settings": {
+        "background": "#0000d2"
+      }
+    },
+    {
+      "scope": "probe.c210",
+      "settings": {
+        "background": "#0000d3"
+      }
+    },
+    {
+      "scope": "probe.c211",
+      "settings": {
+        "background": "#0000d4"
+      }
+    },
+    {
+      "scope": "probe.c212",
+      "settings": {
+        "background": "#0000d5"
+      }
+    },
+    {
+      "scope": "probe.c213",
+      "settings": {
+        "background": "#0000d6"
+      }
+    },
+    {
+      "scope": "probe.c214",
+      "settings": {
+        "background": "#0000d7"
+      }
+    },
+    {
+      "scope": "probe.c215",
+      "settings": {
+        "background": "#0000d8"
+      }
+    },
+    {
+      "scope": "probe.c216",
+      "settings": {
+        "background": "#0000d9"
+      }
+    },
+    {
+      "scope": "probe.c217",
+      "settings": {
+        "background": "#0000da"
+      }
+    },
+    {
+      "scope": "probe.c218",
+      "settings": {
+        "background": "#0000db"
+      }
+    },
+    {
+      "scope": "probe.c219",
+      "settings": {
+        "background": "#0000dc"
+      }
+    },
+    {
+      "scope": "probe.c220",
+      "settings": {
+        "background": "#0000dd"
+      }
+    },
+    {
+      "scope": "probe.c221",
+      "settings": {
+        "background": "#0000de"
+      }
+    },
+    {
+      "scope": "probe.c222",
+      "settings": {
+        "background": "#0000df"
+      }
+    },
+    {
+      "scope": "probe.c223",
+      "settings": {
+        "background": "#0000e0"
+      }
+    },
+    {
+      "scope": "probe.c224",
+      "settings": {
+        "background": "#0000e1"
+      }
+    },
+    {
+      "scope": "probe.c225",
+      "settings": {
+        "background": "#0000e2"
+      }
+    },
+    {
+      "scope": "probe.c226",
+      "settings": {
+        "background": "#0000e3"
+      }
+    },
+    {
+      "scope": "probe.c227",
+      "settings": {
+        "background": "#0000e4"
+      }
+    },
+    {
+      "scope": "probe.c228",
+      "settings": {
+        "background": "#0000e5"
+      }
+    },
+    {
+      "scope": "probe.c229",
+      "settings": {
+        "background": "#0000e6"
+      }
+    },
+    {
+      "scope": "probe.c230",
+      "settings": {
+        "background": "#0000e7"
+      }
+    },
+    {
+      "scope": "probe.c231",
+      "settings": {
+        "background": "#0000e8"
+      }
+    },
+    {
+      "scope": "probe.c232",
+      "settings": {
+        "background": "#0000e9"
+      }
+    },
+    {
+      "scope": "probe.c233",
+      "settings": {
+        "background": "#0000ea"
+      }
+    },
+    {
+      "scope": "probe.c234",
+      "settings": {
+        "background": "#0000eb"
+      }
+    },
+    {
+      "scope": "probe.c235",
+      "settings": {
+        "background": "#0000ec"
+      }
+    },
+    {
+      "scope": "probe.c236",
+      "settings": {
+        "background": "#0000ed"
+      }
+    },
+    {
+      "scope": "probe.c237",
+      "settings": {
+        "background": "#0000ee"
+      }
+    },
+    {
+      "scope": "probe.c238",
+      "settings": {
+        "background": "#0000ef"
+      }
+    },
+    {
+      "scope": "probe.c239",
+      "settings": {
+        "background": "#0000f0"
+      }
+    },
+    {
+      "scope": "probe.c240",
+      "settings": {
+        "background": "#0000f1"
+      }
+    },
+    {
+      "scope": "probe.c241",
+      "settings": {
+        "background": "#0000f2"
+      }
+    },
+    {
+      "scope": "probe.c242",
+      "settings": {
+        "background": "#0000f3"
+      }
+    },
+    {
+      "scope": "probe.c243",
+      "settings": {
+        "background": "#0000f4"
+      }
+    },
+    {
+      "scope": "probe.c244",
+      "settings": {
+        "background": "#0000f5"
+      }
+    },
+    {
+      "scope": "probe.c245",
+      "settings": {
+        "background": "#0000f6"
+      }
+    },
+    {
+      "scope": "probe.c246",
+      "settings": {
+        "background": "#0000f7"
+      }
+    },
+    {
+      "scope": "probe.c247",
+      "settings": {
+        "background": "#0000f8"
+      }
+    },
+    {
+      "scope": "probe.c248",
+      "settings": {
+        "background": "#0000f9"
+      }
+    },
+    {
+      "scope": "probe.c249",
+      "settings": {
+        "background": "#0000fa"
+      }
+    },
+    {
+      "scope": "probe.c250",
+      "settings": {
+        "background": "#0000fb"
+      }
+    },
+    {
+      "scope": "probe.c251",
+      "settings": {
+        "background": "#0000fc"
+      }
+    },
+    {
+      "scope": "probe.c252",
+      "settings": {
+        "background": "#0000fd"
+      }
+    }
+  ]
+}

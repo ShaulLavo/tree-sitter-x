@@ -1,0 +1,20 @@
+{
+  "name": "native-theme-same-name",
+  "type": "dark",
+  "tokenColors": [
+    {
+      "settings": {
+        "foreground": "#765432",
+        "background": "#010203",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "scope": "variable.clear",
+      "settings": {
+        "foreground": "#654321",
+        "fontStyle": ""
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "name": "native-theme-outside",
+  "type": "dark",
+  "semanticTokenColors": {
+    "variable": "#123456"
+  },
+  "semanticHighlighting": true,
+  "iconTheme": "icons",
+  "colors": {
+    "editor.foreground": "#456789",
+    "editor.background": "#123456",
+    "activityBar.background": "#abcdef"
+  },
+  "tokenColors": [
+    {
+      "scope": "variable",
+      "settings": {
+        "foreground": "#789abc"
+      }
+    }
+  ]
+}
