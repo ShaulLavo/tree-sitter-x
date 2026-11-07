@@ -1,0 +1,254 @@
+[
+  {
+    "profile": "raw",
+    "text": "(xy)",
+    "direct": [
+      {
+        "from": 0,
+        "to": 1,
+        "style": {
+          "foreground": "#abcdefff",
+          "background": "#112233ff",
+          "fontMask": 4,
+          "fontStyle": {
+            "underline": true
+          }
+        }
+      },
+      {
+        "from": 1,
+        "to": 2,
+        "style": {
+          "foreground": "#fedcbaff",
+          "background": "#112233ff",
+          "fontMask": 0,
+          "fontStyle": "reset"
+        }
+      },
+      {
+        "from": 2,
+        "to": 4,
+        "style": {
+          "foreground": "#abcdefff",
+          "background": "#112233ff",
+          "fontMask": 4,
+          "fontStyle": {
+            "underline": true
+          }
+        }
+      }
+    ],
+    "scopes": [
+      {
+        "from": 0,
+        "to": 1,
+        "scopes": [
+          "source.native-theme",
+          "meta.parent"
+        ]
+      },
+      {
+        "from": 1,
+        "to": 2,
+        "scopes": [
+          "source.native-theme",
+          "meta.parent",
+          "variable.clear"
+        ]
+      },
+      {
+        "from": 2,
+        "to": 3,
+        "scopes": [
+          "source.native-theme",
+          "meta.parent",
+          "variable.unset"
+        ]
+      },
+      {
+        "from": 3,
+        "to": 4,
+        "scopes": [
+          "source.native-theme",
+          "meta.parent"
+        ]
+      }
+    ],
+    "repaint": [
+      {
+        "from": 0,
+        "to": 1,
+        "style": {
+          "foreground": "#abcdefff",
+          "background": "#112233ff",
+          "fontMask": 4,
+          "fontStyle": {
+            "underline": true
+          }
+        }
+      },
+      {
+        "from": 1,
+        "to": 2,
+        "style": {
+          "foreground": "#fedcbaff",
+          "background": "#112233ff",
+          "fontMask": 0,
+          "fontStyle": "reset"
+        }
+      },
+      {
+        "from": 2,
+        "to": 3,
+        "style": {
+          "foreground": "#abcdefff",
+          "background": "#112233ff",
+          "fontMask": 4,
+          "fontStyle": {
+            "underline": true
+          }
+        }
+      },
+      {
+        "from": 3,
+        "to": 4,
+        "style": {
+          "foreground": "#abcdefff",
+          "background": "#112233ff",
+          "fontMask": 4,
+          "fontStyle": {
+            "underline": true
+          }
+        }
+      }
+    ]
+  },
+  {
+    "profile": "product",
+    "text": "(xy)",
+    "direct": [
+      {
+        "from": 0,
+        "to": 1,
+        "style": {
+          "foreground": "#abcdefff",
+          "fontMask": 4,
+          "fontStyle": {
+            "underline": true
+          }
+        }
+      },
+      {
+        "from": 1,
+        "to": 2,
+        "style": {
+          "foreground": "#fedcbaff",
+          "fontMask": 0,
+          "fontStyle": "reset"
+        }
+      },
+      {
+        "from": 2,
+        "to": 3,
+        "style": {
+          "foreground": "#abcdefff",
+          "fontMask": 4,
+          "fontStyle": {
+            "underline": true
+          }
+        }
+      },
+      {
+        "from": 3,
+        "to": 4,
+        "style": {
+          "foreground": "#abcdefff",
+          "fontMask": 4,
+          "fontStyle": {
+            "underline": true
+          }
+        }
+      }
+    ],
+    "scopes": [
+      {
+        "from": 0,
+        "to": 1,
+        "scopes": [
+          "source.native-theme",
+          "meta.parent"
+        ]
+      },
+      {
+        "from": 1,
+        "to": 2,
+        "scopes": [
+          "source.native-theme",
+          "meta.parent",
+          "variable.clear"
+        ]
+      },
+      {
+        "from": 2,
+        "to": 3,
+        "scopes": [
+          "source.native-theme",
+          "meta.parent",
+          "variable.unset"
+        ]
+      },
+      {
+        "from": 3,
+        "to": 4,
+        "scopes": [
+          "source.native-theme",
+          "meta.parent"
+        ]
+      }
+    ],
+    "repaint": [
+      {
+        "from": 0,
+        "to": 1,
+        "style": {
+          "foreground": "#abcdefff",
+          "fontMask": 4,
+          "fontStyle": {
+            "underline": true
+          }
+        }
+      },
+      {
+        "from": 1,
+        "to": 2,
+        "style": {
+          "foreground": "#fedcbaff",
+          "fontMask": 0,
+          "fontStyle": "reset"
+        }
+      },
+      {
+        "from": 2,
+        "to": 3,
+        "style": {
+          "foreground": "#abcdefff",
+          "fontMask": 4,
+          "fontStyle": {
+            "underline": true
+          }
+        }
+      },
+      {
+        "from": 3,
+        "to": 4,
+        "style": {
+          "foreground": "#abcdefff",
+          "fontMask": 4,
+          "fontStyle": {
+            "underline": true
+          }
+        }
+      }
+    ]
+  }
+]

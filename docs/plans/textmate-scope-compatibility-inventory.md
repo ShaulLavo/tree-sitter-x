@@ -405,6 +405,8 @@ JavaScript and JSX remain distinct experiment variants. The generated JavaScript
 
 ### Structural targets
 
+The immutable JSON/TypeScript/TSX native pilot now exists; historical catalog rows below are not its acceptance record. The [consumer handoff](../scope-compat-consumer-handoff.md) describes exact pilot IDs, reference theme dependencies, unsupported modes, and missing consumer evidence. No pack promotion or Phase 6 cutover follows from this inventory.
+
 This matrix records shipped assets and declared capability status. The manifest holds full Wasm and query hashes, repository URLs, lock integrities, and file citations. A parser marked verified has no native TextMate scope-parity claim.
 
 | Language | Structural aliases | Grammar source/version | Revision | ABI | Injection dependencies | Assignment | Status |

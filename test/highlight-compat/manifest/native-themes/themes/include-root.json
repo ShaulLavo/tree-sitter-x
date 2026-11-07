@@ -1,0 +1,22 @@
+{
+  "name": "native-theme-includes",
+  "type": "dark",
+  "include": "base.json",
+  "colors": {
+    "editor.foreground": "#555555"
+  },
+  "tokenColors": [
+    {
+      "scope": "variable",
+      "settings": {
+        "background": "#666666"
+      }
+    },
+    {
+      "scope": "variable.clear",
+      "settings": {
+        "fontStyle": ""
+      }
+    }
+  ]
+}
