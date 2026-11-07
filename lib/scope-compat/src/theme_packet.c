@@ -52,7 +52,7 @@ static bool partition(ThSpan *spans, uint32_t count, uint32_t header, uint32_t b
 }
 
 bool th_packet(ThPacket *p, const uint8_t *data, uint32_t bytes, bool theme, ThWork *w) {
-  uint32_t header = theme ? 48 : 36;
+  uint32_t header = theme ? sizeof(ThThemeHeader) : sizeof(ThPathHeader);
   if (!data || (uintptr_t)data % 4 || bytes < header)
     return th_fail(w, SCOPE_COMPAT_INVALID, SC_THEME_PACKET, bytes, 0);
   if (th_word(data, 0) != (theme ? 0x31544853u : 0x31504853u) || th_word(data, 4) != 1 || th_word(data, 8) != bytes)
@@ -166,6 +166,7 @@ static bool tail(const ThPacket *p, uint32_t id, ThWork *w) {
     if (i != length && p->data[start + i] != '.') continue;
     uint32_t size = i - component;
     const uint8_t *text = p->data + start + component;
+    if ((size == 14 || size == 9) && !th_charge(w, size)) return false;
     if ((size == 14 && !memcmp(text, "hasOwnProperty", 14)) || (size == 9 && !memcmp(text, "__proto__", 9)))
       return th_fail(w, SCOPE_COMPAT_UNSUPPORTED, SC_THEME_SELECTOR_ATOM, id, start + component);
     component = i + 1;
@@ -174,10 +175,10 @@ static bool tail(const ThPacket *p, uint32_t id, ThWork *w) {
 }
 
 static bool rule_valid(const ThPacket *p, uint32_t id, uint32_t *next, ThWork *w) {
+  if (!th_charge(w, 36)) return false;
   ThRule r = th_rule(p, id);
   uint32_t at = p->records + id * 36;
   w->rule = r.rule; w->alternative = r.alternative;
-  if (!th_charge(w, 36)) return false;
   if (r.present > 7 || r.font > 15 || (!(r.present & 1) && r.foreground) ||
       (!(r.present & 2) && r.background) || (!(r.present & 4) && r.font))
     return th_fail(w, SCOPE_COMPAT_INVALID, SC_THEME_PROPERTY, r.present, at + 20);

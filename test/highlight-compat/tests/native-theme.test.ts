@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { describe, expect, it, vi } from 'vitest';
+import { expect, it, vi } from 'vitest';
 import { Component } from '../src/native/component.ts';
 import { NativeTheme } from '../src/native/theme.ts';
 import { normalizeTheme, snapshotInput } from '../src/native/theme-input.ts';
@@ -15,7 +15,6 @@ function input(color: string) {
     {scope:'variable',settings:{fontStyle:''}}]}));
   return value(normalizeTheme(value(snapshotInput({root:'theme',resources:[{id:'theme',format:'json',bytes}],edges:[]})),'raw','pinned-test-target'));
 }
-describe('native Wasm theme calls', () => {
   it('resolves defaults, inheritance and explicit clears without retaining caller packets', async () => {
     const component = await Component.load(), baseline = component.liveAllocations();
     const theme = value(await NativeTheme.compile(input('#12345678')));
@@ -57,10 +56,10 @@ describe('native Wasm theme calls', () => {
       return result;
     });
     try {
-      const baseline = component.liveAllocations(), before = component.runtime.heap().buffer;
+      const baseline = component.liveAllocations(), before = component.runtime.heap().byteLength;
       expect(value(theme.resolve(paths))).toHaveLength(2);
       expect(grew).toBe(true);
-      expect(component.runtime.heap().buffer).not.toBe(before);
+      expect(component.runtime.heap().byteLength).toBe(before + 65536);
       expect(component.liveAllocations()).toBe(baseline);
       expect(() => theme.resolve({...paths,count:paths.count+1})).toThrow('Invalid native theme result header');
       expect(component.liveAllocations()).toBe(baseline);
@@ -80,4 +79,3 @@ describe('native Wasm theme calls', () => {
       expect(component.liveAllocations()).toBe(baseline);
     }
   });
-});

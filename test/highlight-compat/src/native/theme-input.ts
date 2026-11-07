@@ -35,7 +35,7 @@ function schema(location: Location): never { return reject({kind:'invalid',code:
 function resource(input: AcquiredInput['resources'][number], bounds: InputLimits): Resource {
   if (!input || typeof input.id !== 'string' || !input.id || !input.id.isWellFormed() || !(input.bytes instanceof Uint8Array)) schema({kind:'request'});
   const location = resourceLocation(input.id);
-  cap(encoder.encode(input.id).length,bounds.resourceIdBytes,'resource-id-bytes',location);
+  cap(encoder.encode(input.id).length,bounds.resourceIdBytes,'resource-id-bytes');
   if (input.format !== 'json') {
     if (input.format === 'jsonc' || input.format === 'plist') reject({kind:'unsupported',code:'input-format',location});
     schema(location);
@@ -57,12 +57,13 @@ function acquisition(input: AcquiredInput, bounds: InputLimits): { readonly reso
     byteCount += entry.bytes.length; cap(byteCount,bounds.inputBytes,'input-bytes');
   }
   const resources = input.resources.map(entry => resource(entry,bounds)), byId = new Map(resources.map(entry => [entry.id,entry]));
-  if (byId.size !== resources.length || !byId.has(input.root) || input.edges.length > resources.length)
+  if (byId.size !== resources.length || !byId.has(input.root))
     reject({kind:'invalid',code:'include-graph',location:resourceLocation(input.root)});
+  if (input.edges.length > resources.length) reject({kind:'invalid',code:'include-graph',location:resourceLocation(input.root,'/include')});
   const edges = new Map<string,string>();
   for (const edge of input.edges) {
     if (!edge || typeof edge.from !== 'string' || typeof edge.to !== 'string' || edge.ordinal !== 0 || edges.has(edge.from))
-      reject({kind:'invalid',code:'include-graph',location:{kind:'request'}});
+      reject({kind:'invalid',code:'include-graph',location:resourceLocation(typeof edge?.from === 'string' ? edge.from : input.root,'/include')});
     if (!byId.has(edge.from) || !byId.has(edge.to)) reject({kind:'invalid',code:'include-authority',location:resourceLocation(edge.from,'/include')});
     edges.set(edge.from,edge.to);
   }
@@ -78,7 +79,7 @@ function closure(root: string, resources: ReadonlyMap<string,Resource>, edges: R
   while (id !== undefined) {
     const entry = resources.get(id);
     if (!entry || visited.has(id)) reject({kind:'invalid',code:'include-graph',location:resourceLocation(id,'/include')});
-    cap(ordered.length,bounds.includeDepth,'include-depth',resourceLocation(id,'/include'));
+    cap(ordered.length,bounds.includeDepth,'include-depth');
     visited.add(id); ordered.push(entry);
     const next = edges.get(id);
     if (('include' in entry.document) !== (next !== undefined)) reject({kind:'invalid',code:'include-graph',location:resourceLocation(id,'/include')});
@@ -97,6 +98,7 @@ export function snapshotInput(input: AcquiredInput, options: Partial<InputLimits
 
 function color(value: unknown, location: Location): string {
   if (typeof value !== 'string') schema(location);
+  if (value === '') reject({kind:'invalid',code:'color',location});
   if (!value.startsWith('#')) reject({kind:'unsupported',code:'color-format',location});
   if (!/^#(?:[\da-f]{3,4}|[\da-f]{6}|[\da-f]{8})$/i.test(value)) reject({kind:'invalid',code:'color',location});
   return value;
@@ -109,13 +111,13 @@ function font(value: unknown, location: Location): string {
   return value;
 }
 function setting(value: unknown, resource: string, rule: number): Setting {
-  const location = (property: string): Location => ({kind:'setting',resource,rule,alternative:null,property});
+  const location = (property: string): Location => ({kind:'setting',resource,rule,alternative:0,property});
   if (!record(value) || !record(value.settings)) schema(location('settings'));
   const settings: { -readonly [K in keyof Setting['settings']]: Setting['settings'][K] } = {};
   for (const [property,field] of Object.entries(value.settings)) {
-    if (property === 'foreground' || property === 'background') settings[property] = color(field,location(property));
-    else if (property === 'fontStyle') settings.fontStyle = font(field,location(property));
-    else reject({kind:'unsupported',code:'syntax-property',location:location(property)});
+    if (property === 'foreground' || property === 'background') { settings[property] = color(field,location(property)); continue; }
+    if (property === 'fontStyle') { settings.fontStyle = font(field,location(property)); continue; }
+    reject({kind:'unsupported',code:'syntax-property',location:location(property)});
   }
   const name = value.name;
   if (name !== undefined && typeof name !== 'string') schema(location('name'));
@@ -138,7 +140,8 @@ function registration(entry: Resource, warnings: OutsideScore[]): ThemeRegistrat
     if (doc.type !== 'dark' && doc.type !== 'light') schema(resourceLocation(entry.id,'/type'));
     result.type = doc.type;
   }
-  if ('colors' in doc) result.colors = colors(doc.colors,entry.id,warnings);
+  const colorWarnings: OutsideScore[] = [];
+  if ('colors' in doc) result.colors = colors(doc.colors,entry.id,colorWarnings);
   if ('fg' in doc) result.fg = color(doc.fg,resourceLocation(entry.id,'/fg'));
   if ('bg' in doc) result.bg = color(doc.bg,resourceLocation(entry.id,'/bg'));
   if ('colorReplacements' in doc) reject({kind:'unsupported',code:'syntax-property',location:resourceLocation(entry.id,'/colorReplacements')});
@@ -146,6 +149,7 @@ function registration(entry: Resource, warnings: OutsideScore[]): ThemeRegistrat
     if (['name','type','settings','tokenColors','colors','include','fg','bg'].includes(property)) continue;
     warnings.push({kind:'outside-score',resource:entry.id,property});
   }
+  colorWarnings.forEach(warning => warnings.push(warning));
   return result;
 }
 function colors(value: unknown, resource: string, warnings: OutsideScore[]): Record<string,string> {
@@ -155,7 +159,7 @@ function colors(value: unknown, resource: string, warnings: OutsideScore[]): Rec
     if (typeof entry !== 'string') schema(resourceLocation(resource,`/colors/${key}`));
     result[key] = entry;
     if (key === 'editor.foreground' || key === 'editor.background') color(entry,resourceLocation(resource,`/colors/${key}`));
-    else warnings.push({kind:'outside-score',resource,property:`colors.${key}`});
+    else warnings.push({kind:'outside-score',resource,property:`colors/${key}`});
   }
   return result;
 }
@@ -178,17 +182,17 @@ function selectors(scope: Setting['scope'], location: Location): readonly string
   });
 }
 interface RuleBuilder { readonly atoms: Map<string,number>; readonly rules: NativeRule[]; readonly bounds: InputLimits; edges: number }
-function atomId(builder: RuleBuilder, atom: string, location: Location): number {
-  cap(encoder.encode(atom).length,builder.bounds.atomBytes,'atom-bytes',location);
+function atomId(builder: RuleBuilder, atom: string): number {
+  cap(encoder.encode(atom).length,builder.bounds.atomBytes,'atom-bytes');
   const known = builder.atoms.get(atom);
   if (known !== undefined) return known;
-  cap(builder.atoms.size+1,builder.bounds.atoms,'atoms',location);
+  cap(builder.atoms.size+1,builder.bounds.atoms,'atoms');
   const id = builder.atoms.size; builder.atoms.set(atom,id); return id;
 }
 function selectorParts(selector: string, location: Location): { readonly tail: string; readonly contexts: readonly {atom:string;immediate:boolean}[] } {
   if (!selector) return {tail:'',contexts:[]};
   if (/[\t\r\n]| {2}/.test(selector)) reject({kind:'invalid',code:'selector',location});
-  if (/[*|&():]/.test(selector) || selector.split(' ').includes('-')) reject({kind:'unsupported',code:'selector',location});
+  if (/[*|&():/]/.test(selector) || (selector !== '-' && selector.split(' ').includes('-'))) reject({kind:'unsupported',code:'selector',location});
   const parts = selector.split(' '), tail = parts.pop();
   if (!tail || tail === '>' || parts[0] === '>') reject({kind:'invalid',code:'selector',location});
   const contexts: {atom:string;immediate:boolean}[] = [];
@@ -205,16 +209,16 @@ function selectorParts(selector: string, location: Location): { readonly tail: s
   return {tail,contexts};
 }
 function addRule(builder: RuleBuilder, value: Setting, rule: number, source: {readonly resource:string;readonly rule:number}): void {
-  const location: Location = {kind:'setting',resource:source.resource,rule:source.rule,alternative:null,property:'scope'};
+  const location: Location = {kind:'setting',resource:source.resource,rule:source.rule,alternative:0,property:'scope'};
   const alternatives = selectors(value.scope,location);
   alternatives.forEach((selector,alternative) => {
     const where = {...location,alternative}, parsed = selectorParts(selector,where);
-    cap(builder.rules.length+1,builder.bounds.rules,'rules',where);
-    cap(parsed.contexts.length,builder.bounds.contextAtomsPerSelector,'context-atoms',where);
-    builder.edges += parsed.contexts.length; cap(builder.edges,builder.bounds.contextEdges,'context-edges',where);
+    cap(builder.rules.length+1,builder.bounds.rules,'rules');
+    cap(parsed.contexts.length,builder.bounds.contextAtomsPerSelector,'context-atoms');
+    builder.edges += parsed.contexts.length; cap(builder.edges,builder.bounds.contextEdges,'context-edges');
     const {foreground,background,fontStyle} = value.settings;
-    builder.rules.push({tail:parsed.tail ? atomId(builder,parsed.tail,where) : NONE,
-      contexts:parsed.contexts.map(edge => ({atom:atomId(builder,edge.atom,where),immediate:edge.immediate})),rule,alternative,
+    builder.rules.push({tail:parsed.tail ? atomId(builder,parsed.tail) : NONE,
+      contexts:parsed.contexts.map(edge => ({atom:atomId(builder,edge.atom),immediate:edge.immediate})),rule,alternative,
       present:(foreground === undefined ? 0 : 1) | (background === undefined ? 0 : 2) | (fontStyle === undefined ? 0 : 4),
       foreground:foreground === undefined ? 0 : parseInt(canonical(foreground),16),
       background:background === undefined ? 0 : parseInt(canonical(background),16),fontMask:fontStyle === undefined ? 0 : mask(fontStyle)});
@@ -254,7 +258,7 @@ function normalize(input: InputSnapshot, profile: Profile, targetIdentity: strin
     if (source.settings.foreground !== undefined) palette.add(canonical(source.settings.foreground));
     if (source.settings.background !== undefined) palette.add(canonical(source.settings.background));
   });
-  if (profile === 'raw' && palette.size > 255) reject({kind:'unsupported',code:'raw-palette',location:{kind:'request'}});
+  if (profile === 'raw' && palette.size > 255) reject({kind:'unsupported',code:'raw-palette',location:resourceLocation(snapshot.resources.at(-1)?.id ?? '')});
   const packet = themePacket(Array.from(builder.atoms.keys()),builder.rules,bounds.packetBytes);
   const packetDigest = hash('scope-compat/theme-packet-1',[packet]);
   const revision = hash('scope-compat/normalized-theme-1',[input.acquisitionRevision,profile,targetIdentity,'base-first-1',packet]);

@@ -17,14 +17,15 @@ static bool reserve(ScopeCompatTheme *t, void **buffer, uint32_t *capacity, uint
   if (count <= *capacity) return true;
   uint32_t next = *capacity ? *capacity * 2 : 8;
   if (next > maximum) next = maximum;
-  uint64_t increase = (uint64_t)(next - *capacity) * width;
-  if (increase > t->max_owned - t->owned)
+  uint64_t requested = (uint64_t)next * width;
+  if (requested > t->max_owned - t->owned)
     return th_fail(&t->work, SCOPE_COMPAT_BUDGET, SC_THEME_OWNED_BYTES, t->max_owned, TH_NONE);
   if (!th_charge(&t->work, *capacity * width)) return false;
   void *grown = sc_alloc(next, width);
   if (!grown) return th_fail(&t->work, SCOPE_COMPAT_NO_MEMORY, SC_THEME_ALLOCATION, next * width, TH_NONE);
   if (*capacity) memcpy(grown, *buffer, (size_t)*capacity * width);
-  sc_free(*buffer); *buffer = grown; *capacity = next; t->owned += (uint32_t)increase;
+  t->owned += (uint32_t)requested;
+  sc_free(*buffer); t->owned -= *capacity * width; *buffer = grown; *capacity = next;
   return true;
 }
 
@@ -67,8 +68,8 @@ static uint32_t context_token(const ThPacket *p, ThRule r, ThContextCursor *curs
 }
 
 static int compare_contexts(const ThPacket *p, ThRule a, ThRule b, ThWork *w) {
-  uint32_t al = parent_length(p, a), bl = parent_length(p, b);
   if (!th_charge(w, a.count + b.count)) return 0;
+  uint32_t al = parent_length(p, a), bl = parent_length(p, b);
   if (al != bl) return al < bl ? -1 : 1;
   ThContextCursor ac = {0}, bc = {0};
   for (uint32_t i = 0; i < al; ++i) {

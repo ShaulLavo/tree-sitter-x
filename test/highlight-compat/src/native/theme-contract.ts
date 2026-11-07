@@ -50,7 +50,11 @@ export class InputFailure extends Error {
 export function reject(failure: Failure): never { throw new InputFailure(failure); }
 export function attempt<T>(action: () => T, warnings: readonly OutsideScore[] = []): Outcome<T> {
   try { return { kind:'ok', value:action(), warnings }; }
-  catch (error) { if (error instanceof InputFailure) return error.failure; throw error; }
+  catch (error) { return inputFailure(error); }
+}
+function inputFailure(error: unknown): Failure {
+  if (error instanceof InputFailure) return error.failure;
+  throw error;
 }
 export function limits<T extends object>(defaults: T, options: Partial<T>, ceiling = false): T {
   if (typeof options !== 'object' || options === null || Array.isArray(options)) reject({kind:'invalid',code:'schema',location:{kind:'request'}});

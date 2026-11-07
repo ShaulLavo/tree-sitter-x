@@ -24,18 +24,20 @@ export class NativeTheme {
   #disposed = false;
   private constructor(component: Component, pointer: number) { this.#component = component; this.#pointer = pointer; }
   static compile(input: NormalizedTheme, options: Partial<CompileLimits> = {}): Promise<Outcome<NativeTheme> | OperationalFailure> {
-    return NativeTheme.compilePacket(normalizedPacket(input),options);
+    return NativeTheme.compileOwned(normalizedPacket(input),options);
   }
-  static async compilePacket(packet: Uint8Array, options: Partial<CompileLimits> = {}): Promise<Outcome<NativeTheme> | OperationalFailure> {
+  static compilePacket(packet: Uint8Array, options: Partial<CompileLimits> = {}): Promise<Outcome<NativeTheme> | OperationalFailure> {
+    return NativeTheme.compileOwned(packet.slice(),options);
+  }
+  private static async compileOwned(packet: Uint8Array, options: Partial<CompileLimits>): Promise<Outcome<NativeTheme> | OperationalFailure> {
     const checked = attempt(() => limits(COMPILE_DEFAULTS,options));
     if (checked.kind !== 'ok') return checked;
-    const ownedPacket = packet.slice();
     let component: Component;
     try { component = await Component.load(); }
     catch { return {kind:'error',code:'runtime-failed',location:{kind:'request'}}; }
     if (component.number('scope_compat_theme_abi_version') !== 1) throw new Error('Invalid theme ABI');
     validateThemeLayout(component.runtime.heap(),component.number('scope_compat_theme_layout'));
-    return withBytes(component,ownedPacket,pointer => NativeTheme.construct(component,pointer,ownedPacket.length,checked.value));
+    return withBytes(component,packet,pointer => NativeTheme.construct(component,pointer,packet.length,checked.value));
   }
   private static construct(component: Component, packet: number, length: number, bounds: CompileLimits): Outcome<NativeTheme> {
     const pointer = component.number('scope_compat_theme_new',[packet,length,bounds.steps,bounds.trieNodes,bounds.contextRules,bounds.ownedBytes]);

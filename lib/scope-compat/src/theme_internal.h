@@ -12,6 +12,9 @@
 typedef struct { uint32_t status, detail, value, rule, alternative, offset, steps, step_limit, step_detail; } ThWork;
 typedef struct { const uint8_t *data; uint32_t bytes, count, records, names, name_count, strings, string_bytes, contexts, context_count; } ThPacket;
 typedef struct { uint32_t tail, first, count, rule, alternative, present, foreground, background, font; } ThRule;
+typedef struct { uint32_t magic, version, bytes, rule_count, rules, atom_count, atoms,
+  context_count, contexts, string_bytes, strings, reserved; } ThThemeHeader;
+typedef struct { uint32_t magic, version, bytes, name_count, names, path_count, paths, string_bytes, strings; } ThPathHeader;
 typedef struct { ScopeCompatThemeMatchRecord style; uint32_t depth, first, count, next; } ThCandidate;
 typedef struct { uint32_t text, length, child, sibling, contexts; ThCandidate main; } ThNode;
 struct ScopeCompatTheme {
@@ -25,8 +28,12 @@ struct ScopeCompatTheme {
 };
 _Static_assert(sizeof(ScopeCompatTheme) <= 128, "theme diagnostic header cap");
 _Static_assert(sizeof(ThRule) == 36, "theme wire rule");
+_Static_assert(sizeof(ThThemeHeader) == 48 && offsetof(ThThemeHeader, reserved) == 44, "theme packet header");
+_Static_assert(sizeof(ThPathHeader) == 36 && offsetof(ThPathHeader, paths) == 24, "path packet header");
 _Static_assert(sizeof(ScopeCompatThemeStyle) == 12, "theme style ABI");
 _Static_assert(sizeof(ScopeCompatThemeMatchRecord) == 24, "theme match record ABI");
+_Static_assert(_Alignof(ScopeCompatThemeStyle) == 4 && offsetof(ScopeCompatThemeStyle, font_mask) == 8, "theme style offsets");
+_Static_assert(_Alignof(ScopeCompatThemeMatchRecord) == 4 && offsetof(ScopeCompatThemeMatchRecord, alternative) == 20, "theme match record offsets");
 
 uint32_t th_word(const uint8_t *data, uint32_t offset);
 bool th_fail(ThWork *work, uint32_t status, uint32_t detail, uint32_t value, uint32_t offset);

@@ -165,6 +165,21 @@ static void construction_bounds(void) {
   scope_compat_theme_delete(t); assert(scope_compat_live_allocations() == 0);
 }
 
+static void bounded_packet_mutations(void) {
+  Packet original = clone_packet();
+  for (uint32_t i = 0; i < original.bytes; ++i) {
+    Packet p = original; ((uint8_t *)p.words)[i] ^= 0x80;
+    ScopeCompatTheme *t = scope_compat_theme_new((uint8_t *)p.words,p.bytes,4096,16,16,65536);
+    assert(t && scope_compat_theme_status(t) <= 4);
+    scope_compat_theme_delete(t); assert(scope_compat_live_allocations() == 0);
+  }
+  Packet p = rules_packet(); ((uint8_t *)p.words)[p.words[10]] = 0xff;
+  ScopeCompatTheme *t = compile(&p);
+  assert(scope_compat_theme_detail(t) == SC_THEME_UTF8 && scope_compat_theme_detail_value(t) == 0xff);
+  assert(scope_compat_theme_error_offset(t) == p.words[10] && scope_compat_theme_error_rule(t) == UINT32_MAX);
+  scope_compat_theme_delete(t); assert(scope_compat_live_allocations() == 0);
+}
+
 static void allocation_failures(void) {
   Packet p = rules_packet(), paths = reference_paths();
   bool success = false;
@@ -193,7 +208,7 @@ static void allocation_failures(void) {
 }
 
 void sc_theme_tests(void) {
-  empty_and_limits(); exact_specification(); malformed_packets(); construction_bounds(); allocation_failures();
+  empty_and_limits(); exact_specification(); malformed_packets(); construction_bounds(); bounded_packet_mutations(); allocation_failures();
   puts("scope-compat theme packet controls passed");
 }
 #ifdef SC_THEME_STANDALONE

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { expect, it } from 'vitest';
 import { Component } from '../src/native/component.ts';
 import type { NativePack } from '../src/native/component.ts';
 import { NativeTheme } from '../src/native/theme.ts';
@@ -46,6 +46,9 @@ function observe(runtime: Runtime) {
   };
 }
 type Observer = ReturnType<typeof observe>;
+function decoded(paths: readonly (readonly number[])[], names: readonly string[]): readonly (readonly string[])[] {
+  return paths.map(path => Object.freeze(path.map(id => names[id])));
+}
 function repaint(paths: readonly (readonly string[])[], themes: readonly NativeTheme[], observer: Observer): void {
   const packet = value(encodePathPacket(paths)), before = JSON.stringify(paths);
   observer.reset();
@@ -62,7 +65,7 @@ async function languageControl(language: string, source: string, pack: NativePac
     const scopes = nativeScopes(pack,owner);
     expect(observer.read().parse).toBe(1); expect(observer.read().classify).toBe(1);
     if (scopes.status !== 0) throw new Error('Incomplete current scopes');
-    const before = JSON.stringify(scopes), paths = scopes.paths.map(path => Object.freeze(path.map(id => pack.scopes[id])));
+    const before = JSON.stringify(scopes), paths = decoded(scopes.paths,pack.scopes);
     repaint(Object.freeze(paths),themes,observer);
     expect(JSON.stringify(scopes)).toBe(before);
   } finally { owner.dispose(); }
@@ -80,7 +83,6 @@ async function markdownControl(packs: ReadonlyMap<string,NativePack>, themes: re
     expect(JSON.stringify(intervals)).toBe(before);
   } finally { owner.dispose(); }
 }
-describe('stateless theme-only recomputation over retained current scopes', () => {
   it('arms same-engine parser/classifier/resolver controls, then changes themes with zero calls', async () => {
     const observer = observe(await Runtime.load()), themes: NativeTheme[] = [], packs = new Map<string,NativePack>();
     try {
@@ -94,7 +96,6 @@ describe('stateless theme-only recomputation over retained current scopes', () =
       themes.forEach(current => current.dispose()); packs.forEach(pack => pack.dispose()); observer.restore();
     }
   });
-});
 function required(packs: ReadonlyMap<string,NativePack>, language: string): NativePack {
   const pack = packs.get(language);
   if (!pack) throw new Error('Missing test pack');
