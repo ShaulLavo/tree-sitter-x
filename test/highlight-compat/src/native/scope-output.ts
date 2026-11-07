@@ -7,13 +7,17 @@ export interface ScopeSnapshot {
   readonly owner: OwnerKey; readonly generation: ResultGeneration; readonly work: WorkKey;
   readonly coverage: TextSpan; readonly sourceLength: number; readonly dictionary: ScopeDictionary;
   readonly segments: readonly number[]; readonly metadata: null;
+  readonly separators: readonly TextSpan[];
   readonly injections: readonly InjectionCoverage[]; readonly diagnostics: readonly string[];
 }
 export interface Publication {
   readonly view: ViewId; readonly interest: InterestGeneration; readonly theme: ThemeGeneration; readonly viewport: TextSpan;
   readonly change: Readonly<{ kind: 'reset' }> | Readonly<{ kind: 'replace'; old: ScopeSnapshot['owner']; generation: ResultGeneration; coverage: TextSpan }>;
 }
-export interface ScopeLease { readonly snapshot: ScopeSnapshot; readonly publication: Publication | null; release(): void }
+export interface ScopeLease { readonly snapshot: ScopeSnapshot; readonly publication: Publication | null; retain(): ScopeLease; reserve(bytes: number): () => void; release(): void }
+export function separatorSpans(source: string): readonly TextSpan[] {
+  return Object.freeze(Array.from(source.matchAll(/\r?\n/g), match => Object.freeze({ from: match.index, to: match.index + match[0].length })));
+}
 export function packIntervals(intervals: readonly ScopeInterval[], length: number): { dictionary: ScopeDictionary; segments: readonly number[] } {
   const names: string[] = [], paths: number[][] = [], segments: number[] = [];
   const nameIds = new Map<string, number>(), pathIds = new Map<string, number>();
@@ -57,6 +61,7 @@ export class OutputBudgetError extends Error {}
 export class OutputStore {
   readonly #live = new Map<ScopeSnapshot, number>();
   readonly #ceiling: number;
+  #reserved = 0;
   constructor(ceiling: number) { this.#ceiling = ceiling; }
   bytes(extra?: ScopeSnapshot): number {
     const snapshots = Array.from(this.#live.keys());
@@ -69,15 +74,33 @@ export class OutputStore {
     const segmentBytes = Array.from(segmentArrays, segments => segments.length * 8).reduce((a, b) => a + b, 0);
     const injectionBytes = Array.from(injectionArrays, injections => injections.reduce((sum, item) => sum + 32 + (item.language?.length ?? 0) * 2 + (item.reason?.length ?? 0) * 2, 0)).reduce((a, b) => a + b, 0);
     const diagnosticBytes = Array.from(diagnosticArrays, diagnostics => diagnostics.reduce((sum, text) => sum + text.length * 2, 0)).reduce((a, b) => a + b, 0);
-    return dictionaryBytes + segmentBytes + injectionBytes + diagnosticBytes + snapshots.length * 128;
+    const separators = new Set(snapshots.map(snapshot => snapshot.separators));
+    const separatorBytes = Array.from(separators, spans => spans.length * 16).reduce((a, b) => a + b, 0);
+    return this.#reserved + dictionaryBytes + segmentBytes + injectionBytes + diagnosticBytes + separatorBytes + snapshots.length * 128;
+  }
+  private reserve(bytes: number): () => void {
+    if (!Number.isSafeInteger(bytes) || bytes < 0) throw new RangeError('Invalid retained byte charge');
+    if (this.bytes() + bytes > this.#ceiling) throw new OutputBudgetError('Retained presentation byte budget');
+    this.#reserved += bytes;
+    let held = true;
+    return () => { if (!held) return; held = false; this.#reserved -= bytes; };
   }
   retain(snapshot: ScopeSnapshot, publication: Publication | null = null): ScopeLease {
     if (this.bytes(snapshot) > this.#ceiling) throw new OutputBudgetError('Retained scope byte budget');
     this.#live.set(snapshot, (this.#live.get(snapshot) ?? 0) + 1);
     let held: ScopeSnapshot | undefined = snapshot;
-    return Object.freeze({ get snapshot() { if (!held) throw new Error('Released scope lease'); return held; }, publication, release: () => {
+    const reservations = new Set<() => void>();
+    const reserve = (bytes: number): (() => void) => {
+      if (!held) throw new Error('Released scope lease');
+      const drop = this.reserve(bytes);
+      const release = () => { drop(); reservations.delete(release); };
+      reservations.add(release); return release;
+    };
+    const retain = (): ScopeLease => { if (!held) throw new Error('Released scope lease'); return this.retain(held, publication); };
+    return Object.freeze({ get snapshot() { if (!held) throw new Error('Released scope lease'); return held; }, publication, retain, reserve, release: () => {
       const previous = held; if (!previous) return;
       held = undefined;
+      for (const release of reservations) release();
       const count = this.#live.get(previous) ?? 0;
       if (count <= 1) this.#live.delete(previous); else this.#live.set(previous, count - 1);
     } });
