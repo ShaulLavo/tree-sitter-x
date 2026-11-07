@@ -37,6 +37,7 @@ describe.each(ORACLE_PROFILES)('%s required reference metadata', (profileId) => 
     const result = await runDocument(request(profileId, ''))
     expect(result.status).toBe('complete')
     expect('metadata' in result).toBe(false)
+    expect(result.engine['referenceMetadata']).toBe('required-language-v1')
   })
 
   it.each(['\n', '\r\n'])('does not assign a language to a real %j separator', async (separator) => {
@@ -46,6 +47,8 @@ describe.each(ORACLE_PROFILES)('%s required reference metadata', (profileId) => 
     expect(result.spans).toEqual([])
     expect(result.diagnostics.join('\n')).toContain(`[2, ${2 + separator.length})`)
     expect(result.diagnostics.join('\n')).toContain('separator')
+    expect(result.engine['referenceMetadata']).toBe('required-language-v1')
+    if (profileId.startsWith('raw')) expect(result.engine['metadataConfiguration']).toContain('default was unset 0')
   })
 
   it.each(['javascript', 'jsx'])('does not turn native root allocation into independent %s child identity', async (language) => {
@@ -71,7 +74,7 @@ describe('mandatory worker admission', () => {
     expect(result.spans).toEqual([])
   })
 
-  it.each(['wrong-codebook', 'wrong-ids'])('rejects claimed metadata with %s', async (fault) => {
+  it.each(['wrong-codebook', 'wrong-ids', 'missing-configuration'])('rejects claimed metadata with %s', async (fault) => {
     const result = await runDocument(request('raw', fault), { workerUrl })
     expect(result.status).toBe('unsupported')
     expect(result.spans).toEqual([])

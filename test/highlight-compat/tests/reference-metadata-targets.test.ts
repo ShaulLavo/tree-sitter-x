@@ -146,7 +146,8 @@ describe('strict codebook and coverage', () => {
     const capture = new ReferenceMetadataCapture('{}\r\r\n{}', 'product', codebook(), [])
     capture.observe('{}\r', { tokens: new Uint32Array([0, 37]), stoppedEarly: false })
     capture.observe('{}', { tokens: new Uint32Array([0, 37]), stoppedEarly: false })
-    expect(capture.outcome()).toEqual({ kind: 'unavailable', ranges: [{ from: 3, to: 5, reason: 'physical separator or product final CR has no observed language' }] })
+    expect(capture.outcome()).toEqual({ kind: 'unavailable', codebook: codebook().identity,
+      ranges: [{ from: 3, to: 5, reason: 'physical separator or product final CR has no observed language' }] })
   })
 })
 

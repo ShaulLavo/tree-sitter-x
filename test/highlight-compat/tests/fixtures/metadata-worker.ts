@@ -9,7 +9,7 @@ const builder = new ResultBuilder({
   languageId: request.source === 'language' ? 'jsx' : request.languageId,
   engine: { referenceMetadata: 'required-language-v1', metadataSemantics: 'whole-source-root',
     metadataCodebook: JSON.stringify([{ nativeId: request.source === 'wrong-codebook' ? 0 : 1, languageId: 'json', scopeName: 'source.json' }]),
-    metadataConfiguration: 'configured initialLanguage=1 (default was unset 0)' },
+    metadataConfiguration: request.source === 'missing-configuration' ? '' : 'configured initialLanguage=1 (default was unset 0)' },
 }, source)
 builder.scope(0, source.length, [])
 const result = ['timeout', 'error', 'canceled', 'unsupported'].includes(source)
@@ -17,7 +17,7 @@ const result = ['timeout', 'error', 'canceled', 'unsupported'].includes(source)
   : builder.complete()
 function reply() {
   if (request.source === 'partial') return { ...result, metadata: { languageIds: ['json'], spans: [0, 1, 0] } }
-  if (request.source === 'wrong-codebook' || request.source === 'wrong-ids')
+  if (['wrong-codebook', 'wrong-ids', 'missing-configuration'].includes(request.source))
     return { ...result, metadata: { languageIds: [request.source === 'wrong-ids' ? 'jsx' : 'json'], spans: [0, source.length, 0] } }
   return result
 }

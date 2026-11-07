@@ -66,9 +66,9 @@ export interface MetadataGap {
 }
 
 export type MetadataAcquisition =
-  | { readonly kind: 'empty' }
+  | { readonly kind: 'empty'; readonly codebook: string }
   | { readonly kind: 'measured'; readonly track: MetadataTrack; readonly codebook: string }
-  | { readonly kind: 'unavailable'; readonly ranges: readonly MetadataGap[] }
+  | { readonly kind: 'unavailable'; readonly ranges: readonly MetadataGap[]; readonly codebook: string }
 
 export type BinaryResult = Pick<ReturnType<Grammar['tokenizeLine2']>, 'tokens' | 'stoppedEarly'>
 export type BinaryObserver = (line: string, result: BinaryResult) => void
@@ -92,9 +92,8 @@ function observedLines(source: string, profile: string): SourceLine[] {
   return lines.map((line, index) => index === lines.length - 1 && line.text.endsWith('\r') ? { ...line, text: line.text.slice(0, -1) } : line)
 }
 
-function skipped(line: SourceLine, profile: string): boolean {
+function skipped(line: SourceLine, profile: string, limit: number): boolean {
   if (profile.startsWith('raw')) return false
-  const limit = readProductProfile().tokenization.lineLimit.settingDefault
   return line.text.length === 0 || (profile === 'shiki-api' ? line.text.length >= limit : line.text.length > limit)
 }
 
@@ -122,15 +121,16 @@ export class ReferenceMetadataCapture {
     this.#source = source
     this.#codebook = codebook
     const lines = observedLines(source, profile)
-    this.#expected = lines.filter(line => !skipped(line, profile))
+    const limit = readProductProfile().tokenization.lineLimit.settingDefault
+    this.#expected = lines.filter(line => !skipped(line, profile, limit))
     this.#gaps = semanticGaps.slice()
-    for (const line of lines) this.#checkLine(line, profile)
+    for (const line of lines) this.#checkLine(line, profile, limit)
   }
 
-  #checkLine(line: SourceLine, profile: string): void {
+  #checkLine(line: SourceLine, profile: string, limit: number): void {
     const end = line.start + line.text.length
     if (end < line.next) this.#gaps.push({ from: end, to: line.next, reason: 'physical separator or product final CR has no observed language' })
-    if (line.text.length > 0 && skipped(line, profile))
+    if (line.text.length > 0 && skipped(line, profile, limit))
       this.#gaps.push({ from: line.start, to: end, reason: 'profile line limit skipped binary observation' })
   }
 
@@ -150,10 +150,10 @@ export class ReferenceMetadataCapture {
   }
 
   outcome(): MetadataAcquisition {
-    if (this.#source.length === 0) return { kind: 'empty' }
+    if (this.#source.length === 0) return { kind: 'empty', codebook: this.#codebook.identity }
     const missing = this.#expected.slice(this.#next).map(line => ({ from: line.start, to: line.start + line.text.length, reason: 'missing binary observation' }))
     const ranges = this.#gaps.concat(missing)
-    if (ranges.length > 0) return { kind: 'unavailable', ranges }
+    if (ranges.length > 0) return { kind: 'unavailable', ranges, codebook: this.#codebook.identity }
     return { kind: 'measured', track: metadataTrack(this.#spans), codebook: this.#codebook.identity }
   }
 }
@@ -182,22 +182,32 @@ interface MetadataRequest {
   readonly metadata?: 'required-language-v1'
 }
 
+const metadataConfiguration = (profile: string): string => profile.startsWith('raw')
+  ? 'configured initialLanguage=1 (default was unset 0)' : 'selected Shiki canonical registration allocation=1'
+
+function metadataEvidence(request: MetadataRequest, acquisition: MetadataAcquisition): Readonly<Record<string, string>> {
+  return { referenceMetadata: 'required-language-v1', metadataCodebook: acquisition.codebook,
+    metadataSemantics: acquisition.kind === 'measured' ? 'whole-source-root' : acquisition.kind === 'empty' ? 'lifecycle-n/a' : 'unavailable',
+    metadataConfiguration: metadataConfiguration(request.profileId) }
+}
+
 export function requireReferenceMetadata(request: MetadataRequest, result: DocumentResult, acquisition?: MetadataAcquisition): DocumentResult {
   validateMetadataOption(request)
-  if (request.metadata === undefined || result.status !== 'complete' || request.source.length === 0) return result
-  const incomplete = (reason: string) => new ResultBuilder({ profileId: result.profileId, languageId: result.languageId, engine: result.engine }, request.source).incomplete('unsupported', reason)
+  if (request.metadata === undefined || result.status !== 'complete') return result
+  const observed = acquisition === undefined ? result : {
+    ...result, ...(acquisition.kind === 'measured' ? { metadata: acquisition.track } : {}),
+    engine: { ...result.engine, ...metadataEvidence(request, acquisition) },
+  }
+  if (request.source.length === 0) return observed
+  const incomplete = (reason: string) => new ResultBuilder({ profileId: observed.profileId, languageId: observed.languageId, engine: observed.engine }, request.source).incomplete('unsupported', reason)
   if (acquisition?.kind === 'unavailable')
     return incomplete(acquisition.ranges.map(gap => `required metadata [${gap.from}, ${gap.to}): ${gap.reason}`).join('; '))
-  if (acquisition?.kind === 'measured') return {
-    ...result, metadata: acquisition.track,
-    engine: { ...result.engine, referenceMetadata: 'required-language-v1', metadataCodebook: acquisition.codebook,
-      metadataSemantics: 'whole-source-root', metadataConfiguration: request.profileId.startsWith('raw') ? 'configured initialLanguage=1 (default was unset 0)' : 'selected Shiki canonical registration allocation=1' },
-  }
   const binding = readProductProfile().languages.registrations.find(entry => entry.name === request.languageId)
   const expected = binding && new LanguageCodebook([{ nativeId: 1, languageId: binding.name, scopeName: binding.scopeName }]).identity
-  if (!result.metadata || result.engine['referenceMetadata'] !== request.metadata || result.engine['metadataCodebook'] !== expected
-    || result.engine['metadataSemantics'] !== 'whole-source-root' || rootSemanticsGap(request.languageId, request.source.length).length > 0
-    || result.metadata.languageIds.some(name => name !== request.languageId))
+  if (!observed.metadata || observed.engine['referenceMetadata'] !== request.metadata || observed.engine['metadataCodebook'] !== expected
+    || observed.engine['metadataConfiguration'] !== metadataConfiguration(request.profileId)
+    || observed.engine['metadataSemantics'] !== 'whole-source-root' || rootSemanticsGap(request.languageId, request.source.length).length > 0
+    || observed.metadata.languageIds.some(name => name !== request.languageId))
     return incomplete(`required metadata [0, ${request.source.length}): missing measured metadata or canonical codebook evidence`)
-  return result
+  return observed
 }
