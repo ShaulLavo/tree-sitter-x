@@ -1,5 +1,5 @@
 import { digest } from '../native/component-inputs.ts';
-import { nativeLanguage } from '../native/packs.ts';
+import { NATIVE_LANGUAGES, nativeLanguage } from '../native/packs.ts';
 import { catalog, environment, sourceIdentity } from './identity.ts';
 import { LANES, LIMITS, distribution, integer, record } from './model.ts';
 import type { Lane } from './model.ts';
@@ -50,7 +50,7 @@ async function lane(options: Options, lane: Lane) {
 }
 
 export async function runMeasurement(options: Options) {
-  if (!nativeLanguage(options.language)) throw new Error(`Unsupported measurement language: ${options.language}; root-only json, typescript and tsx are available.`);
+  if (!nativeLanguage(options.language)) throw new Error(`Unsupported measurement language: ${options.language}; available native root IDs: ${NATIVE_LANGUAGES.join(', ')}.`);
   if (!integer(options.repetitions) || options.lanes.length === 0) throw new Error('At least one repetition and lane required');
   integer(options.warmups);
   if (options.lanes.some(lane => !LANES.includes(lane))) throw new Error('Unknown measurement lane');
