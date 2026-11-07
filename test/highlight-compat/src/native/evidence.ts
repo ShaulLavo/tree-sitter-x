@@ -35,10 +35,12 @@ async function explainRetained(pack: NativePack, languageId: string, borrow: <T>
       pack.withHandle(handle => component.number('scope_compat_pack_pattern_start', [handle, pattern]))));
     return Array.from({ length: result.intervals.length / 8 }, (_, index) => {
       const record = result.intervals.subarray(index * 8, index * 8 + 8);
-      const scope = pack.scopes[record[2]], name = captureNames[record[5]];
+      const scope = pack.scopes[record[2]];
       const base = scope.endsWith(pack.spec.suffix) ? scope.slice(0, -pack.spec.suffix.length) : scope;
+      const capture = pack.engine.selectedOrderPolicy === 'contained-span-order-1' ? `interval ordinal ${record[5]}` :
+        captureNames[record[5]] === base ? `@${base}` : `make-range ${base}`;
       return { from: record[0], to: record[1], scope, pattern: record[3], priority: record[4],
-        capture: name === base ? `@${name}` : `make-range ${base}`,
+        capture,
         disposition: ['kept', 'empty', 'exclusive', 'duplicate'][record[7]], location: locations[record[3]] };
     });
   } finally { release(query); }

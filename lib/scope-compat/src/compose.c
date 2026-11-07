@@ -13,8 +13,8 @@ static int interval_order(const void *left, const void *right) {
   const ScInterval *a = left, *b = right;
   int order = compare_u32(a->from, b->from);
   if (!order) order = compare_u32(b->to, a->to);
-  if (!order) order = compare_u32(a->range, b->range);
-  if (!order && !a->range && !b->range) order = node_span_order(a->node, b->node);
+  if (!order) order = compare_u32(a->kind, b->kind);
+  if (!order && a->kind == SC_NODE_INTERVAL && b->kind == SC_NODE_INTERVAL) order = node_span_order(a->node, b->node);
   if (!order) order = compare_u32(a->nest, b->nest);
   if (!order) order = compare_u32(a->pattern, b->pattern);
   if (!order) order = compare_u32(a->capture, b->capture);
@@ -35,7 +35,7 @@ static void disposition(ScCollection *c, uint32_t index, uint32_t first, uint32_
   if (a->from == a->to) { a->disposition = 1; return; }
   for (uint32_t j = first; j < end; ++j) {
     const ScInterval *b = &c->items[j];
-    if (a->range || b->range || a->pattern == b->pattern || !ts_node_eq(a->node, b->node)) continue;
+    if (a->kind != SC_NODE_INTERVAL || b->kind != SC_NODE_INTERVAL || a->pattern == b->pattern || !ts_node_eq(a->node, b->node)) continue;
     if (b->priority > a->priority || (b->priority == a->priority && b->pattern < a->pattern)) { a->disposition = 2; return; }
   }
   for (uint32_t j = first; j < index; ++j) {
@@ -45,19 +45,48 @@ static void disposition(ScCollection *c, uint32_t index, uint32_t first, uint32_
 
 static void order_group(ScCollection *c, uint32_t first, uint32_t end) {
   if (end - first > 1) {
-    for (uint32_t i = first; i < end; ++i) c->items[i].nest = c->items[i].range ? 0 : nesting(c->items[i].node);
+    for (uint32_t i = first; i < end; ++i) c->items[i].nest = c->items[i].kind == SC_NODE_INTERVAL ? nesting(c->items[i].node) : 0;
     qsort(c->items + first, end - first, sizeof *c->items, interval_order);
   }
   for (uint32_t i = first; i < end; ++i) disposition(c, i, first, end);
 }
 
-void sc_order(ScCollection *c) {
+static void legacy_order(ScCollection *c) {
   if (c->count) qsort(c->items, c->count, sizeof *c->items, interval_order);
   uint32_t first = 0;
   while (first < c->count) {
     uint32_t end = first + 1;
     while (end < c->count && c->items[end].from == c->items[first].from && c->items[end].to == c->items[first].to) ++end;
     order_group(c, first, end);
+    first = end;
+  }
+}
+
+static uint32_t kind_rank(ScIntervalKind kind) {
+  return kind == SC_EDGE_SPAN_INTERVAL ? 0 : kind == SC_NODE_INTERVAL ? 1 : 2;
+}
+
+static int logical_order(const void *left, const void *right) {
+  const ScInterval *a = left, *b = right;
+  int order = compare_u32(a->logical_from, b->logical_from);
+  if (!order) order = compare_u32(b->logical_to, a->logical_to);
+  if (!order) order = compare_u32(kind_rank(a->kind), kind_rank(b->kind));
+  if (!order) order = compare_u32(a->nest, b->nest);
+  if (!order) order = compare_u32(a->pattern, b->pattern);
+  if (!order) order = compare_u32(a->capture, b->capture);
+  return order;
+}
+
+void sc_order(ScCollection *c) {
+  if (c->order_policy == SC_LEGACY_ORDER) { legacy_order(c); return; }
+  for (uint32_t i = 0; i < c->count; ++i) c->items[i].nest = c->items[i].kind == SC_NODE_INTERVAL ? nesting(c->items[i].node) : 0;
+  if (c->count) qsort(c->items, c->count, sizeof *c->items, logical_order);
+  uint32_t first = 0;
+  while (first < c->count) {
+    uint32_t end = first + 1;
+    while (end < c->count && c->items[end].logical_from == c->items[first].logical_from &&
+           c->items[end].logical_to == c->items[first].logical_to) ++end;
+    for (uint32_t i = first; i < end; ++i) disposition(c, i, first, end);
     first = end;
   }
 }
