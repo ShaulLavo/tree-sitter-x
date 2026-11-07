@@ -116,6 +116,9 @@ static void malformed_packets(void) {
   p = rules_packet(); p.words[4] += 4; error(&p,3,SC_THEME_PACKET);
   p = rules_packet(); p.words[11] = 1; error(&p,3,SC_THEME_PACKET);
   p = rules_packet(); p.words[p.words[4]/4 + 5] = 8; error(&p,3,SC_THEME_PROPERTY);
+  p = rules_packet(); p.words[p.words[4]/4 + 5] = 8;
+  p.words[p.words[4]/4 + 6] = 0; p.words[p.words[4]/4 + 7] = 0; p.words[p.words[4]/4 + 8] = 0;
+  error(&p,3,SC_THEME_PROPERTY);
   p = rules_packet(); p.words[p.words[4]/4 + 9] = 99; error(&p,3,SC_THEME_SELECTOR_ATOM);
   p = rules_packet(); p.words[p.words[8]/4 + 1] = 2; error(&p,3,SC_THEME_CONTEXT);
   p = rules_packet(); p.words[p.words[6]/4 + 2] = p.words[p.words[6]/4]; error(&p,3,SC_THEME_PACKET);
