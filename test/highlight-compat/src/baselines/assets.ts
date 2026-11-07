@@ -2,7 +2,13 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 
 export const VENDOR_ROOT = new URL('../../vendor/baselines/', import.meta.url)
-export const PILOT_LANGUAGES = ['javascript', 'typescript', 'tsx', 'json', 'markdown'] as const
+export const PILOT_LANGUAGES: readonly string[] = ['javascript', 'typescript', 'tsx', 'json', 'markdown']
+export const CAPTURE_LANGUAGES: readonly string[] = PILOT_LANGUAGES.concat(['jsx'])
+
+const JSX_BASELINE = {
+  parserLanguage: 'javascript',
+  queries: ['queries/javascript-highlights.scm', 'tree-sitter-javascript/queries/highlights-jsx.scm'],
+} as const
 export const VSCODE_QUERY_SHA256 = 'fc3d24706daa63b470559f64796933a10d266742053aeeb4c069a598543a1510'
 export const VSCODE_COMMIT = 'f39c7109bf651845855cbef5af2e91b2c9bd0a74'
 
@@ -58,11 +64,13 @@ export function checkAssets(root = VENDOR_ROOT): string[] {
 }
 
 export function querySource(languageId: string): string {
+  if (languageId === 'jsx') return JSX_BASELINE.queries.map(path => readFileSync(new URL(path, VENDOR_ROOT), 'utf8')).join('\n')
   return vendorAssets().filter(asset => asset.languageId === languageId && asset.kind === 'highlights').map(asset => readFileSync(new URL(asset.path, VENDOR_ROOT), 'utf8')).join('\n')
 }
 
 export function parserUrl(languageId: string): URL {
-  const asset = vendorAssets().find(asset => asset.languageId === languageId && asset.kind === 'wasm')
+  const parserLanguage = languageId === 'jsx' ? JSX_BASELINE.parserLanguage : languageId
+  const asset = vendorAssets().find(asset => asset.languageId === parserLanguage && asset.kind === 'wasm')
   if (asset === undefined) throw new Error(`missing parser for ${languageId}`)
   return new URL(asset.path, VENDOR_ROOT)
 }
