@@ -1,6 +1,6 @@
 {
   "schema": "native-theme-oracle/v1",
-  "identity": "27cf48cb28c6ff047bb61f30ef817d2c8ece9cb10a310fe1cdf1d7e449139760",
+  "identity": "fff0299933f585796ce95ffbbfc26be488d2c52fa412278afb95b2d5acc81834",
   "targets": {
     "fork": {
       "version": "10.0.2",
@@ -3936,6 +3936,22 @@
             ]
           },
           {
+            "id": "ancestor-dot-prefix",
+            "scopes": [
+              "source.native-theme",
+              "a.more",
+              "variable.immediate"
+            ]
+          },
+          {
+            "id": "ancestor-dot-boundary",
+            "scopes": [
+              "source.native-theme",
+              "aOther",
+              "variable.immediate"
+            ]
+          },
+          {
             "id": "immediate-gap",
             "scopes": [
               "source.native-theme",
@@ -4982,6 +4998,144 @@
                 "foreground": {
                   "kind": "set",
                   "value": "#232323ff"
+                },
+                "background": {
+                  "kind": "inherit"
+                },
+                "fontMask": {
+                  "kind": "inherit"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ancestor-dot-prefix",
+          "scopes": [
+            "source.native-theme",
+            "a.more",
+            "variable.immediate"
+          ],
+          "effective": {
+            "foreground": "#232323ff",
+            "background": "#fffffeff",
+            "fontMask": 2,
+            "fontStyle": {
+              "bold": true
+            }
+          },
+          "applied": {
+            "foreground": "#232323ff",
+            "background": "#fffffeff",
+            "fontMask": 2,
+            "fontStyle": {
+              "bold": true
+            }
+          },
+          "trace": [
+            {
+              "scope": "source.native-theme",
+              "partial": {
+                "foreground": {
+                  "kind": "inherit"
+                },
+                "background": {
+                  "kind": "inherit"
+                },
+                "fontMask": {
+                  "kind": "inherit"
+                }
+              }
+            },
+            {
+              "scope": "a.more",
+              "partial": {
+                "foreground": {
+                  "kind": "inherit"
+                },
+                "background": {
+                  "kind": "inherit"
+                },
+                "fontMask": {
+                  "kind": "inherit"
+                }
+              }
+            },
+            {
+              "scope": "variable.immediate",
+              "partial": {
+                "foreground": {
+                  "kind": "set",
+                  "value": "#232323ff"
+                },
+                "background": {
+                  "kind": "inherit"
+                },
+                "fontMask": {
+                  "kind": "inherit"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ancestor-dot-boundary",
+          "scopes": [
+            "source.native-theme",
+            "aOther",
+            "variable.immediate"
+          ],
+          "effective": {
+            "foreground": "#111111ff",
+            "background": "#fffffeff",
+            "fontMask": 2,
+            "fontStyle": {
+              "bold": true
+            }
+          },
+          "applied": {
+            "foreground": "#111111ff",
+            "background": "#fffffeff",
+            "fontMask": 2,
+            "fontStyle": {
+              "bold": true
+            }
+          },
+          "trace": [
+            {
+              "scope": "source.native-theme",
+              "partial": {
+                "foreground": {
+                  "kind": "inherit"
+                },
+                "background": {
+                  "kind": "inherit"
+                },
+                "fontMask": {
+                  "kind": "inherit"
+                }
+              }
+            },
+            {
+              "scope": "aOther",
+              "partial": {
+                "foreground": {
+                  "kind": "inherit"
+                },
+                "background": {
+                  "kind": "inherit"
+                },
+                "fontMask": {
+                  "kind": "inherit"
+                }
+              }
+            },
+            {
+              "scope": "variable.immediate",
+              "partial": {
+                "foreground": {
+                  "kind": "set",
+                  "value": "#111111ff"
                 },
                 "background": {
                   "kind": "inherit"
@@ -6870,6 +7024,22 @@
             ]
           },
           {
+            "id": "ancestor-dot-prefix",
+            "scopes": [
+              "source.native-theme",
+              "a.more",
+              "variable.immediate"
+            ]
+          },
+          {
+            "id": "ancestor-dot-boundary",
+            "scopes": [
+              "source.native-theme",
+              "aOther",
+              "variable.immediate"
+            ]
+          },
+          {
             "id": "immediate-gap",
             "scopes": [
               "source.native-theme",
@@ -7905,6 +8075,142 @@
                 "foreground": {
                   "kind": "set",
                   "value": "#232323ff"
+                },
+                "background": {
+                  "kind": "inherit"
+                },
+                "fontMask": {
+                  "kind": "inherit"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ancestor-dot-prefix",
+          "scopes": [
+            "source.native-theme",
+            "a.more",
+            "variable.immediate"
+          ],
+          "effective": {
+            "foreground": "#232323ff",
+            "background": "#ffffffff",
+            "fontMask": 2,
+            "fontStyle": {
+              "bold": true
+            }
+          },
+          "applied": {
+            "foreground": "#232323ff",
+            "fontMask": 2,
+            "fontStyle": {
+              "bold": true
+            }
+          },
+          "trace": [
+            {
+              "scope": "source.native-theme",
+              "partial": {
+                "foreground": {
+                  "kind": "inherit"
+                },
+                "background": {
+                  "kind": "inherit"
+                },
+                "fontMask": {
+                  "kind": "inherit"
+                }
+              }
+            },
+            {
+              "scope": "a.more",
+              "partial": {
+                "foreground": {
+                  "kind": "inherit"
+                },
+                "background": {
+                  "kind": "inherit"
+                },
+                "fontMask": {
+                  "kind": "inherit"
+                }
+              }
+            },
+            {
+              "scope": "variable.immediate",
+              "partial": {
+                "foreground": {
+                  "kind": "set",
+                  "value": "#232323ff"
+                },
+                "background": {
+                  "kind": "inherit"
+                },
+                "fontMask": {
+                  "kind": "inherit"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ancestor-dot-boundary",
+          "scopes": [
+            "source.native-theme",
+            "aOther",
+            "variable.immediate"
+          ],
+          "effective": {
+            "foreground": "#111111ff",
+            "background": "#ffffffff",
+            "fontMask": 2,
+            "fontStyle": {
+              "bold": true
+            }
+          },
+          "applied": {
+            "foreground": "#111111ff",
+            "fontMask": 2,
+            "fontStyle": {
+              "bold": true
+            }
+          },
+          "trace": [
+            {
+              "scope": "source.native-theme",
+              "partial": {
+                "foreground": {
+                  "kind": "inherit"
+                },
+                "background": {
+                  "kind": "inherit"
+                },
+                "fontMask": {
+                  "kind": "inherit"
+                }
+              }
+            },
+            {
+              "scope": "aOther",
+              "partial": {
+                "foreground": {
+                  "kind": "inherit"
+                },
+                "background": {
+                  "kind": "inherit"
+                },
+                "fontMask": {
+                  "kind": "inherit"
+                }
+              }
+            },
+            {
+              "scope": "variable.immediate",
+              "partial": {
+                "foreground": {
+                  "kind": "set",
+                  "value": "#111111ff"
                 },
                 "background": {
                   "kind": "inherit"

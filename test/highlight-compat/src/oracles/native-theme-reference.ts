@@ -86,13 +86,13 @@ function unsupportedReferenceTail(selector: string): boolean {
 
 /** Safety preflight for the two known pinned-target limits, never a candidate normalizer. */
 export function nativeThemeReferenceEligibility(input: IRawTheme, profile: NativeThemeProfile): ReferenceEligibility {
-  const colors = new Set(['#000000ff', '#ffffffff'])
+  const colors = new Set(['#000000', '#FFFFFF'])
   for (const rule of input.settings) {
     const selectors = typeof rule.scope === 'string' ? rule.scope.split(',') : rule.scope ?? []
     if (selectors.some(unsupportedReferenceTail))
       return { kind: 'unsupported', code: 'trie-tail-atom' }
-    if (rule.settings.foreground !== undefined) colors.add(nativeThemeRgba(rule.settings.foreground))
-    if (rule.settings.background !== undefined) colors.add(nativeThemeRgba(rule.settings.background))
+    if (rule.settings.foreground !== undefined) colors.add(rule.settings.foreground.toUpperCase())
+    if (rule.settings.background !== undefined) colors.add(rule.settings.background.toUpperCase())
   }
   return profile === 'raw' && colors.size > 255 ? { kind: 'unsupported', code: 'raw-palette' } : { kind: 'eligible' }
 }

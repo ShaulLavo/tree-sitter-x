@@ -77,6 +77,7 @@ const CONTEXTS = stacks([
   ['missing', 'meta.inner', 'variable'], ['extra', 'meta.outer', 'gap', 'meta.inner', 'gap', 'variable'],
   ['tail-depth', 'meta.outer', 'meta.inner', 'variable.child.more'], ['dot-boundary', 'meta.outer', 'variableOther'],
   ['tail-prefix', 'variable.more'], ['immediate', 'a', 'variable.immediate'],
+  ['ancestor-dot-prefix', 'a.more', 'variable.immediate'], ['ancestor-dot-boundary', 'aOther', 'variable.immediate'],
   ['immediate-gap', 'a', 'gap', 'variable.immediate'], ['repeat-present', 'a', 'a', 'variable.repeat'],
   ['repeat-missing', 'a', 'variable.repeat'], ['mixed', 'a', 'gap', 'b', 'c', 'gap', 'variable.mixed'],
   ['mixed-gap', 'a', 'b', 'gap', 'c', 'variable.mixed'], ['comma-first', 'comment.line'],
