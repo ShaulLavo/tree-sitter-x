@@ -88,6 +88,14 @@ describe('native theme acquisition and normalization', () => {
     expect(normalized({colors,tokenColors})).toMatchObject({kind:'unsupported',code:'raw-palette'});
     expect(normalized({colors,tokenColors},'product')).toMatchObject({kind:'ok'});
   });
+  it('counts equivalent raw color spellings as separate reference palette entries', () => {
+    const colors = {'editor.foreground':'#000000','editor.background':'#ffffff'};
+    const rules = Array.from({length:253},(_,i) => ({scope:`s${i}`,settings:{foreground:`#${(i+1).toString(16).padStart(6,'0')}`}}));
+    expect(normalized({colors,tokenColors:rules})).toMatchObject({kind:'ok'});
+    const tokenColors = rules.concat([{scope:'alias',settings:{foreground:'#000'}}]);
+    expect(normalized({colors,tokenColors})).toMatchObject({kind:'unsupported',code:'raw-palette'});
+    expect(normalized({colors,tokenColors},'product')).toMatchObject({kind:'ok'});
+  });
 });
 describe('request-owned paths and strict theme decoding', () => {
   it('interns shared parent-first paths and preserves distinct full stacks', () => {

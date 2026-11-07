@@ -251,12 +251,12 @@ function normalize(input: InputSnapshot, profile: Profile, targetIdentity: strin
   const normalized = profile === 'raw' ? vscodeRawTheme(expanded).settings : shikiNormalize(workerThemeRegistration(expanded)).settings;
   if (normalized.length > originalCount) locations.unshift({resource:snapshot.resources.at(-1)?.id ?? '',rule:0});
   const builder: RuleBuilder = {atoms:new Map(),rules:[],bounds,edges:0};
-  const palette = new Set(['000000ff','ffffffff']);
+  const palette = new Set(['#000000','#FFFFFF']);
   normalized.forEach((entry,index) => {
     const source = setting(entry,'<normalized>',index);
     addRule(builder,source,index,locations[index]);
-    if (source.settings.foreground !== undefined) palette.add(canonical(source.settings.foreground));
-    if (source.settings.background !== undefined) palette.add(canonical(source.settings.background));
+    if (profile === 'raw' && source.settings.foreground !== undefined) palette.add(source.settings.foreground.toUpperCase());
+    if (profile === 'raw' && source.settings.background !== undefined) palette.add(source.settings.background.toUpperCase());
   });
   if (profile === 'raw' && palette.size > 255) reject({kind:'unsupported',code:'raw-palette',location:resourceLocation(snapshot.resources.at(-1)?.id ?? '')});
   const packet = themePacket(Array.from(builder.atoms.keys()),builder.rules,bounds.packetBytes);
