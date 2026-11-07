@@ -19,7 +19,23 @@ A positive class test requires nonempty captured text, its first unit in the fir
 
 Prefix predicates take one capture and one literal string. The compiler decodes the literal to UTF-16 once. Comparison is literal, without normalization. An empty prefix matches an empty node; a longer prefix fails.
 
-Every new predicate is universal over the capture occurrences in one match. Negation applies to each occurrence. For zero occurrences, both positive and negative tests pass. For mixed passing and failing occurrences, both fail. A real empty node fails a positive class test. A false predicate rejects the entire match. These operators have no `any-` variants. `match?`, `offset!`, and aliases remain unsupported.
+Class and prefix predicates are universal over the capture occurrences in one match. Negation applies to each occurrence. For zero occurrences, both positive and negative tests pass. For mixed passing and failing occurrences, both fail. A real empty node fails a positive class test. A false predicate rejects the entire match. These operators have no `any-` variants. `match?`, `offset!`, and aliases remain unsupported.
+
+## Bounded source gaps
+
+```scheme
+(#source-gap? @left @right "\r\n")
+```
+
+The three arguments are exactly two capture steps followed by one literal string. The strict UTF-8 decoder admits zero, one or two UTF-16 units. An astral scalar occupies two units. NUL and metacharacters compare literally. Longer literals, malformed UTF-8, swapped argument kinds and extra arguments are invalid. There are no negative, quantified or directive variants.
+
+Each operand ID must occur exactly once in the match, even when both roles reuse that ID. Every gap's roles are checked in absolute compiled-operation order after all capture ranges and byte parity are validated, before any boolean short circuit. A false earlier equality, class or gap cannot hide an absent or repeated later gap role. Legacy quantifiers retain their existing behavior.
+
+Comparison covers the complete gap from the left node's end to the right node's start in the full borrowed source. Reversed order, overlap and width mismatch return false without reading source. Equal-width gaps compare at most two units. An empty literal requires exact adjacency, including coincident zero-width or EOF endpoints. A nonempty literal cannot match coincident EOF endpoints. There is no search, trimming, normalization, offset adjustment or source lookaround.
+
+A gap emits no interval and does not select contained-span ordering. Only an actual `make-span!` selects it. Evaluation precedes window clipping. Strict-role failures use `INVALID`, detail 3, with the absolute compiled-operation ordinal and zero public data. Gap evaluation allocates nothing; role scans cost `O(G * C)` for `G` gap operations and `C` captures, with at most `2 * G` source reads. Other predicates and span ancestry retain their separate costs.
+
+The capability label is `source-gap-utf16-max2-1`. A printable-ASCII recovered-declaration LF/CRLF query is a capability test. It does not establish complete JavaScript recovery, provide a shipped JavaScript root pack, or accept a mandatory case's complete output.
 
 ## Contained spans
 

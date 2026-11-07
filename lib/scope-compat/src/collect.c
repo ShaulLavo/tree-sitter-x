@@ -47,6 +47,36 @@ static bool one_capture(const TSQueryMatch *match, uint32_t id, TSNode *node) {
   return count == 1;
 }
 
+static bool gap_roles(const ScGap *gap, const TSQueryMatch *match, uint32_t ordinal,
+                       ScCollection *c, TSNode *left, TSNode *right) {
+  if (one_capture(match, gap->left, left) && one_capture(match, gap->right, right)) return true;
+  error(c, SCOPE_COMPAT_INVALID, SCOPE_COMPAT_DETAIL_BAD_ARGUMENTS, ordinal);
+  return false;
+}
+
+#ifdef SCOPE_COMPAT_TESTING
+uint32_t sc_gap_source_reads;
+#endif
+
+bool sc_gap_matches(const uint16_t *source, uint32_t left_end, uint32_t right_start, ScText literal) {
+  if (left_end > right_start || right_start - left_end != literal.length) return false;
+  for (uint32_t i = 0; i < literal.length; ++i) {
+#ifdef SCOPE_COMPAT_TESTING
+    ++sc_gap_source_reads;
+#endif
+    if (source[left_end + i] != literal.text[i]) return false;
+  }
+  return true;
+}
+
+static bool gap_accepts(const ScopeCompatPack *p, const ScGap *gap, const TSQueryMatch *match,
+                         const uint16_t *source) {
+  TSNode left, right;
+  one_capture(match, gap->left, &left); one_capture(match, gap->right, &right);
+  return sc_gap_matches(source, ts_node_end_byte(left) / 2, ts_node_start_byte(right) / 2,
+                        p->strings[gap->literal]);
+}
+
 static bool descendant_or_same(TSNode node, TSNode container) {
   while (!ts_node_is_null(node)) {
     if (ts_node_eq(node, container)) return true;
@@ -85,14 +115,21 @@ bool sc_span_interval(const ScSpanSpec *spec, const TSQueryMatch *match, uint32_
   return true;
 }
 
-static bool accept_match(const ScopeCompatPack *p, const TSQueryMatch *match, const uint16_t *source,
+bool sc_accept_match(const ScopeCompatPack *p, const TSQueryMatch *match, const uint16_t *source,
                          uint32_t bytes, ScCollection *c) {
   for (uint32_t i = 0; i < match->capture_count; ++i) {
     if (!sc_node_span(match->captures[i].node, bytes, c)) return false;
   }
   ScPattern pattern = p->patterns[match->pattern_index];
   for (uint32_t i = 0; i < pattern.count; ++i) {
-    if (!sc_predicate(p, &p->predicates[pattern.start + i], match, source)) return false;
+    const ScPredicate *op = &p->predicates[pattern.start + i];
+    TSNode left, right;
+    if (op->kind == SC_GAP && !gap_roles(&op->data.gap, match, pattern.start + i, c, &left, &right)) return false;
+  }
+  for (uint32_t i = 0; i < pattern.count; ++i) {
+    const ScPredicate *op = &p->predicates[pattern.start + i];
+    if (op->kind == SC_GAP && !gap_accepts(p, &op->data.gap, match, source)) return false;
+    if (!sc_predicate(p, op, match, source)) return false;
   }
   return true;
 }
@@ -142,7 +179,7 @@ ScCollection sc_collect(const ScopeCompatPack *p, const TSTree *tree, const uint
   while (ts_query_cursor_next_match(cursor, &match)) {
     if (match.capture_count > UINT32_MAX - c.captures_seen) { error(&c, SCOPE_COMPAT_BUDGET, SCOPE_COMPAT_DETAIL_INTERVAL_LIMIT, limit); break; }
     c.captures_seen += match.capture_count;
-    bool accepted = accept_match(p, &match, source, length * 2, &c);
+    bool accepted = sc_accept_match(p, &match, source, length * 2, &c);
     if (c.status != SCOPE_COMPAT_OK) break;
     if (accepted && !collect_match(p, &match, &c, length, ws, we, limit)) break;
   }

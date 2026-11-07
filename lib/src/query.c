@@ -926,12 +926,13 @@ static int symbol_table_id_for_name(
   const char *name,
   uint32_t length
 ) {
+  // An empty name may come from an unallocated buffer (NULL contents),
+  // so it must not reach `strncmp` or `memcpy`, even with zero length.
   for (unsigned i = 0; i < self->slices.size; i++) {
     Slice slice = *array_get(&self->slices, i);
-    if (
-      slice.length == length &&
-      !strncmp(array_get(&self->characters, slice.offset), name, length)
-    ) return i;
+    if (slice.length != length) continue;
+    if (length == 0) return i;
+    if (!memcmp(array_get(&self->characters, slice.offset), name, length)) return i;
   }
   return -1;
 }
@@ -958,7 +959,7 @@ static uint16_t symbol_table_insert_name(
     .length = length,
   };
   array_grow_by(&self->characters, length + 1);
-  memcpy(array_get(&self->characters, slice.offset), name, length);
+  if (length > 0) memcpy(array_get(&self->characters, slice.offset), name, length);
   *array_get(&self->characters, self->characters.size - 1) = 0;
   array_push(&self->slices, slice);
   return self->slices.size - 1;

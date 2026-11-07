@@ -72,6 +72,7 @@ static bool compile_operator(ScopeCompatPack *p, ScPredicate *op, const char *na
   if (same(name, length, "set!")) { op->kind = SC_SET; return true; }
   if (same(name, length, "make-range!")) { op->kind = SC_RANGE; return true; }
   if (same(name, length, "make-span!")) { op->kind = SC_SPAN; return true; }
+  if (same(name, length, "source-gap?")) { op->kind = SC_GAP; return true; }
   if (same(name, length, "starts-with?") || same(name, length, "not-starts-with?")) {
     op->kind = SC_PREFIX; op->data.prefix.positive = same(name, length, "starts-with?"); return true;
   }
@@ -173,6 +174,12 @@ static bool compile_span(ScopeCompatPack *p, ScPredicate *op, const TSQueryPredi
 
 static bool compile_arguments(ScopeCompatPack *p, ScPredicate *op, const TSQueryPredicateStep *a,
                               uint32_t count, uint32_t pattern, const char *suffix, uint32_t length) {
+  if (op->kind == SC_GAP) {
+    if (count != 3 || a[0].type != TSQueryPredicateStepTypeCapture ||
+        a[1].type != TSQueryPredicateStepTypeCapture || a[2].type != TSQueryPredicateStepTypeString) return false;
+    op->data.gap = (ScGap){.left=a[0].value_id, .right=a[1].value_id, .literal=a[2].value_id};
+    return p->strings[a[2].value_id].length <= 2;
+  }
   if (op->kind == SC_RANGE) return compile_range(p, op, a, count, suffix, length);
   if (op->kind == SC_SPAN) return compile_span(p, op, a, count, suffix, length);
   if (op->kind == SC_CLASS) return compile_class(p, op, a, count);

@@ -3960,6 +3960,61 @@ fn test_query_captures_with_quoted_predicate_args() {
 }
 
 #[test]
+fn test_query_predicates_with_empty_string_args() {
+    allocations::record(|| {
+        let language = get_language("javascript");
+        let string_arg = |value: &str| QueryPredicateArg::String(value.into());
+        let predicate = |args: Vec<QueryPredicateArg>| QueryPredicate {
+            operator: "something!".into(),
+            args: args.into_boxed_slice(),
+        };
+
+        // Each query starts with an empty string buffer, so the first empty
+        // literal reaches the string table before any literal text has been read.
+        for (source, args) in [
+            (r#"((identifier) @a (#something! @a ""))"#, vec![""]),
+            (r#"((identifier) @a (#something! @a "" ""))"#, vec!["", ""]),
+            (
+                r#"((identifier) @a (#something! @a "x" ""))"#,
+                vec!["x", ""],
+            ),
+            (
+                r#"((identifier) @a (#something! @a "" "x" ""))"#,
+                vec!["", "x", ""],
+            ),
+            (
+                r#"((identifier) @a (#something! @a "\0." "\0*" "\0."))"#,
+                vec!["\0.", "\0*", "\0."],
+            ),
+        ] {
+            let query = Query::new(&language, source).unwrap();
+            let expected = std::iter::once(QueryPredicateArg::Capture(0))
+                .chain(args.into_iter().map(string_arg))
+                .collect();
+            assert_eq!(
+                query.general_predicates(0),
+                &[predicate(expected)],
+                "{source}"
+            );
+        }
+
+        let source = "const a = window.b";
+        let mut parser = Parser::new();
+        parser.set_language(&language).unwrap();
+        let tree = parser.parse(source, None).unwrap();
+        let query = Query::new(
+            &language,
+            r#"((identifier) @id (#any-of? @id "" "window"))"#,
+        )
+        .unwrap();
+        let mut cursor = QueryCursor::new();
+        let matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+        let matches = collect_matches(matches, &query, source);
+        assert_eq!(matches, &[(0, vec![("id", "window")])]);
+    });
+}
+
+#[test]
 fn test_query_captures_with_duplicates() {
     allocations::record(|| {
         let language = get_language("javascript");

@@ -23,11 +23,12 @@ typedef struct { uint64_t words[2]; } ScAsciiSet;
 typedef struct { uint32_t capture; bool positive; ScAsciiSet first, tail; } ScClass;
 typedef struct { ScClass body; ScAsciiSet last; } ScClassLast;
 typedef struct { uint32_t capture, literal; bool positive; } ScPrefix;
+typedef struct { uint32_t left, right, literal; } ScGap;
 typedef enum { SC_AT_START, SC_AT_END } ScEdgeSide;
 typedef struct { uint32_t capture; ScEdgeSide side; int8_t delta; } ScEdge;
 typedef struct { uint32_t scope, container; ScEdge left, right; } ScSpanSpec;
 typedef struct { uint32_t scope, first, second; } ScRange;
-typedef enum { SC_EQ, SC_MEMBERSHIP, SC_SET, SC_RANGE, SC_PREFIX, SC_CLASS, SC_CLASS_LAST, SC_SPAN } ScOperator;
+typedef enum { SC_EQ, SC_MEMBERSHIP, SC_SET, SC_RANGE, SC_PREFIX, SC_CLASS, SC_CLASS_LAST, SC_SPAN, SC_GAP } ScOperator;
 typedef struct {
   ScOperator kind;
   union {
@@ -36,6 +37,7 @@ typedef struct {
     uint32_t priority;
     ScRange range;
     ScPrefix prefix;
+    ScGap gap;
     ScClass text_class;
     ScClassLast text_class_last;
     ScSpanSpec span;
@@ -79,6 +81,11 @@ void sc_pack_error(ScopeCompatPack *, uint32_t, uint32_t, uint32_t, uint32_t, co
 uint32_t sc_text_decode(const char *, uint32_t, ScText *);
 bool sc_predicate(const ScopeCompatPack *, const ScPredicate *, const TSQueryMatch *, const uint16_t *);
 bool sc_node_span(TSNode, uint32_t, ScCollection *);
+bool sc_gap_matches(const uint16_t *, uint32_t, uint32_t, ScText);
+bool sc_accept_match(const ScopeCompatPack *, const TSQueryMatch *, const uint16_t *, uint32_t, ScCollection *);
+#ifdef SCOPE_COMPAT_TESTING
+extern uint32_t sc_gap_source_reads;
+#endif
 bool sc_resolve_edge(ScEdge, uint32_t, uint32_t, uint32_t *, ScCollection *);
 bool sc_span_interval(const ScSpanSpec *, const TSQueryMatch *, uint32_t, uint32_t, ScCollection *, ScInterval *);
 ScCollection sc_collect(const ScopeCompatPack *, const TSTree *, const uint16_t *, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
