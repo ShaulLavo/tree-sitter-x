@@ -1,3 +1,4 @@
+import { sameOwner } from './owner-state.ts';
 import { Component } from './component.ts';
 import type { NativePack } from './component.ts';
 import { Runtime, foreign, release } from './runtime.ts';
@@ -10,10 +11,18 @@ export interface IntervalEvidence {
   readonly disposition: string; readonly location: string;
 }
 export async function explainDocument(pack: NativePack, owner: PilotDocument): Promise<readonly IntervalEvidence[]> {
-  return explainSource(pack, owner.languageId, owner.source.length, action => owner.borrow(pack.sameLanguage, action));
+  const key = owner.key();
+  return explainSource(pack, owner.languageId, owner.source.length, action => {
+    if (!sameOwner(key, owner.key())) throw new Error('Stale native explanation');
+    return owner.borrow(pack.sameLanguage, action);
+  });
 }
 export async function explainSource(pack: NativePack, languageId: string, length: number,
   borrow: <T>(action: (borrowed: Borrowed) => T) => T, start = 0, end = length): Promise<readonly IntervalEvidence[]> {
+  const releasePack = pack.retain();
+  try { return await explainRetained(pack, languageId, borrow, start, end); } finally { releasePack(); }
+}
+async function explainRetained(pack: NativePack, languageId: string, borrow: <T>(action: (borrowed: Borrowed) => T) => T, start: number, end: number): Promise<readonly IntervalEvidence[]> {
   const runtime = await Runtime.load(), component = await Component.load();
   const query = runtime.construct('Query', [await runtime.language(languageId), pack.spec.files.map(file => file.query).join('\n')]);
   try {

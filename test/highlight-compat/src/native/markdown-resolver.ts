@@ -42,9 +42,11 @@ export function decodeResolverRecords(heap: Uint8Array, pointer: number, count: 
 export class MarkdownResolver {
   #handle: number;
   readonly #native: ResolverRuntime;
-  readonly length: number;
+  #length: number;
+  #ready = false;
+  get length(): number { return this.#length; }
   private constructor(native: ResolverRuntime, handle: number, length: number) {
-    this.#native = native; this.#handle = handle; this.length = length;
+    this.#native = native; this.#handle = handle; this.#length = length;
     Object.freeze(this);
   }
   static async open(source: string): Promise<MarkdownResolver> {
@@ -52,15 +54,26 @@ export class MarkdownResolver {
     const native = await initialization;
     const handle = address(invoke(native.exports, 'tsmd_new', [3, languageAddress(native.language)]));
     if (!handle) throw new Error('Markdown resolver allocation failed');
-    const resolver = new MarkdownResolver(native, handle, source.length);
+    const resolver = new MarkdownResolver(native, handle, 0);
     try {
-      const pointer = resolver.number('tsmd_input', [source.length]);
-      sourceSpan(native.runtime.heap(), pointer, source.length);
-      const units = new Uint16Array(native.runtime.heap().buffer, pointer, source.length);
-      for (let i = 0; i < source.length; i++) units[i] = source.charCodeAt(i);
-      resolver.call('tsmd_set_text');
+      resolver.replaceText(source);
       return resolver;
     } catch (error) { resolver.dispose(); throw error; }
+  }
+  replaceText(source: string): void {
+    if (!this.#handle || (!this.#ready && this.#length !== 0)) throw new Error('Unavailable Markdown resolver');
+    u32(source.length);
+    if (source.length > 0x7fffffff) throw new RangeError('Markdown source limit');
+    this.#ready = false;
+    try {
+      const pointer = this.number('tsmd_input', [source.length]);
+      const heap = this.#native.runtime.heap();
+      sourceSpan(heap, pointer, source.length);
+      const units = new Uint16Array(heap.buffer, heap.byteOffset + pointer, source.length);
+      for (let i = 0; i < source.length; i++) units[i] = source.charCodeAt(i);
+      this.call('tsmd_set_text');
+      this.#length = source.length; this.#ready = true;
+    } catch (error) { this.dispose(); throw error; }
   }
   call(name: string, args: readonly number[] = []): unknown {
     if (!this.#handle) throw new Error('Deleted Markdown resolver');
@@ -69,6 +82,7 @@ export class MarkdownResolver {
   }
   number(name: string, args: readonly number[] = []): number { return address(this.call(name, args)); }
   records(injections: boolean): readonly ResolverRecord[] {
+    if (!this.#ready) throw new Error('Unavailable Markdown records');
     const count = this.number(injections ? 'tsmd_injections' : 'tsmd_decorations', [0, this.length]);
     const pointer = count ? this.number('tsmd_out') : 0;
     return decodeResolverRecords(this.#native.runtime.heap(), pointer, count, this.length, injections);
