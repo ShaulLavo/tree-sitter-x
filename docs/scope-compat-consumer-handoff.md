@@ -1,6 +1,6 @@
 # Immutable scope adapter consumer handoff
 
-Status: experimental fork preparation. Phase 2 acceptance and Phase 6 cutover remain open. No pack promotion, production backend selection, or performance benefit is established here.
+Status: experimental fork preparation. Phase 6 cutover remains open. Phase 2 acceptance has its own review and CI record; this packet records the immutable prototype capabilities and missing consumer prerequisites. No pack promotion, production backend selection, or performance benefit is established here.
 
 This reference describes the private `test/highlight-compat` adapter inspected at `bb0f0945f92507d980312141a2e933ea3e33e275`. It is not a shipped production backend or consumer SDK. The [roadmap](plans/textmate-scope-compatibility.md) and [inventory](plans/textmate-scope-compatibility-inventory.md) retain the wider acceptance work. Designs 008 and 009 are under amendment, not implemented APIs. Their retained-session and native-theme tests wait for actual implementations.
 
