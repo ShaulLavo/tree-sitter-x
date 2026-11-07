@@ -24,7 +24,8 @@
     "fixtures:comments": "node scripts/fixtures.ts --comments",
     "fixtures:check": "node scripts/fixtures.ts --check",
     "fixtures:update": "node scripts/fixtures.ts --update",
-    "fixtures:report": "node scripts/fixtures.ts --report"
+    "fixtures:report": "node scripts/fixtures.ts --report",
+    "collect:wave": "node src/cli/collect-wave.ts"
   },
   "dependencies": {
     "@shikijs/engine-oniguruma": "4.4.3",
