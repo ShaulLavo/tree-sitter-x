@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "languageId": "javascript",
+  "packVersion": "experimental-1",
+  "rootScope": "source.js",
+  "scopeSuffix": ".js",
+  "embeddedScope": "meta.embedded.block.javascript",
+  "parser": {
+    "asset": "tree-sitter-javascript/tree-sitter-javascript.wasm",
+    "sha256": "5fb488d0cabb4775a594bab85682de5ad6ce83c0d6ac997a9f82dd084d571240"
+  },
+  "queries": [
+    "../shared/javascript-common.scm",
+    "javascript.scm"
+  ]
+}

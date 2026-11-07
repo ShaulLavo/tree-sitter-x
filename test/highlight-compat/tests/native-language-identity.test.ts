@@ -58,8 +58,8 @@ it.each(identities)('preserves $language pack, explanation and retained output i
     const session = ScopeSession.attach(owner, new Map([[identity.language, pack]]));
     try { checkRetained(session, owner, identity); } finally { session.dispose(); }
     const output = await nativeDocument(pack, owner, 'raw');
-    expect(output.languageId).toBe(identity.language); expect(output.status).toBe('unsupported');
-    expect(output.engine).toEqual(pack.engine);
+    expect(output.languageId).toBe(identity.language); expect(output.status).toBe('complete');
+    expect(output.engine).toMatchObject(pack.engine);
   });
 });
 
@@ -140,7 +140,7 @@ function rejectBorrowed(pack: NativePack, borrowed: Parameters<NativePack['run']
   expect(() => pack.explain(borrowed, { start: 0, end: length })).toThrow('public language mismatch');
 }
 
-it.each(identities)('guards the real replay path for $language without enabling its pack loader', async identity => {
+it.each(identities)('guards the real replay path for $language with its experimental pack loader', async identity => {
   const proper = await diagnosticPack(identity.language), crossed = await diagnosticPack(identity.other);
   const loader = vi.spyOn(packs, 'loadLanguagePack').mockResolvedValue(crossed);
   try {
@@ -148,11 +148,12 @@ it.each(identities)('guards the real replay path for $language without enabling 
     loader.mockResolvedValue(proper);
     expect(await Reflect.apply(replayNative, undefined, [{ seed: 1, edits: 4, language: identity.language }])).toMatchObject({ complete: 4, revisions: 4, viewportChecks: 4 });
   } finally { loader.mockRestore(); proper.dispose(); crossed.dispose(); }
-  await expect(packs.loadLanguagePack(identity.language)).rejects.toThrow('no native pack');
+  const experimental = await packs.loadLanguagePack(identity.language);
+  try { expect(experimental.engine.packVersion).toBe('experimental-1'); } finally { experimental.dispose(); }
 });
 
-it('keeps native availability and Markdown fence membership unchanged', async () => {
-  expect(packs.NATIVE_LANGUAGES).toEqual(['json', 'typescript', 'tsx']);
+it('grows root availability without growing Markdown fence membership', async () => {
+  expect(packs.NATIVE_LANGUAGES).toEqual(['json', 'typescript', 'tsx', 'javascript', 'jsx']);
   const owner = await MarkdownPilotDocument.open(['javascript', 'js', 'jsx', 'node'].map(id => `\`\`\`${id}\nvalue\n\`\`\`\n`).join(''));
   try { expect(owner.children).toHaveLength(0); expect(owner.injectionCoverage.every(item => item.language === null)).toBe(true); }
   finally { owner.dispose(); }

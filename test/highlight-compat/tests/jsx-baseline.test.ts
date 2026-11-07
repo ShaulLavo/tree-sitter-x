@@ -3,7 +3,7 @@ import { expect, it } from 'vitest';
 import { baselineDocument, baselineScopes, baselineSupport } from '../src/baselines/run.ts';
 import { parserUrl, querySource, sha256, vendorAssets, VENDOR_ROOT } from '../src/baselines/assets.ts';
 import { languageRegistrations } from '../src/oracles/assets.ts';
-import { loadLanguagePack } from '../src/native/packs.ts';
+import { historicalBaselineSupport } from '../src/experiment-007.ts';
 import { parseResult } from '../src/validate.ts';
 import { sourceSha256 } from '../src/source.ts';
 
@@ -50,6 +50,6 @@ it('keeps empty and recovery JSX sources whole without implying native or VS Cod
   expect(document.spans.at(-2)).toBe(source.length);
   for (const id of ['javascript', 'jsx']) {
     expect(baselineSupport('baseline:vscode-ts', id)).toContain('only to the TypeScript and TSX');
-    await expect(loadLanguagePack(id)).rejects.toThrow('no native pack');
+    expect(historicalBaselineSupport('baseline:vscode-ts', id)).toBeDefined();
   }
 });
