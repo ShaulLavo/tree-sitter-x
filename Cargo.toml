@@ -58,6 +58,12 @@ tuple_array_conversions = "allow"
 [workspace.lints.rust]
 mismatched_lifetime_syntaxes = "allow"
 
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.test]
+debug = "line-tables-only"
+
 [profile.optimize]
 inherits = "release"
 codegen-units = 1    # Maximum size reduction optimizations.

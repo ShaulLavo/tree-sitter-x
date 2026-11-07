@@ -10,6 +10,7 @@ on:
       - '.cargo/**'
       - '.github/**'
       - 'crates/**'
+      - 'scripts/**'
       - 'xtask/**'
       - 'lib/**'
       - 'test/**'
@@ -31,6 +32,7 @@ on:
       - 'flake.lock'
       - 'flake.nix'
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - 'master'
       - 'release-[0-9]+.[0-9]+'
@@ -40,11 +42,12 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name != 'push' }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   changes:
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) }}
     runs-on: ubuntu-latest
     outputs:
       native: ${{ steps.paths.outputs.native }}
@@ -111,7 +114,7 @@ jobs:
 
   checks:
     needs: changes
-    if: needs.changes.outputs.native == 'true'
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (needs.changes.outputs.native == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -126,14 +129,16 @@ jobs:
       - name: Set up pinned nightly Rust toolchain
         run: rustup toolchain install nightly-2026-09-03 --profile minimal --component rustfmt,clippy
 
+      - uses: ./.github/actions/rust-build-cache
+
       - name: Lint Rust files
-        run: make lint
+        run: bash scripts/with-build-cache.sh make lint
 
       - name: Check formatting with nightly rustfmt
         run: cargo +nightly-2026-09-03 fmt --all --check
 
       - name: Lint Rust files with nightly clippy
-        run: cargo +nightly-2026-09-03 clippy --workspace --all-targets -- -D warnings
+        run: bash scripts/with-build-cache.sh cargo +nightly-2026-09-03 clippy --workspace --all-targets -- -D warnings
 
       - name: Install Taplo
         uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2
@@ -155,7 +160,7 @@ jobs:
 
   consistency:
     needs: changes
-    if: needs.changes.outputs.native == 'true'
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (needs.changes.outputs.native == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -184,21 +189,21 @@ jobs:
 
   sanitize:
     needs: changes
-    if: needs.changes.outputs.native == 'true'
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (needs.changes.outputs.native == 'true') }}
     uses: ./.github/workflows/sanitize.yml
 
   build:
     needs: changes
-    if: needs.changes.outputs.native == 'true'
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (needs.changes.outputs.native == 'true') }}
     uses: ./.github/workflows/build.yml
 
   check-wasm-stdlib:
     needs: changes
-    if: needs.changes.outputs.native == 'true'
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (needs.changes.outputs.native == 'true') }}
     uses: ./.github/workflows/wasm_stdlib.yml
 
   native-ci:
-    if: always()
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (always()) }}
     needs: [changes, checks, sanitize, build, check-wasm-stdlib]
     runs-on: ubuntu-latest
     steps:
@@ -227,22 +232,22 @@ jobs:
 
   bindgen:
     needs: changes
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.bindgen == 'true'
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.bindgen == 'true') }}
     uses: ./.github/workflows/bindgen.yml
 
   wasm-exports:
     needs: changes
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.wasm-exports == 'true'
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.wasm-exports == 'true') }}
     uses: ./.github/workflows/wasm_exports.yml
 
   package-types:
     needs: changes
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.package-types == 'true'
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.package-types == 'true') }}
     uses: ./.github/workflows/package-types.yml
 
   highlight-compat:
     needs: changes
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.highlight-compat == 'true'
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.highlight-compat == 'true') }}
     uses: ./.github/workflows/highlight-compat.yml
 
   gate:
@@ -251,6 +256,11 @@ jobs:
     needs: [changes, checks, consistency, sanitize, build, check-wasm-stdlib, native-ci, bindgen, wasm-exports, package-types, highlight-compat]
     runs-on: ubuntu-latest
     steps:
+      - name: Require a ready PR
+        if: github.event_name == 'pull_request' && github.event.pull_request.draft
+        run: |
+          echo '::error::Mark this PR ready for review to run the required checks.'
+          exit 1
       - name: Reject failed or cancelled CI jobs
         env:
           RESULTS: ${{ toJSON(needs) }}
