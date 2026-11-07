@@ -17,6 +17,11 @@ afterAll(() => highlighter?.dispose())
 const tokenize = () => highlighter.codeToTokensBase('{"x":"🌿"}', {
   lang: 'json', theme: 'github-dark', includeExplanation: 'scopeName', tokenizeTimeLimit: 0,
 })
+const ignoreBinary = () => undefined
+
+function expectObservationFailure(grammar: Grammar, observe: Parameters<typeof observeBinaryLines>[1], run: () => unknown, failure: Error): void {
+  expect(() => observeBinaryLines(grammar, observe, run)).toThrow(failure)
+}
 
 it.each(ORACLE_PROFILES)('independently admits actual whole-source JSON through runDocument for %s', async profileId => {
   const source = '{"x":"🌿"}'
@@ -61,8 +66,9 @@ it('can observe a configurable getter-only method without replacing its accessor
   Object.defineProperty(grammar, 'tokenizeLine2', { configurable: true, get: () => original })
   const descriptor = Object.getOwnPropertyDescriptor(grammar, 'tokenizeLine2')
   let calls = 0
+  const observe = () => { calls++ }
   try {
-    expect(() => observeBinaryLines(grammar, () => { calls++ }, tokenize)).not.toThrow()
+    expect(() => observeBinaryLines(grammar, observe, tokenize)).not.toThrow()
     expect(calls).toBe(1)
     expect(Object.getOwnPropertyDescriptor(grammar, 'tokenizeLine2')).toEqual(descriptor)
   } finally { restore(grammar, saved) }
@@ -82,7 +88,7 @@ it.each(['success', 'observer failure', 'target failure'])('does not leave the o
   const run = () => { if (mode === 'target failure') throw failure; return tokenize() }
   try {
     if (mode === 'success') observeBinaryLines(grammar, observer, run)
-    else expect(() => observeBinaryLines(grammar, observer, run)).toThrow(failure)
+    else expectObservationFailure(grammar, observer, run, failure)
     expect(Object.getOwnPropertyDescriptor(grammar, 'tokenizeLine2')).toEqual(descriptor)
     expect(grammar.tokenizeLine2).toBe(original)
     expect(setterCalls).toBe(0)
@@ -124,7 +130,7 @@ it.each(['accessor', 'read-only'])('rejects a non-configurable %s before mutatio
   Object.defineProperty(target.grammar, 'tokenizeLine2', descriptor)
   const saved = Object.getOwnPropertyDescriptor(target.grammar, 'tokenizeLine2')
   try {
-    expect(() => observeBinaryLines(target.grammar, () => undefined, target.run)).toThrow()
+    expect(() => observeBinaryLines(target.grammar, ignoreBinary, target.run)).toThrow()
     expect(reads).toBe(0)
     expect(Object.getOwnPropertyDescriptor(target.grammar, 'tokenizeLine2')).toEqual(saved)
     expect(target.run()).toEqual(target.baseline)
@@ -146,7 +152,7 @@ it('leaves a nonextensible grammar and its default method unchanged', async () =
   const target = await freshGrammar(), original = target.grammar.tokenizeLine2
   Object.preventExtensions(target.grammar)
   try {
-    expect(() => observeBinaryLines(target.grammar, () => undefined, target.run)).toThrow()
+    expect(() => observeBinaryLines(target.grammar, ignoreBinary, target.run)).toThrow()
     expect(Object.hasOwn(target.grammar, 'tokenizeLine2')).toBe(false)
     expect(target.grammar.tokenizeLine2).toBe(original)
     expect(target.run()).toEqual(target.baseline)
