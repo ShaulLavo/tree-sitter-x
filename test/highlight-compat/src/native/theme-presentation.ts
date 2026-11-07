@@ -74,9 +74,9 @@ export class ThemePresentation {
     const request: Request = { view, scope, options: checked.value, canceled: false, released: false };
     this.#pending.set(view, request);
     const abort = () => { request.canceled = true; this.finish(request); };
-    options.signal?.addEventListener('abort', abort, { once: true });
-    try { return await this.run(request, acquire); }
-    finally { options.signal?.removeEventListener('abort', abort); this.finish(request); }
+    const signal = request.options.signal;
+    try { signal?.addEventListener('abort', abort, { once: true }); return await this.run(request, acquire); }
+    finally { this.finish(request); signal?.removeEventListener('abort', abort); }
   }
   private async run(request: Request, acquire: () => Promise<Outcome<NormalizedTheme>>): Promise<PresentationOutcome> {
     if (!this.current(request)) return this.terminal(request);

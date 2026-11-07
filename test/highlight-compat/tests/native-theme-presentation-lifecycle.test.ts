@@ -148,3 +148,33 @@ it('cleans a rejected theme result without publishing a partial style array', as
     const compiled = value(await NativeTheme.compile(value(theme()))); compiled.dispose();
   } finally { current.dispose(); }
 });
+
+it('removes the captured abort listener even when the caller replaces its options signal', async () => {
+  const current = await context(), first = new AbortController(), second = new AbortController(), gate = deferred<ReturnType<typeof theme>>();
+  const options = { signal: first.signal }, remove = vi.spyOn(first.signal, 'removeEventListener');
+  try {
+    const pending = current.presentation.select(current.view, () => gate.promise, options); options.signal = second.signal;
+    gate.resolve(theme()); expect((await pending).kind).toBe('complete'); expect(remove).toHaveBeenCalledTimes(1);
+  } finally { gate.resolve(theme()); remove.mockRestore(); current.dispose(); }
+});
+
+it('releases the acquired scope lease if abort-listener registration throws', async () => {
+  const current = await context(), abort = new AbortController();
+  const releases = scopeReleases(current.session);
+  const add = vi.spyOn(abort.signal, 'addEventListener').mockImplementation(() => { throw new Error('listener registration'); });
+  try {
+    await expect(current.presentation.select(current.view, acquisition(), { signal: abort.signal })).rejects.toThrow('listener registration');
+    expect(releases.count()).toBe(1);
+    current.session.detachView(current.view); expect(current.session.retainedBytes()).toBe(0);
+  } finally { add.mockRestore(); releases.restore(); current.dispose(); }
+});
+function scopeReleases(session: Awaited<ReturnType<typeof context>>['session']) {
+  const original = session.acquireFull; let count = 0;
+  const spy = vi.spyOn(session, 'acquireFull').mockImplementation(view => {
+    const lease = original.call(session, view);
+    if (!lease) return undefined;
+    return { get snapshot() { return lease.snapshot; }, publication: lease.publication, retain: lease.retain, reserve: lease.reserve,
+      release: () => { count++; lease.release(); } };
+  });
+  return { count: () => count, restore: () => spy.mockRestore() };
+}
