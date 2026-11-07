@@ -1,0 +1,5 @@
+Evaluator-only input. Do not provide these files or candidate-specific failures to a pack author.
+
+Test262 selected file: Copyright (C) 2015 Caitlin Potter. All rights reserved. The file explicitly applies the BSD license in licenses/tc39/test262/LICENSE. Keep the complete source header and license. No harness is executed or imported.
+
+Preact website selected source: repository MIT grant, Copyright (c) 2016-present Jason Miller. Original authors and exact rename/introduction histories are recorded per file in the manifest and evidence. Retain licenses/preactjs/preact-www/LICENSE with these files. No copied test table or generated contributor data file is selected. The footer comment describes generating a separate contributors.json; that JSON is neither acquired nor selected. Dependencies mentioned by imports are source text only.

@@ -1,0 +1,23 @@
+{
+  "repository": "tc39/test262",
+  "revision": "e4fbf57745c6aae3d1f12f181ecef78b1665d812",
+  "path": "test/language/expressions/arrow-function/ArrowFunction_restricted-properties.js",
+  "url": "https://api.github.com/repos/tc39/test262/commits?sha=e4fbf57745c6aae3d1f12f181ecef78b1665d812&path=test%2Flanguage%2Fexpressions%2Farrow-function%2FArrowFunction_restricted-properties.js&per_page=100",
+  "pagination": null,
+  "commits": [
+    {
+      "sha": "df1a1c75b785192a6ee9ab46a862cb83aaed037a",
+      "author": "Alexey Shvayka",
+      "date": "2019-06-19T20:39:21Z",
+      "message": "Remove trailing spaces from YAML blocks (#2201)",
+      "url": "https://github.com/tc39/test262/commit/df1a1c75b785192a6ee9ab46a862cb83aaed037a"
+    },
+    {
+      "sha": "93e9da29a0604e9c2742436979eb1074eb301758",
+      "author": "Rick Waldron",
+      "date": "2015-04-13T18:35:06Z",
+      "message": "14.2 Arrow Function Definitions",
+      "url": "https://github.com/tc39/test262/commit/93e9da29a0604e9c2742436979eb1074eb301758"
+    }
+  ]
+}

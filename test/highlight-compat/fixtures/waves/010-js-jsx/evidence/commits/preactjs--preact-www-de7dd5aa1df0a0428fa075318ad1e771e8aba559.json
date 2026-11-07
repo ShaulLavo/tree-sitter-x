@@ -1,0 +1,24 @@
+{
+  "repository": "preactjs/preact-www",
+  "sha": "de7dd5aa1df0a0428fa075318ad1e771e8aba559",
+  "url": "https://github.com/preactjs/preact-www/commit/de7dd5aa1df0a0428fa075318ad1e771e8aba559",
+  "author": "Marvin Hagemeister",
+  "message": "Add basic blogging infrastructure",
+  "parents": [
+    "55a105584efe16df118d657ec468212abcbd90a0"
+  ],
+  "files": [
+    {
+      "sha": "f53dbaba9c552d5e82facf6468f65caee3c5c005",
+      "filename": "src/components/time/index.js",
+      "status": "added",
+      "additions": 12,
+      "deletions": 0,
+      "changes": 12,
+      "blob_url": "https://github.com/preactjs/preact-www/blob/de7dd5aa1df0a0428fa075318ad1e771e8aba559/src%2Fcomponents%2Ftime%2Findex.js",
+      "raw_url": "https://github.com/preactjs/preact-www/raw/de7dd5aa1df0a0428fa075318ad1e771e8aba559/src%2Fcomponents%2Ftime%2Findex.js",
+      "contents_url": "https://api.github.com/repos/preactjs/preact-www/contents/src%2Fcomponents%2Ftime%2Findex.js?ref=de7dd5aa1df0a0428fa075318ad1e771e8aba559",
+      "patch": "@@ -0,0 +1,12 @@\n+import s from './time.less';\n+\n+const formatter = new Intl.DateTimeFormat();\n+\n+export function Time({ value }) {\n+\tconst date = new Date(value);\n+\treturn (\n+\t\t<time class={s.time} dateTime={date}>\n+\t\t\t{formatter.format(date)}\n+\t\t</time>\n+\t);\n+}"
+    }
+  ]
+}

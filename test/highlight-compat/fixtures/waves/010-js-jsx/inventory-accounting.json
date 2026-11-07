@@ -1,0 +1,2166 @@
+{
+  "schema": "010-wave-full-inventory@1",
+  "sourceInventorySha256": "a09da33abe51b10574d0dc25e11ff4c58983d6e80c7fa6c853a9527ea6a3552b",
+  "languages": [
+    {
+      "id": "abap",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "actionscript-3",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "ada",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "ahk",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "ahk2",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "angular-html",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "angular-ts",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "apache",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "apex",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "apl",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "applescript",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "ara",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "asciidoc",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "asm",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "astro",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "awk",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "ballerina",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "bat",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "beancount",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "berry",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "bibtex",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "bicep",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "bird2",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "blade",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "bsl",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "c",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "c3",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "cadence",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "cairo",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "chapel",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "clarity",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "clojure",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "cmake",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "cobol",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "codeowners",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "codeql",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "coffee",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "common-lisp",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "coq",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "cpp",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "crystal",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "csharp",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "css",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "csv",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "cue",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "cypher",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "d",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "dart",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "dax",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "desktop",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "diff",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "docker",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "dotenv",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "dream-maker",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "edge",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "elixir",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "elm",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "emacs-lisp",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "erb",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "erlang",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "fennel",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "fish",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "fluent",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "fortran-fixed-form",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "fortran-free-form",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "fsharp",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "gdresource",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "gdscript",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "gdshader",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "genie",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "gherkin",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "git-commit",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "git-rebase",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "gleam",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "glimmer-js",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "glimmer-ts",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "glsl",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "gn",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "gnuplot",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "go",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "graphql",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "groovy",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "hack",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "haml",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "handlebars",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "haskell",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "haxe",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "hcl",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "hjson",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "hlsl",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "html",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "html-derivative",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "http",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "hurl",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "hxml",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "hy",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "imba",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "ini",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "java",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "javascript",
+      "wave": true,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "jinja",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "jison",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "json",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "json5",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "jsonc",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "jsonl",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "jsonnet",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "jssm",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "jsx",
+      "wave": true,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "julia",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "just",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "kdl",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "kotlin",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "kusto",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "latex",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "lean",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "less",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "liquid",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "llvm",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "log",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "logo",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "lua",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "luau",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "make",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "markdown",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "marko",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "matlab",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "mdc",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "mdx",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "mermaid",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "mipsasm",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "mojo",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "moonbit",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "move",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "narrat",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "nextflow",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "nextflow-groovy",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "nginx",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "nim",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "nix",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "nsis",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "nushell",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "objective-c",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "objective-cpp",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "ocaml",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "odin",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "openscad",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "org",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "pascal",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "perl",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "php",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "pkl",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "plsql",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "po",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "polar",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "postcss",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "powerquery",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "powershell",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "prisma",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "prolog",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "proto",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "pug",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "puppet",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "purescript",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "python",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "qml",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "qmldir",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "qss",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "r",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "racket",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "raku",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "razor",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "rbs",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "reg",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "regexp",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "rel",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "riscv",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "ron",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "rosmsg",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "rst",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "ruby",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "rust",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "sas",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "sass",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "scala",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "scheme",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "scss",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "sdbl",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "shaderlab",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "shellscript",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "shellsession",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "smalltalk",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "smithy",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "solidity",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "soy",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "sparql",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "splunk",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "sql",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "ssh-config",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "stata",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "stylus",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "surrealql",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "svelte",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "swift",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "system-verilog",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "systemd",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "talonscript",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "tasl",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "tcl",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "templ",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "terraform",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "tex",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "toml",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "ts-tags",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "tsv",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "tsx",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "turtle",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "twig",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "typescript",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "typespec",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "typst",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "v",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "vala",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "vb",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "verilog",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "vhdl",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "viml",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "vue",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "vue-html",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "vue-vine",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "vyper",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "wasm",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "wenyan",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "wgsl",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "wikitext",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "wit",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "wolfram",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "xml",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "xsl",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "yaml",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "zenscript",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    },
+    {
+      "id": "zig",
+      "wave": false,
+      "measurement": null,
+      "parity": "not-established",
+      "promotion": "not-promoted"
+    }
+  ],
+  "structuralRows": [
+    {
+      "id": "javascript",
+      "measurement": null
+    },
+    {
+      "id": "typescript",
+      "measurement": null
+    },
+    {
+      "id": "tsx",
+      "measurement": null
+    },
+    {
+      "id": "html",
+      "measurement": null
+    },
+    {
+      "id": "css",
+      "measurement": null
+    },
+    {
+      "id": "json",
+      "measurement": null
+    },
+    {
+      "id": "markdown",
+      "measurement": null
+    },
+    {
+      "id": "astro",
+      "measurement": null
+    },
+    {
+      "id": "python",
+      "measurement": null
+    },
+    {
+      "id": "shellscript",
+      "measurement": null
+    },
+    {
+      "id": "rust",
+      "measurement": null
+    },
+    {
+      "id": "go",
+      "measurement": null
+    },
+    {
+      "id": "yaml",
+      "measurement": null
+    },
+    {
+      "id": "toml",
+      "measurement": null
+    },
+    {
+      "id": "c",
+      "measurement": null
+    },
+    {
+      "id": "cpp",
+      "measurement": null
+    },
+    {
+      "id": "csharp",
+      "measurement": null
+    },
+    {
+      "id": "java",
+      "measurement": null
+    },
+    {
+      "id": "php",
+      "measurement": null
+    },
+    {
+      "id": "lua",
+      "measurement": null
+    },
+    {
+      "id": "svelte",
+      "measurement": null
+    },
+    {
+      "id": "sql",
+      "measurement": null
+    },
+    {
+      "id": "mdx",
+      "measurement": null
+    }
+  ],
+  "themes": [
+    {
+      "id": "andromeeda",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "aurora-x",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "ayu-dark",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "ayu-light",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "ayu-mirage",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "catppuccin-frappe",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "catppuccin-latte",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "catppuccin-macchiato",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "catppuccin-mocha",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "dark-plus",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "dracula",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "dracula-soft",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "everforest-dark",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "everforest-light",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "github-dark",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "github-dark-default",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "github-dark-dimmed",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "github-dark-high-contrast",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "github-light",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "github-light-default",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "github-light-high-contrast",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "gruvbox-dark-hard",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "gruvbox-dark-medium",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "gruvbox-dark-soft",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "gruvbox-light-hard",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "gruvbox-light-medium",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "gruvbox-light-soft",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "horizon",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "horizon-bright",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "houston",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "kanagawa-dragon",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "kanagawa-lotus",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "kanagawa-wave",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "laserwave",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "light-plus",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "material-theme",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "material-theme-darker",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "material-theme-lighter",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "material-theme-ocean",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "material-theme-palenight",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "min-dark",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "min-light",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "monokai",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "night-owl",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "night-owl-light",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "nord",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "one-dark-pro",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "one-light",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "plastic",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "poimandres",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "red",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "rose-pine",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "rose-pine-dawn",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "rose-pine-moon",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "slack-dark",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "slack-ochin",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "snazzy-light",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "solarized-dark",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "solarized-light",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "synthwave-84",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "tokyo-night",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "vesper",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "vitesse-black",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "vitesse-dark",
+      "measurement": null,
+      "parity": "not-established"
+    },
+    {
+      "id": "vitesse-light",
+      "measurement": null,
+      "parity": "not-established"
+    }
+  ],
+  "unavailableInjectionDependencies": [
+    {
+      "id": "regex",
+      "parents": [
+        "javascript",
+        "typescript",
+        "tsx"
+      ],
+      "structuralAvailability": "unavailable",
+      "nativePackAvailability": "unsupported",
+      "measuredCoverage": null,
+      "referenceCatalogId": "regexp",
+      "successfulParity": "not-established",
+      "promotion": "not-promoted",
+      "reason": "TextMate regexp alias regex does not supply a structural parser. No jsdoc/phpdoc parser/pack supplied."
+    },
+    {
+      "id": "jsdoc",
+      "parents": [
+        "javascript",
+        "typescript",
+        "tsx"
+      ],
+      "structuralAvailability": "unavailable",
+      "nativePackAvailability": "unsupported",
+      "measuredCoverage": null,
+      "referenceCatalogId": null,
+      "successfulParity": "not-established",
+      "promotion": "not-promoted",
+      "reason": "TextMate regexp alias regex does not supply a structural parser. No jsdoc/phpdoc parser/pack supplied."
+    },
+    {
+      "id": "phpdoc",
+      "parents": [
+        "php"
+      ],
+      "structuralAvailability": "unavailable",
+      "nativePackAvailability": "unsupported",
+      "measuredCoverage": null,
+      "referenceCatalogId": null,
+      "successfulParity": "not-established",
+      "promotion": "not-promoted",
+      "reason": "TextMate regexp alias regex does not supply a structural parser. No jsdoc/phpdoc parser/pack supplied."
+    }
+  ]
+}

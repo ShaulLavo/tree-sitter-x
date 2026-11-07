@@ -1,0 +1,34 @@
+[
+  {
+    "directory": "",
+    "legalFiles": [
+      "LICENSE"
+    ],
+    "url": "https://api.github.com/repos/preactjs/preact-www/contents/?ref=8854f888e5bbe726ed1ec2d956a8822f73458cbb"
+  },
+  {
+    "directory": "src",
+    "legalFiles": [],
+    "url": "https://api.github.com/repos/preactjs/preact-www/contents/src?ref=8854f888e5bbe726ed1ec2d956a8822f73458cbb"
+  },
+  {
+    "directory": "src/lib",
+    "legalFiles": [],
+    "url": "https://api.github.com/repos/preactjs/preact-www/contents/src/lib?ref=8854f888e5bbe726ed1ec2d956a8822f73458cbb"
+  },
+  {
+    "directory": "src/components",
+    "legalFiles": [],
+    "url": "https://api.github.com/repos/preactjs/preact-www/contents/src/components?ref=8854f888e5bbe726ed1ec2d956a8822f73458cbb"
+  },
+  {
+    "directory": "src/components/time",
+    "legalFiles": [],
+    "url": "https://api.github.com/repos/preactjs/preact-www/contents/src/components/time?ref=8854f888e5bbe726ed1ec2d956a8822f73458cbb"
+  },
+  {
+    "directory": "src/components/footer",
+    "legalFiles": [],
+    "url": "https://api.github.com/repos/preactjs/preact-www/contents/src/components/footer?ref=8854f888e5bbe726ed1ec2d956a8822f73458cbb"
+  }
+]
