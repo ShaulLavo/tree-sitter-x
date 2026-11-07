@@ -1,0 +1,152 @@
+{
+  "schema": 1,
+  "repository": "https://github.com/ShaulLavo/tree-sitter-md",
+  "commit": "f02e277a34375f326572b4ade2602f44ac769005",
+  "packageVersion": "0.1.32",
+  "release": "consumer Git pin, includes unreleased changes; npm latest remains 0.1.1",
+  "consumers": [
+    {
+      "repository": "ShaulLavo/fregat",
+      "commit": "ce39b4b137c26abb77763449c7f4bcb35c07e47b",
+      "paths": [
+        "package.json",
+        "packages/markdown/package.json"
+      ]
+    },
+    {
+      "repository": "ShaulLavo/singapore",
+      "commit": "7fc08752dc79758b7375371c7c5635837d4538f2",
+      "paths": [
+        "packages/tree-sitter-languages/package.json",
+        "packages/tree-sitter/package.json",
+        "packages/markdown/package.json"
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "path": "tree-sitter-md/LICENSE",
+      "upstreamPath": "LICENSE",
+      "sha256": "1cf2a3936adda9351dc283c619665a77b48d094cb9c63f68ec7ca60dd7355f18",
+      "size": 1072
+    },
+    {
+      "path": "tree-sitter-md/NOTICE.md",
+      "upstreamPath": "NOTICE.md",
+      "sha256": "fc739a000b9c57359150b65a90795c0e4f639349bc13ae06cfeca3a8d04f418a",
+      "size": 3848
+    },
+    {
+      "path": "tree-sitter-md/licenses/cloudlibc.txt",
+      "upstreamPath": "licenses/cloudlibc.txt",
+      "sha256": "c8b789cf5a746611e6300a0cc7750dbf92b61912a709d04e639245f7290656d0",
+      "size": 1292
+    },
+    {
+      "path": "tree-sitter-md/licenses/cmark-gfm.txt",
+      "upstreamPath": "licenses/cmark-gfm.txt",
+      "sha256": "c22e885f33b821bddb24cf007145e5540655b6c0f403e49e6c76a93c28e6d9a9",
+      "size": 7567
+    },
+    {
+      "path": "tree-sitter-md/licenses/cmark.txt",
+      "upstreamPath": "licenses/cmark.txt",
+      "sha256": "c22e885f33b821bddb24cf007145e5540655b6c0f403e49e6c76a93c28e6d9a9",
+      "size": 7567
+    },
+    {
+      "path": "tree-sitter-md/licenses/dlmalloc.txt",
+      "upstreamPath": "licenses/dlmalloc.txt",
+      "sha256": "0205ac38409bb02178268367a550adf1968b34ce8e21041259505e2038540379",
+      "size": 306
+    },
+    {
+      "path": "tree-sitter-md/licenses/icu.txt",
+      "upstreamPath": "licenses/icu.txt",
+      "sha256": "6a18c5fac70d7860b57f5b72b4e2c9a1ba6b3d2741eef7ff9767c5379364f10d",
+      "size": 21001
+    },
+    {
+      "path": "tree-sitter-md/licenses/llvm.txt",
+      "upstreamPath": "licenses/llvm.txt",
+      "sha256": "a6c48161a09acc75a0e25503bab66a731eb5fba5392ed4bb4743e4ba5085327a",
+      "size": 12242
+    },
+    {
+      "path": "tree-sitter-md/licenses/markdown-cjk-friendly.txt",
+      "upstreamPath": "licenses/markdown-cjk-friendly.txt",
+      "sha256": "2556e6c4c696ca913376e7937b5e4125226296aafa74106a3e9b097172cf6d99",
+      "size": 2480
+    },
+    {
+      "path": "tree-sitter-md/licenses/micromark-extension-gfm-strikethrough.txt",
+      "upstreamPath": "licenses/micromark-extension-gfm-strikethrough.txt",
+      "sha256": "536804b3adbff17dbbb9ed0d2bf9655b78f07640278581e37e3d7475282d5e61",
+      "size": 1099
+    },
+    {
+      "path": "tree-sitter-md/licenses/micromark.txt",
+      "upstreamPath": "licenses/micromark.txt",
+      "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb",
+      "size": 1094
+    },
+    {
+      "path": "tree-sitter-md/licenses/musl.txt",
+      "upstreamPath": "licenses/musl.txt",
+      "sha256": "b870108ec5e7790e9f9919064f1b9421d62d5f9b0e6c230c6adf7ea2da62e97b",
+      "size": 6196
+    },
+    {
+      "path": "tree-sitter-md/licenses/tree-sitter-markdown.txt",
+      "upstreamPath": "licenses/tree-sitter-markdown.txt",
+      "sha256": "52ec8a1bf8256511e2a92613e0bb41ffefba3897f16fa958d7bb28c466dd4804",
+      "size": 1071
+    },
+    {
+      "path": "tree-sitter-md/licenses/tree-sitter.txt",
+      "upstreamPath": "licenses/tree-sitter.txt",
+      "sha256": "c5cfb43042b6b72045f4ba997834d0a7786d2793d91680868b5815b39f14fc78",
+      "size": 1080
+    },
+    {
+      "path": "tree-sitter-md/licenses/wasi-libc.txt",
+      "upstreamPath": "licenses/wasi-libc.txt",
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+      "size": 1023
+    },
+    {
+      "path": "tree-sitter-md/tree-sitter-markdown.wasm",
+      "upstreamPath": "tree-sitter-markdown.wasm",
+      "sha256": "27d067c772acc4adce2c79217aaec5168914338246ad5d8ecaf4bd9d0d0548d5",
+      "size": 137468
+    },
+    {
+      "path": "tree-sitter-md/tree-sitter-md.wasm",
+      "upstreamPath": "tree-sitter-md.wasm",
+      "sha256": "a62768930dddde0a5d9cf49cd35f583d83e9b4aedb34de0f047fcd7879df5159",
+      "size": 240577
+    }
+  ],
+  "sourceManifest": [
+    {
+      "path": "package.json",
+      "sha256": "531c8ea41a917736f6d67419bb9c872f9fce973de1a88ce669ae8ef9cd6b208c"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "a9b30217101a0bc4321b76041a64608b4df0ebd73c92532e0839372851339fc5"
+    },
+    {
+      "path": "js/index.js",
+      "sha256": "e082c16438d4be37b49ec290116eea8139c2f3f4c5aa5dc67f0185488547b8c0"
+    },
+    {
+      "path": "js/constants.js",
+      "sha256": "f30c241601d02b173aef00ef53b1c83b83584c0270d0fa28c4e580c371528c79"
+    },
+    {
+      "path": "src/document.c",
+      "sha256": "716067257d26341a40a29c3057c98a83f0b417b2885a393e1c912b2b92c68bda"
+    }
+  ]
+}

@@ -384,13 +384,17 @@ Node 26.7.0 controls passed on the same built checkout: the tracked-import guard
 
 ### Phase 2: native full-pass pilot
 
-- [ ] Prove existing-tree/shared-source operation through the current extension seam.
-- [ ] Implement deterministic full-document scope composition and the minimum supported native predicates.
-- [ ] Start with TypeScript and TSX as explicit variants, plus JSON as a simpler control. Record JavaScript/JSX as distinct variants rather than assuming TS coverage implies them.
-- [ ] Add one mixed-language pilot, such as Markdown fences containing TypeScript, before concluding that the architecture generalizes. For Markdown, reuse the parser/runtime integration recorded by 176 and verify the current release; do not wait for every 189 improvement or recreate its document owner.
-- [ ] Compare native scopes using the reference matcher and emit minimized mismatch reports.
+- [x] Prove existing-tree/shared-source operation through the current extension seam.
+- [x] Implement deterministic full-document scope composition and the minimum supported native predicates.
+- [x] Start with TypeScript and TSX as explicit variants, plus JSON as a simpler control. Record JavaScript/JSX as distinct variants rather than assuming TS coverage implies them.
+- [x] Add one mixed-language pilot, such as Markdown fences containing TypeScript, before concluding that the architecture generalizes. For Markdown, reuse the parser/runtime integration recorded by 176 and verify the current release; do not wait for every 189 improvement or recreate its document owner.
+- [x] Compare native scopes using the reference matcher and emit minimized mismatch reports.
 
 **Gate:** memory/ownership/schema safety tests pass; the candidate improves on named baselines without altering the oracle. Publish actual remaining mismatches. No cutover based solely on a favorable aggregate percentage.
+
+Implementation evidence is separate from acceptance. Plan 007 PR A adds the optional component, existing-tree adapter, build and sanitizer command. PR B adds explicit packs, the current consumer-pinned Markdown resolver at `f02e277` with private immutable child ownership, and the reproducible [candidate report](../../test/highlight-compat/reports/native-pilot.md). Tests observe a positive baseline parse, zero extra scope parses, fresh-process first use, warm repetition, allocator positive controls and construction unwind. The historical Markdown 0.1.1 assets and all reference goldens remain unchanged.
+
+Phase 2 acceptance is **OPEN, limited experiment**. The single pack-authoring round fails all four TSX original-corpus strict improvement comparisons, raw and product against both named baselines. The report publishes every language/profile/lane cell, per-file regressions, style agreement and minimized scope mismatch categories. Green safety/schema CI and independent review remain merge gates. No performance benefit, promotion or consumer cutover is claimed; Plans 008–011 remain later work.
 
 ### Phase 3: incrementality and injection ownership
 
