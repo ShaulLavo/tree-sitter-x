@@ -158,8 +158,8 @@ export class ScopeSession {
     try {
       let snapshot = this.#cache?.snapshot;
       if (!snapshot || !sameOwner(snapshot.owner, work.key)) snapshot = this.advance(work);
-      if (!snapshot) return false;
       if (!this.current(work)) { this.terminal(work); return true; }
+      if (!snapshot) return false;
       if (!this.#cache || this.#cache.snapshot !== snapshot) {
         const admitted = this.#outputs.admitFull(snapshot), previous = this.#cache;
         this.#cache = admitted; previous?.release();
@@ -183,6 +183,7 @@ export class ScopeSession {
     const progress = work.progress, count = owner.children.length;
     if (progress.next < count) {
       const intervals = owner.scopeChild(progress.next++, this.#packs, this.#limits);
+      if (!this.current(work)) return undefined;
       const bytes = intervals.reduce((sum, interval) => sum + intervalBytes(interval), 0);
       if (progress.intervals.length + intervals.length > this.#limits.maxSegments) throw new ScopeFailure('budget', 'Partial child segment budget');
       this.#outputs.working(work, progress.bytes + bytes);
