@@ -56,10 +56,10 @@ export class PilotDocument {
     }
   }
 
-  borrow<T>(sameLanguage: (language: Foreign) => boolean, action: (borrowed: Borrowed) => T): T {
+  borrow<T>(sameLanguage: (language: Foreign, languageId: string) => boolean, action: (borrowed: Borrowed) => T): T {
     if (this.#disposed) throw new Error('Deleted native document');
     return this.#state.borrow(tree => {
-      return withBorrowed(this.#runtime, this.#language, tree, this.#buffer, this.source.length, sameLanguage, action);
+      return withBorrowed(this.#runtime, this.languageId, this.#language, tree, this.#buffer, this.source.length, sameLanguage, action);
     });
   }
 

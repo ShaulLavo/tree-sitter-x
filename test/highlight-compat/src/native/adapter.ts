@@ -27,6 +27,7 @@ export async function loadJsonPack(): Promise<NativePack> {
 }
 
 export function nativeScopes(pack: NativePack, owner: PilotDocument, window: Window = { start: 0, end: owner.source.length }): PassResult {
+  pack.assertLanguage(owner.languageId);
   u32(window.start); u32(window.end);
   return owner.borrow(pack.sameLanguage, borrowed => pack.run(borrowed, window));
 }
@@ -35,17 +36,22 @@ function incomplete(status: 1 | 2 | 3 | 4): IncompleteStatus {
   return status === 1 ? 'unsupported' : status === 2 ? 'timeout' : 'error';
 }
 
+function scopeIntervals(result: Extract<PassResult, { status: 0 }>, pack: NativePack) {
+  return Array.from({ length: result.segments.length / 3 }, (_, i) => ({
+    from: result.segments[i * 3], to: result.segments[i * 3 + 1],
+    scopes: result.paths[result.segments[i * 3 + 2]].map(id => pack.scopes[id]),
+  }));
+}
+
 export async function nativeDocument(pack: NativePack | undefined, owner: PilotDocument, reference: StyleReference): Promise<DocumentResult> {
   const builder = new ResultBuilder({ profileId: 'native', languageId: owner.languageId, engine: pack?.engine ?? {} }, owner.source);
-  if (owner.languageId === 'javascript' || owner.languageId === 'jsx') return builder.incomplete('unsupported', `${owner.languageId}: distinct variant, no native pack in the pilot (Phase 5)`);
-  if (!pack) return builder.incomplete('unsupported', `No native pack for ${owner.languageId}`);
   try {
+    pack?.assertLanguage(owner.languageId);
+    if (owner.languageId === 'javascript' || owner.languageId === 'jsx') return builder.incomplete('unsupported', `${owner.languageId}: distinct variant, no native pack in the pilot (Phase 5)`);
+    if (!pack) return builder.incomplete('unsupported', `No native pack for ${owner.languageId}`);
     const result = nativeScopes(pack, owner);
     if (result.status !== 0) return builder.incomplete(incomplete(result.status), `Native status ${result.status}, detail ${result.detail}, value ${result.value}`);
-    const intervals = Array.from({ length: result.segments.length / 3 }, (_, i) => ({
-      from: result.segments[i * 3], to: result.segments[i * 3 + 1],
-      scopes: result.paths[result.segments[i * 3 + 2]].map(id => pack.scopes[id]),
-    }));
+    const intervals = scopeIntervals(result, pack);
     return await paintScopes('native', owner.languageId, owner.source, intervals, reference, pack.engine);
   } catch (error) { return builder.incomplete('error', error instanceof Error ? error.message : String(error)); }
 }

@@ -50,6 +50,7 @@ export class ScopeSession {
   #request = 0;
   #generation = 0;
   private constructor(owner: ScopeOwner, packs: ReadonlyMap<string, NativePack>, limits: ScopeLimits) {
+    for (const [languageId, pack] of packs) pack.assertLanguage(languageId);
     for (const value of Object.values(limits)) { integer(value, 0xffffffff); if (!value) throw new RangeError('Scope limit must be positive'); }
     this.#owner = owner; this.#packs = new Map(packs); this.#limits = Object.freeze({ ...limits }); this.#outputs = new OutputStore(limits.retainedBytes);
     try { for (const pack of new Set(packs.values())) this.#releasePacks.push(pack.retain()); }
