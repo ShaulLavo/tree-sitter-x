@@ -42,17 +42,16 @@ static bool equal(ScText a, ScText b) {
   return a.length == b.length && (!a.length || !memcmp(a.text, b.text, (size_t)a.length * 2));
 }
 
-static bool membership(const ScopeCompatPack *p, const ScPredicate *op, ScText text) {
+static bool membership(const ScopeCompatPack *p, const ScMembership *op, ScText text) {
   for (uint32_t i = 1; i < op->count; ++i) {
     if (equal(text, p->strings[op->arguments[i].value_id])) return op->positive;
   }
   return !op->positive;
 }
 
-static bool witness(const ScopeCompatPack *p, const ScPredicate *op, const TSQueryMatch *match,
+static bool witness(const ScopeCompatPack *p, const ScEquality *op, const TSQueryMatch *match,
                      ScText text, const uint16_t *source) {
   const TSQueryPredicateStep *a = op->arguments;
-  if (op->membership) return membership(p, op, text);
   if (a[1].type == TSQueryPredicateStepTypeString) return equal(text, p->strings[a[1].value_id]) == op->positive;
   for (uint32_t i = 0; i < match->capture_count; ++i) {
     if (match->captures[i].index != a[1].value_id) continue;
@@ -61,16 +60,61 @@ static bool witness(const ScopeCompatPack *p, const ScPredicate *op, const TSQue
   return false;
 }
 
-bool sc_predicate(const ScopeCompatPack *p, const ScPredicate *op, const TSQueryMatch *match,
-                   const uint16_t *source) {
-  if (op->kind != SC_EQ) return true;
-  bool seen = false;
+static bool equality(const ScopeCompatPack *p, const ScEquality *op, const TSQueryMatch *match,
+                      const uint16_t *source) {
   for (uint32_t i = 0; i < match->capture_count; ++i) {
-    if (match->captures[i].index != op->first) continue;
-    seen = true;
+    if (match->captures[i].index != op->capture) continue;
     bool found = witness(p, op, match, node_text(match->captures[i].node, source), source);
     if (found == op->any) return op->any;
   }
-  if (op->membership && op->positive && !seen) return false;
   return !op->any;
+}
+
+static bool member_match(const ScopeCompatPack *p, const ScMembership *op, const TSQueryMatch *match,
+                          const uint16_t *source) {
+  bool seen = false;
+  for (uint32_t i = 0; i < match->capture_count; ++i) {
+    if (match->captures[i].index != op->capture) continue;
+    seen = true;
+    if (!membership(p, op, node_text(match->captures[i].node, source))) return false;
+  }
+  return seen || !op->positive;
+}
+
+static bool contains(ScAsciiSet set, uint16_t unit) {
+  return unit < 128 && (set.words[unit / 64] & (UINT64_C(1) << (unit % 64)));
+}
+
+static bool test_class(ScText text, const ScClass *op) {
+  if (!text.length || !contains(op->first, text.text[0])) return false;
+  for (uint32_t i = 1; i < text.length; ++i) {
+    if (!contains(op->tail, text.text[i])) return false;
+  }
+  return true;
+}
+
+static bool test_prefix(ScText text, ScText prefix) {
+  return prefix.length <= text.length && (!prefix.length || !memcmp(text.text, prefix.text, (size_t)prefix.length * 2));
+}
+
+static bool text_test(const ScopeCompatPack *p, const ScPredicate *op, ScText text) {
+  if (op->kind == SC_PREFIX) return test_prefix(text, p->strings[op->data.prefix.literal]) == op->data.prefix.positive;
+  if (op->kind == SC_CLASS) return test_class(text, &op->data.text_class) == op->data.text_class.positive;
+  const ScClassLast *spec = &op->data.text_class_last;
+  bool accepted = test_class(text, &spec->body) && contains(spec->last, text.text[text.length - 1]);
+  return accepted == spec->body.positive;
+}
+
+bool sc_predicate(const ScopeCompatPack *p, const ScPredicate *op, const TSQueryMatch *match,
+                   const uint16_t *source) {
+  if (op->kind == SC_EQ) return equality(p, &op->data.equality, match, source);
+  if (op->kind == SC_MEMBERSHIP) return member_match(p, &op->data.membership, match, source);
+  if (op->kind != SC_PREFIX && op->kind != SC_CLASS && op->kind != SC_CLASS_LAST) return true;
+  uint32_t capture = op->kind == SC_PREFIX ? op->data.prefix.capture :
+    op->kind == SC_CLASS ? op->data.text_class.capture : op->data.text_class_last.body.capture;
+  for (uint32_t i = 0; i < match->capture_count; ++i) {
+    if (match->captures[i].index != capture) continue;
+    if (!text_test(p, op, node_text(match->captures[i].node, source))) return false;
+  }
+  return true;
 }

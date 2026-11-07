@@ -79,13 +79,26 @@ static void smoke(void) {
   assert(scope_compat_live_allocations() == 0);
 }
 
+static void query_capabilities(void) {
+  const char *query = "((number) @_n @number (#text-class? @_n \"[0-9]\" \"[0-9]\") "
+    "(#not-text-class? @_n \"[a-z]\" \"[a-z]\") (#starts-with? @_n \"1\") "
+    "(#not-starts-with? @_n \"2\") "
+    "(#make-span! \"edge\" @_n @_n \"start\" \"0\" @_n \"start\" \"1\"))";
+  Fixture f = fixture(query, "123");
+  ScopeCompatResult *r = run(&f);
+  assert(r->status == SCOPE_COMPAT_OK && r->intervals_kept == 2);
+  assert(r->segments[0] == 0 && r->segments[1] == 1);
+  scope_compat_result_delete(r); dispose(&f);
+  assert(scope_compat_live_allocations() == 0);
+}
+
 static void composition(void) {
   const uint16_t text[] = {'a','b','c','d','\r','\n','e','\r'};
   ScInterval items[] = {
-    {.from=0, .to=4, .scope=1, .range=true},
-    {.from=2, .to=7, .scope=2, .range=true},
-    {.from=2, .to=7, .scope=2, .range=true},
-    {.from=3, .to=3, .scope=3, .range=true},
+    {.from=0, .to=4, .scope=1, .kind=SC_LEGACY_RANGE_INTERVAL},
+    {.from=2, .to=7, .scope=2, .kind=SC_LEGACY_RANGE_INTERVAL},
+    {.from=2, .to=7, .scope=2, .kind=SC_LEGACY_RANGE_INTERVAL},
+    {.from=3, .to=3, .scope=3, .kind=SC_LEGACY_RANGE_INTERVAL},
   };
   ScCollection c = {.items=items, .count=4};
   sc_order(&c);
@@ -134,6 +147,18 @@ static void rejection(void) {
   }
 }
 
+static ScPredicate truth_predicate(const TSQueryPredicateStep *args, uint32_t column) {
+  ScPredicate op = {0};
+  if (column >= 4) {
+    op.kind = SC_MEMBERSHIP;
+    op.data.membership = (ScMembership){.positive=!(column & 1), .capture=0, .arguments=args, .count=2};
+    return op;
+  }
+  op.kind = SC_EQ;
+  op.data.equality = (ScEquality){.positive=!(column & 1), .any=column==2 || column==3, .capture=0, .arguments=args, .count=2};
+  return op;
+}
+
 static void predicates(void) {
   const char *invalid[] = {"\x80", "\xc0\x80", "\xed\xa0\x80", "\xf4\x90\x80\x80"};
   for (uint32_t i=0; i<4; ++i) {
@@ -148,7 +173,7 @@ static void predicates(void) {
   ScText strings[] = {{one, 1}};
   ScopeCompatPack pack = {.strings=strings};
   TSQueryPredicateStep args[] = {{TSQueryPredicateStepTypeCapture, 0}, {TSQueryPredicateStepTypeString, 0}};
-  ScPredicate op = {.kind=SC_EQ, .arguments=args, .count=2, .first=0};
+  ScPredicate op = {.kind=SC_EQ, .data.equality={.arguments=args, .count=2, .capture=0}};
   const uint32_t sets[][3] = {{0,0,0},{0,0,0},{1,0,0},{0,1,0},{1,2,0}};
   const uint32_t counts[] = {0,1,1,2,2};
   const bool expected[][6] = {{true,true,false,false,false,true}, {true,false,true,false,true,false},
@@ -158,7 +183,7 @@ static void predicates(void) {
     for (uint32_t i=0; i<counts[row]; ++i) captures[i] = (TSQueryCapture){nodes[sets[row][i]], 0};
     TSQueryMatch match = {.capture_count=(uint16_t)counts[row], .captures=captures};
     for (uint32_t col=0; col<6; ++col) {
-      op.positive = !(col & 1); op.any = col==2 || col==3; op.membership = col>=4;
+      op = truth_predicate(args, col);
       assert(sc_predicate(&pack, &op, &match, f.source) == expected[row][col]);
     }
   }
@@ -175,7 +200,8 @@ static void predicates(void) {
     for (uint32_t i=0; i<bc[row]; ++i) captures[ac[row]+i] = (TSQueryCapture){nodes[b[row][i]], 1};
     TSQueryMatch match = {.capture_count=(uint16_t)(ac[row]+bc[row]), .captures=captures};
     for (uint32_t col=0; col<4; ++col) {
-      op.positive = !(col & 1); op.any = col>=2; op.membership = false;
+      op.kind = SC_EQ;
+      op.data.equality = (ScEquality){.positive=!(col & 1), .any=col>=2, .capture=0, .arguments=args, .count=2};
       assert(sc_predicate(&pack, &op, &match, f.source) == pairs[row][col]);
     }
   }
@@ -183,8 +209,7 @@ static void predicates(void) {
   assert(scope_compat_live_allocations() == 0);
 }
 
-static void ownership_and_failures(void) {
-  const char *query = "(number) @constant.numeric ((array (number) @_first (number) @_last) (#make-range! \"meta.range\" @_first @_last))";
+static void ownership_query(const char *query) {
   Fixture f = fixture(query, "[1,2]");
   uint32_t baseline = scope_compat_live_allocations();
   ScopeCompatResult *retained = run(&f);
@@ -234,6 +259,13 @@ static void ownership_and_failures(void) {
     assert(scope_compat_live_allocations() == 0);
   }
   assert(success);
+}
+
+static void ownership_and_failures(void) {
+  ownership_query("(number) @constant.numeric ((array (number) @_first (number) @_last) (#make-range! \"meta.range\" @_first @_last))");
+  ownership_query("((number) @_n @constant.numeric (#text-class? @_n \"[0-9]\" \"[0-9]\" \"[0-9]\") "
+    "(#starts-with? @_n \"\") (#not-starts-with? @_n \"z\") (#not-text-class? @_n \"[a-z]\" \"[a-z]\") "
+    "(#make-span! \"meta.range\" @_n @_n \"start\" \"0\" @_n \"end\" \"0\"))");
 }
 
 static void boundaries(void) {
@@ -346,6 +378,80 @@ static void text_cases(void) {
   assert(scope_compat_live_allocations() == 0);
 }
 
+static void edge_arithmetic(void) {
+  ScCollection c = {0};
+  uint32_t out = 777, top = UINT32_MAX / 2;
+  assert(sc_resolve_edge((ScEdge){.side=SC_AT_START, .delta=2}, top - 2, top, &out, &c) && out == top);
+  assert(sc_resolve_edge((ScEdge){.side=SC_AT_END, .delta=-2}, top - 2, top, &out, &c) && out == top - 2);
+  assert(!sc_resolve_edge((ScEdge){.side=SC_AT_START, .delta=-1}, 0, 2, &out, &c));
+  assert(c.status == SCOPE_COMPAT_INVALID && c.detail == SCOPE_COMPAT_DETAIL_WINDOW && c.value == 0);
+  assert(!sc_resolve_edge((ScEdge){.side=SC_AT_END, .delta=1}, top - 2, top, &out, &c));
+  assert(c.value == top);
+  assert(sc_resolve_edge((ScEdge){.side=SC_AT_START}, top, top, &out, &c) && out == top);
+  assert(!sc_resolve_edge((ScEdge){.side=SC_AT_START, .delta=1}, top, top, &out, &c));
+}
+
+static void zero_width_resolver(void) {
+  char source[256];
+  memset(source, '[', 96);
+  memcpy(source + 96, "{\"a\":1", 6);
+  memset(source + 102, ']', 96); source[198] = 0;
+  Fixture f = fixture("((MISSING) @_n (#text-class? @_n \"[a]\" \"[a]\") "
+    "(#not-text-class? @_n \"[a]\" \"[a]\") (#starts-with? @_n \"\") "
+    "(#not-starts-with? @_n \"x\"))", source);
+  TSQueryCursor *cursor = ts_query_cursor_new();
+  ts_query_cursor_exec(cursor, f.pack->query, ts_tree_root_node(f.tree));
+  TSQueryMatch found;
+  assert(ts_query_cursor_next_match(cursor, &found) && found.capture_count == 1);
+  TSNode missing = found.captures[0].node, parent = missing;
+  uint32_t depth = 0;
+  while (!ts_node_is_null(parent)) { ++depth; parent = ts_node_parent(parent); }
+  assert(ts_node_is_missing(missing) && ts_node_start_byte(missing) == ts_node_end_byte(missing));
+  assert(depth > 64);
+  const bool expected[] = {false, true, true, true};
+  for (uint32_t i = 0; i < 4; ++i) assert(sc_predicate(f.pack, &f.pack->predicates[i], &found, f.source) == expected[i]);
+  TSQueryCapture captures[] = {{ts_tree_root_node(f.tree), 0}, {missing, 1}};
+  TSQueryMatch match = {.captures=captures, .capture_count=2};
+  ScSpanSpec spec = {.container=0, .left={.capture=1}, .right={.capture=1, .side=SC_AT_END}};
+  ScCollection c = {0}; ScInterval item = {0};
+  assert(sc_node_span(missing, f.length * 2, &c));
+  assert(sc_span_interval(&spec, &match, f.length, 41, &c, &item));
+  assert(item.from == item.to && item.kind == SC_EDGE_SPAN_INTERVAL);
+  spec.left.delta = 1;
+  assert(!sc_span_interval(&spec, &match, f.length, 41, &c, &item) && c.detail == SCOPE_COMPAT_DETAIL_WINDOW);
+  spec.left.delta = 0;
+  captures[0].node = missing;
+  assert(sc_span_interval(&spec, &match, f.length, 41, &c, &item));
+  captures[1].index = 0;
+  assert(!sc_span_interval(&spec, &match, f.length, 41, &c, &item) && c.detail == SCOPE_COMPAT_DETAIL_BAD_ARGUMENTS && c.value == 41);
+  printf("scope-compat real zero-width resolver ancestor depth: %u; core fallback allocation not instrumented here\n", depth);
+  ts_query_cursor_delete(cursor); dispose(&f);
+  assert(scope_compat_live_allocations() == 0);
+}
+
+static void ancestry_and_validation(void) {
+  Fixture f = fixture("(number) @_n", "1"), other = fixture("(number) @_n", "1");
+  TSNode root = ts_tree_root_node(f.tree), number = ts_node_named_child(root, 0);
+  TSQueryCapture captures[] = {{number, 0}, {ts_node_named_child(ts_tree_root_node(other.tree), 0), 1}};
+  TSQueryMatch match = {.captures=captures, .capture_count=2};
+  ScSpanSpec spec = {.container=0, .left={.capture=1}, .right={.capture=1, .side=SC_AT_END}};
+  ScCollection c = {0}; ScInterval item = {0};
+  assert(ts_node_start_byte(captures[0].node) == ts_node_start_byte(captures[1].node));
+  assert(ts_node_end_byte(captures[0].node) == ts_node_end_byte(captures[1].node));
+  assert(!sc_span_interval(&spec, &match, f.length, 19, &c, &item));
+  assert(c.detail == SCOPE_COMPAT_DETAIL_BAD_ARGUMENTS && c.value == 19);
+  captures[0].node = root; captures[1].node = number;
+  assert(sc_span_interval(&spec, &match, f.length, 19, &c, &item));
+  TSNode odd = number; odd.context[0] = 1;
+  assert(!sc_node_span(odd, 2, &c) && c.detail == SCOPE_COMPAT_DETAIL_ODD_OFFSET && c.value == 1);
+  dispose(&other); dispose(&f);
+  f = fixture("((number) @_n (#starts-with? @_n \"never\") (#make-span! \"x\" @_n @_n \"start\" \"0\" @_n \"end\" \"0\"))", "12");
+  ScopeCompatResult *r = scope_compat_run(f.pack, f.tree, f.source, 1, 1, 0, 1, 0, 0, 0);
+  assert(r->status == SCOPE_COMPAT_INVALID && r->detail == SCOPE_COMPAT_DETAIL_TREE_EXCEEDS_SOURCE);
+  schema(r, 0, 1, scope_compat_pack_scope_count(f.pack)); scope_compat_result_delete(r); dispose(&f);
+  assert(scope_compat_live_allocations() == 0);
+}
+
 static uint32_t leak_core(void) {
   uint32_t offset;
   TSQueryError error;
@@ -372,6 +478,7 @@ int main(int argc, char **argv) {
     return 0;
   }
   smoke();
+  query_capabilities();
   sc_theme_tests();
   composition();
   rejection();
@@ -380,6 +487,9 @@ int main(int argc, char **argv) {
   ownership_and_failures();
   exact_nodes();
   text_cases();
+  edge_arithmetic();
+  zero_width_resolver();
+  ancestry_and_validation();
   puts("scope-compat native controls passed");
   return 0;
 }

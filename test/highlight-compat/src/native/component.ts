@@ -5,7 +5,7 @@ import { address, decodeExplain, decodeResult, nativeString, sourceSpan, span, u
 import type { PassResult, ExplainResult, Window } from './decode.ts';
 import { languageAddress } from './borrow.ts';
 import type { Borrowed } from './borrow.ts';
-import { Runtime, invoke } from './runtime.ts';
+import { Runtime, foreign, invoke, release } from './runtime.ts';
 import type { Foreign } from './runtime.ts';
 import { vendorAssets } from '../baselines/assets.ts';
 
@@ -15,6 +15,24 @@ export interface PackSpec {
   readonly rootScope: string; readonly suffix: string; readonly files: readonly QueryFile[];
 }
 export interface Limits { readonly matchLimit?: number; readonly maxIntervals?: number; readonly maxSegments?: number; readonly encoding?: number }
+
+function selectedOrderPolicy(runtime: Runtime, language: Foreign, text: string, patterns: number): string {
+  const query = runtime.construct('Query', [language, text]);
+  try {
+    const operators = Array.from({ length: patterns }, (_, index) => patternOperators(query, index));
+    return operators.some(pattern => pattern.includes('make-span!')) ? 'contained-span-order-1' : 'legacy-1';
+  } finally { release(query); }
+}
+
+function patternOperators(query: Foreign, index: number): string[] {
+  const predicates = invoke(query, 'predicatesForPattern', [index]);
+  if (!Array.isArray(predicates)) throw new Error('Invalid query predicate metadata');
+  return predicates.map((predicate: unknown) => {
+    const operator = foreign(predicate).operator;
+    if (typeof operator !== 'string') throw new Error('Invalid query operator metadata');
+    return operator;
+  });
+}
 
 function location(files: readonly QueryFile[], offset: number): string {
   let start = 0;
@@ -147,9 +165,13 @@ export class Component {
     if (names[0] !== spec.rootScope || names.some(name => !name || /\s/.test(name))) throw new Error('Invalid native scope names');
     const parser = vendorAssets().find(asset => asset.languageId === spec.languageId && asset.kind === 'wasm');
     if (!parser) throw new Error('Missing parser identity');
-    return new NativePack(this, pointer, language, spec, names, this.number('scope_compat_pack_pattern_count', [pointer]), {
+    const patterns = this.number('scope_compat_pack_pattern_count', [pointer]);
+    const orderPolicy = selectedOrderPolicy(this.runtime, language, query, patterns);
+    return new NativePack(this, pointer, language, spec, names, patterns, {
       ...this.#identity, packId: spec.id, packVersion: spec.version, querySha256: digest(new TextEncoder().encode(query)),
-      parserSha256: parser.sha256, composition: 'scope-compat-compose-1', predicateDialect: 'eq/any-of/make-range/priority',
+      parserSha256: parser.sha256, composition: 'scope-compat-compose-1+contained-span-order-1',
+      predicateDialect: 'eq/any-of/make-range/priority;text-class-ascii-1;prefix-utf16-1;make-span-utf16-1',
+      selectedOrderPolicy: orderPolicy,
     });
   }
 
