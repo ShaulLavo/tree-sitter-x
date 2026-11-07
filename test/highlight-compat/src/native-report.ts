@@ -11,11 +11,10 @@ import type { Comparison, Agreement, ScopeRun } from './compare.ts';
 import type { DocumentResult } from './schema.ts';
 import { isWhitespaceUnit, sourceSha256 } from './source.ts';
 import { baselineScopes } from './baselines/run.ts';
-import { EXPERIMENT_007, historicalBaselineSupport as baselineSupport, historicalPackManifests, checkHistoricalPack } from './experiment-007.ts';
+import { EXPERIMENT_007, historicalBaselineSupport as baselineSupport, historicalPackManifests, loadHistoricalPacks } from './experiment-007.ts';
 import type { BaselineId } from './baselines/run.ts';
 import { paintScopes } from './baselines/theme.ts';
 import type { StyleReference } from './baselines/theme.ts';
-import { loadLanguagePack } from './native/packs.ts';
 import { nativeDocument } from './native/adapter.ts';
 import { PilotDocument } from './native/owner.ts';
 import { MarkdownPilotDocument } from './native/markdown.ts';
@@ -269,14 +268,9 @@ function regionScores(row: Row): readonly (readonly [string, Score])[] {
 }
 
 export async function buildNativeReport(root = GOLDEN_ROOT): Promise<string> {
-  const packs = new Map<string, NativePack>();
+  const packs = await loadHistoricalPacks();
   try {
     const manifests = historicalPackManifests();
-    for (const expected of EXPERIMENT_007.packs) {
-      const pack = await loadLanguagePack(expected.id);
-      packs.set(expected.id, pack);
-      checkHistoricalPack(pack, expected);
-    }
     const languages: readonly string[] = EXPERIMENT_007.languages;
     const inputs = corpusInputs().filter(input => languages.includes(input.languageId));
     const fixtures: FixtureResult[] = [];

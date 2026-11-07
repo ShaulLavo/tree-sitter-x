@@ -3,6 +3,7 @@ import { sha256 } from './baselines/assets.ts';
 import type { BaselineId } from './baselines/run.ts';
 import type { NativePack } from './native/component.ts';
 import type { NativeLanguage } from './native/packs.ts';
+import { loadLanguagePack } from './native/packs.ts';
 import { MARKDOWN_CHILD_ALIASES } from './native/markdown-membership.ts';
 
 interface FixedPack {
@@ -59,5 +60,21 @@ export function checkHistoricalPack(pack: NativePack, expected: FixedPack): void
   const query = expected.queries.map(([path, hash]) => fixedBytes(expected.id, path, hash)).join('\n');
   if (pack.spec.id !== expected.id || pack.spec.languageId !== expected.id || pack.spec.version !== expected.version || pack.engine.querySha256 !== sha256(query)) {
     throw new Error(`007 ${expected.id}: loaded pack differs from fixed experiment`);
+  }
+}
+
+export async function loadHistoricalPacks(): Promise<ReadonlyMap<string, NativePack>> {
+  const loaded = new Map<string, NativePack>();
+  try {
+    historicalPackManifests();
+    for (const expected of EXPERIMENT_007.packs) {
+      const pack = await loadLanguagePack(expected.id);
+      loaded.set(expected.id, pack);
+      checkHistoricalPack(pack, expected);
+    }
+    return loaded;
+  } catch (error) {
+    for (const pack of loaded.values()) pack.dispose();
+    throw error;
   }
 }

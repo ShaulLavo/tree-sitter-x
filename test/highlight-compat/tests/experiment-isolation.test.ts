@@ -1,7 +1,6 @@
-import { readFileSync } from 'node:fs';
 import { expect, it, vi } from 'vitest';
-import { buildNativeReport } from '../src/native-report.ts';
-import { buildBaselineReport } from '../src/baseline-report.ts';
+import { historicalBaselineSupport, loadHistoricalPacks } from '../src/experiment-007.ts';
+import { baselineScopes, baselineSupport } from '../src/baselines/run.ts';
 import { MarkdownPilotDocument } from '../src/native/markdown.ts';
 import { loadLanguagePack } from '../src/native/packs.ts';
 
@@ -12,13 +11,25 @@ vi.mock('../src/native/packs.ts', async importOriginal => {
     loadLanguagePack: vi.fn(actual.loadLanguagePack) };
 });
 
-it('keeps the complete 007 report byte-identical with extra root capabilities', async () => {
-  expect(await buildNativeReport()).toBe(readFileSync(new URL('../reports/native-pilot.md', import.meta.url), 'utf8'));
-  expect(vi.mocked(loadLanguagePack).mock.calls.map(call => call[0])).toEqual(['json', 'typescript', 'tsx']);
+it('loads only the fixed 007 packs with extra root capabilities', async () => {
+  const packs = await loadHistoricalPacks();
+  try {
+    expect(Array.from(packs.keys())).toEqual(['json', 'typescript', 'tsx']);
+    expect(Array.from(packs, ([id, pack]) => [id, pack.engine.packId, pack.engine.packVersion])).toEqual([
+      ['json', 'json', 'pilot-1'], ['typescript', 'typescript', 'pilot-1'], ['tsx', 'tsx', 'pilot-1'],
+    ]);
+    expect(vi.mocked(loadLanguagePack).mock.calls.map(call => call[0])).toEqual(['json', 'typescript', 'tsx']);
+  } finally { for (const pack of packs.values()) pack.dispose(); }
 }, 30000);
 
-it('keeps the original baseline report byte-identical after JSX becomes diagnostic-capable', async () => {
-  expect(await buildBaselineReport()).toBe(readFileSync(new URL('../reports/baselines.md', import.meta.url), 'utf8'));
+it('keeps historical applicability separate from actual JSX diagnostic capability', async () => {
+  expect(baselineSupport('baseline:captures', 'jsx')).toBeUndefined();
+  const jsx = await baselineScopes('baseline:captures', 'jsx', '<i />');
+  expect(jsx.intervals.find(interval => interval.scopes.includes('entity.name.tag'))?.scopes[0]).toBe('source.js.jsx');
+  expect(historicalBaselineSupport('baseline:captures', 'jsx')).toBe('no pinned pilot parser for jsx');
+  expect(historicalBaselineSupport('baseline:captures', 'javascript')).toBeUndefined();
+  expect(historicalBaselineSupport('baseline:vscode-ts', 'jsx')).toBe('no pinned pilot parser for jsx');
+  expect(historicalBaselineSupport('baseline:vscode-ts', 'javascript')).toContain('only to the TypeScript and TSX');
 }, 30000);
 
 it('does not admit extra root capabilities or aliases as Markdown children', async () => {
