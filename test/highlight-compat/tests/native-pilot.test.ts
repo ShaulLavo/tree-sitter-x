@@ -152,22 +152,7 @@ describe('native pilot contracts', () => {
     } finally {owner.dispose();}
   });
 
-  it('rejects deleted, foreign-buffer and other-language borrows before calling native code', async () => {
-    const runtime=await Runtime.load(), language=await runtime.language('json'), other=await runtime.language('typescript');
-    const buffer=runtime.construct('TextBuffer',['1']), different=runtime.construct('TextBuffer',['2']), parser=runtime.construct('Parser');
-    invoke(parser,'setLanguage',[language]); const tree=foreign(invoke(parser,'parse',[buffer]));
-    let calls=0, deleted=false;
-    const consume=()=>{ ++calls; return 0; };
-    try {
-      withBorrowed(runtime,language,tree,buffer,1,()=>true,consume); expect(calls).toBe(1);
-      expect(()=>withBorrowed(runtime,language,tree,different,1,()=>true,consume)).toThrow('source buffer');
-      expect(()=>withBorrowed(runtime,other,tree,buffer,1,()=>true,consume)).toThrow('language');
-      expect(()=>withBorrowed(runtime,language,tree,buffer,1,()=>false,consume)).toThrow('language');
-      release(tree); deleted=true;
-      expect(()=>withBorrowed(runtime,language,tree,buffer,1,()=>true,consume)).toThrow('Deleted');
-      expect(calls).toBe(1);
-    } finally { if(!deleted) release(tree); release(parser); release(buffer); release(different); }
-  });
+  it('rejects deleted, foreign-buffer and other-language borrows before calling native code', checkBorrowIdentity);
 
   it('observes all native owners, retained-result deltas, failure cleanup and repeated release', async () => {
     const component=await Component.load(), pack=await loadJsonPack();
@@ -314,3 +299,22 @@ describe('native pilot contracts', () => {
     } finally { pack.dispose(); }
   });
 });
+
+const acceptBorrowLanguage = () => true;
+const rejectBorrowLanguage = () => false;
+async function checkBorrowIdentity(): Promise<void> {
+  const runtime=await Runtime.load(), language=await runtime.language('json'), other=await runtime.language('typescript');
+  const buffer=runtime.construct('TextBuffer',['1']), different=runtime.construct('TextBuffer',['2']), parser=runtime.construct('Parser');
+  invoke(parser,'setLanguage',[language]); const tree=foreign(invoke(parser,'parse',[buffer]));
+  let calls=0, deleted=false;
+  const consume=()=>{ ++calls; return 0; };
+  try {
+    withBorrowed(runtime,'json',language,tree,buffer,1,acceptBorrowLanguage,consume); expect(calls).toBe(1);
+    expect(()=>withBorrowed(runtime,'json',language,tree,different,1,acceptBorrowLanguage,consume)).toThrow('source buffer');
+    expect(()=>withBorrowed(runtime,'json',other,tree,buffer,1,acceptBorrowLanguage,consume)).toThrow('language');
+    expect(()=>withBorrowed(runtime,'json',language,tree,buffer,1,rejectBorrowLanguage,consume)).toThrow('language');
+    release(tree); deleted=true;
+    expect(()=>withBorrowed(runtime,'json',language,tree,buffer,1,acceptBorrowLanguage,consume)).toThrow('Deleted');
+    expect(calls).toBe(1);
+  } finally { if(!deleted) release(tree); release(parser); release(buffer); release(different); }
+}

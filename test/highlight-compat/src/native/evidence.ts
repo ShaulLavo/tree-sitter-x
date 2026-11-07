@@ -19,6 +19,7 @@ export async function explainDocument(pack: NativePack, owner: PilotDocument): P
 }
 export async function explainSource(pack: NativePack, languageId: string, length: number,
   borrow: <T>(action: (borrowed: Borrowed) => T) => T, start = 0, end = length): Promise<readonly IntervalEvidence[]> {
+  pack.assertLanguage(languageId);
   const releasePack = pack.retain();
   try { return await explainRetained(pack, languageId, borrow, start, end); } finally { releasePack(); }
 }

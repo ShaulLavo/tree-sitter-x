@@ -69,8 +69,12 @@ export function querySource(languageId: string): string {
 }
 
 export function parserUrl(languageId: string): URL {
-  const parserLanguage = languageId === 'jsx' ? JSX_BASELINE.parserLanguage : languageId
+  const parserLanguage = parserLanguageId(languageId)
   const asset = vendorAssets().find(asset => asset.languageId === parserLanguage && asset.kind === 'wasm')
   if (asset === undefined) throw new Error(`missing parser for ${languageId}`)
   return new URL(asset.path, VENDOR_ROOT)
+}
+
+export function parserLanguageId(languageId: string): string {
+  return languageId === 'jsx' ? JSX_BASELINE.parserLanguage : languageId
 }

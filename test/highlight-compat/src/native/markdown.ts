@@ -9,6 +9,7 @@ import type { Foreign } from './runtime.ts';
 import { MarkdownResolver } from './markdown-resolver.ts';
 import type { ResolverRecord } from './markdown-resolver.ts';
 import { withBorrowed } from './borrow.ts';
+import type { Borrowed } from './borrow.ts';
 import { embeddedScope } from './packs.ts';
 import { MARKDOWN_CHILD_ALIASES } from './markdown-membership.ts';
 import type { NativeLanguage } from './packs.ts';
@@ -153,20 +154,24 @@ export class MarkdownPilotDocument {
       const pack = packs.get(child.range.languageId);
       if (!pack) throw new Error(`Missing native child pack ${child.range.languageId}`);
       return explainSource(pack, child.range.languageId, this.source.length,
-        action => this.#state.borrow(() => {
-          if (!sameOwner(key, this.key())) throw new Error('Stale Markdown explanation');
-          return withBorrowed(this.#runtime, child.language, child.tree, this.#buffer, this.source.length, pack.sameLanguage, action);
-        }),
+        action => this.borrowChildExplanation(key, child, pack, action),
         child.range.start, child.range.end);
     }));
     return groups.flat();
+  }
+  private borrowChildExplanation<T>(key: OwnerKey, child: Child, pack: NativePack, action: (borrowed: Borrowed) => T): T {
+    return this.#state.borrow(() => {
+      if (!sameOwner(key, this.key())) throw new Error('Stale Markdown explanation');
+      return withBorrowed(this.#runtime, child.range.languageId, child.language, child.tree, this.#buffer, this.source.length, pack.sameLanguage, action);
+    });
   }
   private childIntervals(child: Child, packs: ReadonlyMap<string, NativePack>, limits: Limits, current: () => boolean): ScopeInterval[] {
     if (!current()) throw new Error('Canceled scope work');
     const pack = packs.get(child.range.languageId);
     if (!pack) throw new Error(`Missing native child pack ${child.range.languageId}`);
+    pack.assertLanguage(child.range.languageId);
     const mappings = validateMappings(this.source, this.source, [{ childFrom: child.range.start, childTo: child.range.end, parentFrom: child.range.start, parentTo: child.range.end }]);
-    const result = withBorrowed(this.#runtime, child.language, child.tree, this.#buffer, this.source.length,
+    const result = withBorrowed(this.#runtime, child.range.languageId, child.language, child.tree, this.#buffer, this.source.length,
       pack.sameLanguage, borrowed => pack.run(borrowed, { start: child.range.start, end: child.range.end }, limits));
     if (result.status !== 0) throw new NativeScopeError(result.status, result.detail);
     const intervals = Array.from({ length: result.segments.length / 3 }, (_, index) => ({

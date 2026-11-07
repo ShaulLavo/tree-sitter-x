@@ -7,7 +7,7 @@ import { languageAddress } from './borrow.ts';
 import type { Borrowed } from './borrow.ts';
 import { Runtime, invoke } from './runtime.ts';
 import type { Foreign } from './runtime.ts';
-import { vendorAssets } from '../baselines/assets.ts';
+import { parserLanguageId, vendorAssets } from '../baselines/assets.ts';
 
 export interface QueryFile { readonly path: string; readonly query: string }
 export interface PackSpec {
@@ -60,7 +60,10 @@ export class NativePack {
     this.scopes = Object.freeze(Array.from(scopes)); this.patterns = patterns; this.engine = Object.freeze({ ...engine });
     Object.freeze(this);
   }
-  readonly sameLanguage = (language: Foreign): boolean => language === this.#language;
+  readonly sameLanguage = (language: Foreign, languageId: string): boolean => language === this.#language && languageId === this.spec.languageId;
+  assertLanguage(languageId: string): void {
+    if (languageId !== this.spec.languageId) throw new Error(`Native pack public language mismatch: ${this.spec.languageId} for ${languageId}`);
+  }
   withHandle<T>(action: (pointer: number) => T): T {
     if (!this.#pointer) throw new Error('Deleted native pack');
     this.#calls++;
@@ -145,16 +148,19 @@ export class Component {
     if (!count || count > this.runtime.heap().length / 4) throw new Error('Invalid native scope count');
     const names = Array.from({ length: count }, (_, id) => this.string('scope_compat_pack_scope_name', [pointer, id]));
     if (names[0] !== spec.rootScope || names.some(name => !name || /\s/.test(name))) throw new Error('Invalid native scope names');
-    const parser = vendorAssets().find(asset => asset.languageId === spec.languageId && asset.kind === 'wasm');
+    const parserId = parserLanguageId(spec.languageId);
+    const parser = vendorAssets().find(asset => asset.languageId === parserId && asset.kind === 'wasm');
     if (!parser) throw new Error('Missing parser identity');
     return new NativePack(this, pointer, language, spec, names, this.number('scope_compat_pack_pattern_count', [pointer]), {
       ...this.#identity, packId: spec.id, packVersion: spec.version, querySha256: digest(new TextEncoder().encode(query)),
+      languageId: spec.languageId, parserLanguageId: parserId,
       parserSha256: parser.sha256, composition: 'scope-compat-compose-1', predicateDialect: 'eq/any-of/make-range/priority',
     });
   }
 
   withResult<T>(pack: NativePack, borrow: Borrowed, window: Window, limits: Limits,
     consume: (heap: Uint8Array, pointer: number) => T): T {
+    pack.assertLanguage(borrow.languageId);
     this.validateBorrow(borrow, window);
     return pack.withHandle(handle => {
       const pointer = this.number('scope_compat_run', [handle, borrow.tree, borrow.source, borrow.length, limits.encoding ?? 1,
@@ -168,6 +174,7 @@ export class Component {
   }
   withExplain<T>(pack: NativePack, borrow: Borrowed, window: Window, limits: Limits,
     consume: (heap: Uint8Array, pointer: number) => T): T {
+    pack.assertLanguage(borrow.languageId);
     this.validateBorrow(borrow, window);
     return pack.withHandle(handle => {
       const pointer = this.number('scope_compat_explain', [handle, borrow.tree, borrow.source, borrow.length, limits.encoding ?? 1,
