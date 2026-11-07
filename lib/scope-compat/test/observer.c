@@ -14,3 +14,6 @@ void scope_test_install(void) {
 
 __attribute__((export_name("scope_test_reset")))
 void scope_test_reset(void) { ts_set_allocator(NULL, NULL, NULL, NULL); }
+
+__attribute__((export_name("scope_test_grow_heap")))
+size_t scope_test_grow_heap(void) { return __builtin_wasm_memory_grow(0, 1); }

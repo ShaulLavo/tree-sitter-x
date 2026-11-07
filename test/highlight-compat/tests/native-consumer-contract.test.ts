@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, expect, it } from 'vitest';
 import { nativeDocument, nativeScopes } from '../src/native/adapter.ts';
 import { Component } from '../src/native/component.ts';
 import type { NativePack } from '../src/native/component.ts';
@@ -77,98 +77,96 @@ async function checkReferenceStyles(result: CompleteResult, reference: StyleRefe
   }
 }
 
-describe('experimental immutable consumer adapter contract', () => {
-  it.each(exactSources)('preserves exact $label source through raw scopes, reference painting and disposal', async fixture => {
-    const pack = await loadLanguagePack('json');
-    let owner: PilotDocument | undefined;
-    try {
-      owner = await PilotDocument.open('json', fixture.source);
-      const result = await checkDocument(pack, owner, 'product');
-      expect(owner.source).toBe(fixture.source);
-      expect(result.sourceLength).toBe(fixture.length);
-      expect(result.sourceSha256).toBe(createHash('sha256').update(Buffer.from(fixture.bytes, 'hex')).digest('hex'));
-      const units = scopeUnits(result.spans, result.paths, result.scopeNames);
-      if (fixture.source.endsWith('\n')) expect(units.slice(fixture.source.endsWith('\r\n') ? -2 : -1)).toEqual(fixture.source.endsWith('\r\n') ? [[], []] : [[]]);
-      const snapshot = structuredClone(result);
-      owner.dispose();
-      pack.dispose();
-      expect(result).toEqual(snapshot);
-      expect(parseResult(result, fixture.source)).toEqual(snapshot);
-    } finally { owner?.dispose(); pack.dispose(); }
-  });
+it.each(exactSources)('preserves exact $label source through raw scopes, reference painting and disposal', async fixture => {
+  const pack = await loadLanguagePack('json');
+  let owner: PilotDocument | undefined;
+  try {
+    owner = await PilotDocument.open('json', fixture.source);
+    const result = await checkDocument(pack, owner, 'product');
+    expect(owner.source).toBe(fixture.source);
+    expect(result.sourceLength).toBe(fixture.length);
+    expect(result.sourceSha256).toBe(createHash('sha256').update(Buffer.from(fixture.bytes, 'hex')).digest('hex'));
+    const units = scopeUnits(result.spans, result.paths, result.scopeNames);
+    if (fixture.source.endsWith('\n')) expect(units.slice(fixture.source.endsWith('\r\n') ? -2 : -1)).toEqual(fixture.source.endsWith('\r\n') ? [[], []] : [[]]);
+    const snapshot = structuredClone(result);
+    owner.dispose();
+    pack.dispose();
+    expect(result).toEqual(snapshot);
+    expect(parseResult(result, fixture.source)).toEqual(snapshot);
+  } finally { owner?.dispose(); pack.dispose(); }
+});
 
-  it('keeps overlapping reference calls, fresh owners and copied outputs independent across disposal and heap growth', async () => {
-    const component = await Component.load();
-    await component.runtime.language('json');
-    const coreBaseline = allocations.live(), nativeBaseline = component.liveAllocations();
-    const mallocBefore = allocations.calls.get('malloc') ?? 0;
-    const packs: NativePack[] = [], owners: PilotDocument[] = [];
-    try {
-      packs.push(await loadLanguagePack('json'));
-      packs.push(await loadLanguagePack('json'));
-      expect(packs[0].scopes).not.toBe(packs[1].scopes);
-      owners.push(await PilotDocument.open('json', '[1,"😀"]\r\n'));
-      owners.push(await PilotDocument.open('json', '[2,"😀"]\r\n'));
-      expect(allocations.calls.get('malloc') ?? 0).toBeGreaterThan(mallocBefore);
-      expect(allocations.live()).toBeGreaterThan(coreBaseline);
-      const left = successfulScopes(packs[0], owners[0]), right = successfulScopes(packs[1], owners[1]);
-      const retainedRaw = structuredClone(left), retainedRight = structuredClone(right);
-      const pendingLeft = nativeDocument(packs[0], owners[0], 'raw');
-      const pendingRight = nativeDocument(packs[1], owners[1], 'product');
-      owners[0].dispose(); owners[0].dispose(); packs[0].dispose(); packs[0].dispose();
-      const [leftDocument, rightDocument] = await Promise.all([pendingLeft, pendingRight]);
-      if (leftDocument.status !== 'complete' || rightDocument.status !== 'complete') throw new Error('Independent reference calls failed');
-      expect(leftDocument.sourceLength).toBe(rightDocument.sourceLength);
-      expect(leftDocument.sourceSha256).not.toBe(rightDocument.sourceSha256);
-      expect(() => nativeScopes(packs[1], owners[0])).toThrow('Deleted native document');
-      await checkReferenceStyles(leftDocument, 'raw', 1);
-      await checkReferenceStyles(rightDocument, 'product', 1);
-      const fresh = await PilotDocument.open('json', owners[0].source);
-      owners.push(fresh);
-      expect(await nativeDocument(packs[1], fresh, 'raw')).toEqual(leftDocument);
-      left.segments.fill(0);
-      expect(Reflect.set(left.paths[1], '0', 999)).toBe(true);
-      expect(successfulScopes(packs[1], fresh)).toEqual(retainedRaw);
-      expect(right).toEqual(retainedRight);
-      const logicalSnapshot = structuredClone(rightDocument);
-      expect(Reflect.set(leftDocument.spans, '0', 999)).toBe(true);
-      expect(rightDocument).toEqual(logicalSnapshot);
-      const capacity = component.runtime.heap().length;
-      allocations.growOnNextAllocation();
-      expect(successfulScopes(packs[1], owners[1])).toEqual(retainedRight);
-      expect(component.runtime.heap().length).toBeGreaterThan(capacity);
-      expect(right).toEqual(retainedRight);
-      expect(rightDocument).toEqual(logicalSnapshot);
-    } finally {
-      owners.forEach(owner => owner.dispose()); packs.forEach(pack => pack.dispose());
-      expect(component.liveAllocations()).toBe(nativeBaseline);
-      expect(allocations.live()).toBe(coreBaseline);
-    }
-  });
+it('keeps overlapping reference calls, fresh owners and copied outputs independent across disposal and heap growth', async () => {
+  const component = await Component.load();
+  await component.runtime.language('json');
+  const coreBaseline = allocations.live(), nativeBaseline = component.liveAllocations();
+  const mallocBefore = allocations.calls.get('malloc') ?? 0;
+  const packs: NativePack[] = [], owners: PilotDocument[] = [];
+  try {
+    packs.push(await loadLanguagePack('json'));
+    packs.push(await loadLanguagePack('json'));
+    expect(packs[0].scopes).not.toBe(packs[1].scopes);
+    owners.push(await PilotDocument.open('json', '[1,"😀"]\r\n'));
+    owners.push(await PilotDocument.open('json', '[2,"😀"]\r\n'));
+    expect(allocations.calls.get('malloc') ?? 0).toBeGreaterThan(mallocBefore);
+    expect(allocations.live()).toBeGreaterThan(coreBaseline);
+    const left = successfulScopes(packs[0], owners[0]), right = successfulScopes(packs[1], owners[1]);
+    const retainedRaw = structuredClone(left), retainedRight = structuredClone(right);
+    const pendingLeft = nativeDocument(packs[0], owners[0], 'raw');
+    const pendingRight = nativeDocument(packs[1], owners[1], 'product');
+    owners[0].dispose(); owners[0].dispose(); packs[0].dispose(); packs[0].dispose();
+    const [leftDocument, rightDocument] = await Promise.all([pendingLeft, pendingRight]);
+    if (leftDocument.status !== 'complete' || rightDocument.status !== 'complete') throw new Error('Independent reference calls failed');
+    expect(leftDocument.sourceLength).toBe(rightDocument.sourceLength);
+    expect(leftDocument.sourceSha256).not.toBe(rightDocument.sourceSha256);
+    expect(() => nativeScopes(packs[1], owners[0])).toThrow('Deleted native document');
+    await checkReferenceStyles(leftDocument, 'raw', 1);
+    await checkReferenceStyles(rightDocument, 'product', 1);
+    const fresh = await PilotDocument.open('json', owners[0].source);
+    owners.push(fresh);
+    expect(await nativeDocument(packs[1], fresh, 'raw')).toEqual(leftDocument);
+    left.segments.fill(0);
+    expect(Reflect.set(left.paths[1], '0', 999)).toBe(true);
+    expect(successfulScopes(packs[1], fresh)).toEqual(retainedRaw);
+    expect(right).toEqual(retainedRight);
+    const logicalSnapshot = structuredClone(rightDocument);
+    expect(Reflect.set(leftDocument.spans, '0', 999)).toBe(true);
+    expect(rightDocument).toEqual(logicalSnapshot);
+    const capacity = component.runtime.heap().length;
+    allocations.growOnNextAllocation();
+    expect(successfulScopes(packs[1], owners[1])).toEqual(retainedRight);
+    expect(component.runtime.heap().length).toBeGreaterThan(capacity);
+    expect(right).toEqual(retainedRight);
+    expect(rightDocument).toEqual(logicalSnapshot);
+  } finally {
+    owners.forEach(owner => owner.dispose()); packs.forEach(pack => pack.dispose());
+    expect(component.liveAllocations()).toBe(nativeBaseline);
+    expect(allocations.live()).toBe(coreBaseline);
+  }
+});
 
-  it('distinguishes missing support, setup rejection, native budgets and disposed operational failures without partial output', async () => {
-    const pack = await loadLanguagePack('json');
-    const owners: PilotDocument[] = [];
-    try {
-      const owner = await PilotDocument.open('json', '[1,2]');
-      owners.push(owner);
-      await expect(loadLanguagePack('javascript')).rejects.toThrow('distinct variant');
-      const unsupported = await nativeDocument(undefined, owner, 'product');
-      expect(unsupported).toMatchObject({ status: 'unsupported', sourceLength: 5, documentRevision: 0, spans: [], paths: [], scopeNames: [], engine: {} });
-      owner.borrow(pack.sameLanguage, borrow => {
-        expect(pack.run(borrow, { start: 0, end: 5 }, { encoding: 2 })).toEqual({ status: 1, detail: 16, value: 2 });
-        expect(pack.run(borrow, { start: 0, end: 5 }, { maxSegments: 1 })).toEqual({ status: 2, detail: 24, value: 1 });
-      });
-      const complete = await checkDocument(pack, owner, 'product');
-      pack.dispose();
-      expect(() => nativeScopes(pack, owner)).toThrow('Deleted native pack');
-      const failed = await nativeDocument(pack, owner, 'product');
-      expect(failed).toMatchObject({ status: 'error', sourceSha256: complete.sourceSha256, engine: pack.engine, spans: [], paths: [], scopeNames: [] });
-      expect(failed.diagnostics).toContain('Deleted native pack');
-      owner.dispose();
-      const disposed = await nativeDocument(pack, owner, 'raw');
-      expect(disposed.status).toBe('error');
-      expect(disposed.diagnostics).toContain('Deleted native document');
-    } finally { owners.forEach(owner => owner.dispose()); pack.dispose(); }
-  });
+it('distinguishes missing support, setup rejection, native budgets and disposed operational failures without partial output', async () => {
+  const pack = await loadLanguagePack('json');
+  const owners: PilotDocument[] = [];
+  try {
+    const owner = await PilotDocument.open('json', '[1,2]');
+    owners.push(owner);
+    await expect(loadLanguagePack('javascript')).rejects.toThrow('distinct variant');
+    const unsupported = await nativeDocument(undefined, owner, 'product');
+    expect(unsupported).toMatchObject({ status: 'unsupported', sourceLength: 5, documentRevision: 0, spans: [], paths: [], scopeNames: [], engine: {} });
+    owner.borrow(pack.sameLanguage, borrow => {
+      expect(pack.run(borrow, { start: 0, end: 5 }, { encoding: 2 })).toEqual({ status: 1, detail: 16, value: 2 });
+      expect(pack.run(borrow, { start: 0, end: 5 }, { maxSegments: 1 })).toEqual({ status: 2, detail: 24, value: 1 });
+    });
+    const complete = await checkDocument(pack, owner, 'product');
+    pack.dispose();
+    expect(() => nativeScopes(pack, owner)).toThrow('Deleted native pack');
+    const failed = await nativeDocument(pack, owner, 'product');
+    expect(failed).toMatchObject({ status: 'error', sourceSha256: complete.sourceSha256, engine: pack.engine, spans: [], paths: [], scopeNames: [] });
+    expect(failed.diagnostics).toContain('Deleted native pack');
+    owner.dispose();
+    const disposed = await nativeDocument(pack, owner, 'raw');
+    expect(disposed.status).toBe('error');
+    expect(disposed.diagnostics).toContain('Deleted native document');
+  } finally { owners.forEach(owner => owner.dispose()); pack.dispose(); }
 });

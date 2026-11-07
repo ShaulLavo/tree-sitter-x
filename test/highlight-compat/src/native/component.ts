@@ -34,8 +34,19 @@ export class PackLoadError extends Error {
   }
 }
 
+export class NativeScopeError extends Error {
+  readonly reason: 'unsupported' | 'budget' | 'invalid' | 'no-memory';
+  constructor(status: 1 | 2 | 3 | 4, detail: number) {
+    super(`Native scope status ${status}, detail ${detail}`);
+    this.reason = status === 1 ? 'unsupported' : status === 2 ? 'budget' : status === 4 ? 'no-memory' : 'invalid';
+  }
+}
+
 export class NativePack {
   #pointer: number;
+  #leases = 0;
+  #calls = 0;
+  #retired = false;
   readonly #language: Foreign;
   readonly #component: Component;
   readonly spec: PackSpec;
@@ -52,12 +63,20 @@ export class NativePack {
   readonly sameLanguage = (language: Foreign): boolean => language === this.#language;
   withHandle<T>(action: (pointer: number) => T): T {
     if (!this.#pointer) throw new Error('Deleted native pack');
-    return action(this.#pointer);
+    this.#calls++;
+    try { return action(this.#pointer); } finally { this.#calls--; this.deleteRetired(); }
   }
   run(borrow: Borrowed, window: Window, limits: Limits = {}): PassResult { return this.#component.run(this, borrow, window, limits); }
   explain(borrow: Borrowed, window: Window, limits: Limits = {}): ExplainResult { return this.#component.explain(this, borrow, window, limits); }
-  dispose(): void {
-    if (!this.#pointer) return;
+  retain(): () => void {
+    if (this.#retired || !this.#pointer) throw new Error('Retired native pack');
+    this.#leases++;
+    let released = false;
+    return () => { if (released) return; released = true; this.#leases--; this.deleteRetired(); };
+  }
+  dispose(): void { this.#retired = true; this.deleteRetired(); }
+  private deleteRetired(): void {
+    if (!this.#retired || this.#leases || this.#calls || !this.#pointer) return;
     const pointer = this.#pointer; this.#pointer = 0;
     this.#component.call('scope_compat_pack_delete', [pointer]);
   }

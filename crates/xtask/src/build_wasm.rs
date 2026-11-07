@@ -232,6 +232,7 @@ fn scope_host_test() -> Result<()> {
             .args(scope_sources()?)
             .args([
                 "lib/scope-compat/test/native_test.c",
+                "lib/scope-compat/test/theme_test.c",
                 "lib/src/lib.c",
                 grammar,
                 "-o",

@@ -7,6 +7,7 @@
 #include "../src/internal.h"
 
 extern const TSLanguage *tree_sitter_json(void);
+extern void sc_theme_tests(void);
 
 typedef struct {
   TSParser *parser;
@@ -371,6 +372,7 @@ int main(int argc, char **argv) {
     return 0;
   }
   smoke();
+  sc_theme_tests();
   composition();
   rejection();
   predicates();
