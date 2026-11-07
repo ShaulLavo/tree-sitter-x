@@ -6,7 +6,8 @@ import { integer } from './edit-batch.ts';
 import type { TextSpan } from './edit-batch.ts';
 import { counter, sameOwner, sameWork } from './owner-state.ts';
 import type { OwnerKey, WorkKey, ViewId, InterestGeneration, ThemeGeneration } from './owner-state.ts';
-import { packIntervals, clipSnapshot, OutputStore, OutputBudgetError, separatorSpans } from './scope-output.ts';
+import { packIntervals, clipSnapshot, OutputStore, OutputBudgetError } from './scope-output.ts';
+import { collectSourceFacts } from './scope-framing.ts';
 import type { ScopeLease, ScopeSnapshot, Publication } from './scope-output.ts';
 import type { ScopeInterval } from '../baselines/compose.ts';
 export type ScopeOwner = PilotDocument | MarkdownPilotDocument;
@@ -52,7 +53,7 @@ export class ScopeSession {
   private constructor(owner: ScopeOwner, packs: ReadonlyMap<string, NativePack>, limits: ScopeLimits) {
     for (const [languageId, pack] of packs) pack.assertLanguage(languageId);
     for (const value of Object.values(limits)) { integer(value, 0xffffffff); if (!value) throw new RangeError('Scope limit must be positive'); }
-    this.#owner = owner; this.#packs = new Map(packs); this.#limits = Object.freeze({ ...limits }); this.#outputs = new OutputStore(limits.retainedBytes);
+    this.#owner = owner; this.#packs = new Map(packs); this.#limits = Object.freeze({ ...limits }); this.#outputs = new OutputStore(limits.retainedBytes, limits.maxSegments);
     try { for (const pack of new Set(packs.values())) this.#releasePacks.push(pack.retain()); }
     catch (error) { this.releasePacks(); throw error; }
     this.#unsubscribe = owner.onCommit(() => this.invalidate());
@@ -128,7 +129,7 @@ export class ScopeSession {
     if (errors.length) throw new AggregateError(errors, 'Presentation notification failed');
   }
   outcome(id: ViewId): ScopeOutcome | undefined { return this.#views.get(id)?.outcome; }
-  retainedBytes(): number { return this.#outputs.bytes() + (this.#active?.progress.bytes ?? 0); }
+  retainedBytes(): number { return this.#outputs.bytes(); }
   flushOne(): void {
     if (this.#disposed) return;
     const work = this.#active ?? this.dispatch();
@@ -140,6 +141,7 @@ export class ScopeSession {
     }
   }
   private finishWork(work: Work): void {
+    this.#outputs.clearWorking(work);
     if (!this.#active || !sameWork(this.#active.key, work.key)) return;
     this.#active = undefined;
     if (this.#pending && sameOwner(this.#pending, work.key)) this.#pending = undefined;
@@ -156,11 +158,13 @@ export class ScopeSession {
     try {
       let snapshot = this.#cache?.snapshot;
       if (!snapshot || !sameOwner(snapshot.owner, work.key)) snapshot = this.advance(work);
-      if (!snapshot) return false;
       if (!this.current(work)) { this.terminal(work); return true; }
+      if (!snapshot) return false;
       if (!this.#cache || this.#cache.snapshot !== snapshot) {
-        this.#cache?.release(); this.#cache = undefined; this.#cache = this.#outputs.retain(snapshot);
+        const admitted = this.#outputs.admitFull(snapshot), previous = this.#cache;
+        this.#cache = admitted; previous?.release();
       }
+      this.#outputs.clearWorking(work);
       work.progress.intervals = []; work.progress.bytes = 0;
       for (const view of this.#views.values()) this.publish(view, work, snapshot);
       return true;
@@ -179,9 +183,10 @@ export class ScopeSession {
     const progress = work.progress, count = owner.children.length;
     if (progress.next < count) {
       const intervals = owner.scopeChild(progress.next++, this.#packs, this.#limits);
+      if (!this.current(work)) return undefined;
       const bytes = intervals.reduce((sum, interval) => sum + intervalBytes(interval), 0);
-      if (this.retainedBytes() + bytes > this.#limits.retainedBytes) throw new ScopeFailure('budget', 'Partial child scope byte budget');
       if (progress.intervals.length + intervals.length > this.#limits.maxSegments) throw new ScopeFailure('budget', 'Partial child segment budget');
+      this.#outputs.working(work, progress.bytes + bytes);
       for (const interval of intervals) progress.intervals.push(interval);
       progress.bytes += bytes;
     }
@@ -189,13 +194,21 @@ export class ScopeSession {
     return this.compute(work, owner.composeScopes(progress.intervals));
   }
   private compute(work: Work, intervals: readonly ScopeInterval[]): ScopeSnapshot {
+    if (!this.current(work)) throw new Error('Stale scope computation');
+    const owner = this.#owner, key = owner.key(), source = owner.source;
+    const generation = counter<'ResultGeneration'>(++this.#generation);
     if (intervals.length > this.#limits.maxSegments) throw new ScopeFailure('budget', 'Composed scope segment budget');
-    const packed = packIntervals(intervals, this.#owner.source.length);
-    const owner = this.#owner;
+    const available = this.#outputs.available();
+    if (intervals.reduce((sum, interval) => sum + intervalBytes(interval), 0) > this.#limits.retainedBytes) throw new ScopeFailure('budget', 'Scope construction byte budget');
+    const packed = packIntervals(intervals, source.length);
     const injections = owner instanceof MarkdownPilotDocument ? owner.injectionCoverage : [];
-    return Object.freeze({ ...packed, owner: owner.key(), work: work.key, generation: counter<'ResultGeneration'>(++this.#generation),
-      coverage: Object.freeze({ from: 0, to: owner.source.length }), sourceLength: owner.source.length, metadata: null, separators: separatorSpans(owner.source),
-      injections: Object.freeze(injections), diagnostics: Object.freeze(owner instanceof MarkdownPilotDocument ? Array.from(owner.diagnostics) : []) });
+    const candidate = { ...packed, owner: key, work: work.key, generation,
+      coverage: Object.freeze({ from: 0, to: source.length }), sourceLength: source.length, metadata: null, separators: [],
+      injections: Object.freeze(injections), diagnostics: Object.freeze(owner instanceof MarkdownPilotDocument ? Array.from(owner.diagnostics) : []) };
+    const sourceFacts = collectSourceFacts(source, { owner: key, generation }, {
+      ranges: this.#limits.maxSegments, bytes: Math.min(available, this.#outputs.available(candidate)),
+    });
+    return Object.freeze({ ...candidate, separators: sourceFacts.separators, sourceFacts });
   }
   private rootIntervals(owner: PilotDocument): readonly ScopeInterval[] {
     const pack = this.#packs.get(owner.languageId);
@@ -267,7 +280,11 @@ export class ScopeSession {
   private releaseScopeOutputs(outputs: readonly (ScopeLease | undefined)[], cache: ScopeLease | undefined): void {
     try { for (const output of outputs) output?.release(); } finally { cache?.release(); }
   }
-  private cancelActive(): void { if (this.#active) this.#active.canceled = true; this.#active = undefined; }
+  private cancelActive(): void {
+    const active = this.#active; this.#active = undefined;
+    if (!active) return;
+    active.canceled = true; this.#outputs.clearWorking(active);
+  }
   private releasePacks(): void { for (const release of this.#releasePacks.splice(0)) release(); }
 }
 function intervalBytes(interval: ScopeInterval): number {

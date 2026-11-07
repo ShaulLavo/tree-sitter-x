@@ -5,7 +5,7 @@ import type { AppliedStyle } from './theme-projection.ts';
 import type { NativeTheme, ThemeLease } from './theme.ts';
 import type { NormalizedTheme } from './theme-input.ts';
 import type { EffectiveStyle, InputLimits, Outcome, ResolveLimits } from './theme-contract.ts';
-import type { ScopeLease, ScopeSnapshot } from './scope-output.ts';
+import type { FramedScopes, FramingPolicy, ScopeLease, ScopeSnapshot } from './scope-output.ts';
 import type { TextSpan } from './edit-batch.ts';
 
 export interface StyleRun extends TextSpan { readonly style: AppliedStyle | Readonly<Record<string, never>> }
@@ -14,12 +14,17 @@ export interface ThemePair {
   reserve(bytes: number): () => void; retain(): ThemePair; release(): void;
 }
 interface Encoding {
-  readonly scope: ScopeLease; readonly packet: PathPacket; readonly memos: Map<string, SharedPair>; readonly inputKey: string;
+  readonly scope: ScopeLease; readonly framed: FramedScopes; readonly packet: PathPacket; readonly memos: Map<string, SharedPair>; readonly inputKey: string;
   uses: number; released: boolean;
 }
 const empty = Object.freeze({});
-function fullRuns(snapshot: ScopeSnapshot, packet: PathPacket, styles: readonly EffectiveStyle[], theme: NormalizedTheme): readonly StyleRun[] {
+function fullRuns(framed: FramedScopes, packet: PathPacket, styles: readonly EffectiveStyle[], theme: NormalizedTheme): readonly StyleRun[] {
+  const snapshot = framed.snapshot;
   const projected = packet.ids.map(id => appliedStyle(theme.profile, styles[id]));
+  if (framed.kind === 'product-lines') return Object.freeze(framed.reasons.map((reason, index) => Object.freeze({
+    from: snapshot.segments[index * 3], to: snapshot.segments[index * 3 + 1],
+    style: reason === 'separator' ? empty : projected[snapshot.segments[index * 3 + 2]],
+  })));
   const runs: StyleRun[] = [];
   let separator = 0;
   for (let i = 0; i < snapshot.segments.length; i += 3) {
@@ -54,7 +59,7 @@ class SharedPair {
     if (!this.#state) throw new Error('Released theme pair');
     this.#references++; let held = true;
     const live = () => { if (!held || !this.#state) throw new Error('Released theme pair'); return this.#state; };
-    return Object.freeze({ get snapshot() { return live().encoding.scope.snapshot; }, get runs() { return live().runs; },
+    return Object.freeze({ get snapshot() { return live().encoding.framed.snapshot; }, get runs() { return live().runs; },
       reserve: (bytes: number) => live().encoding.scope.reserve(bytes),
       retain: () => { live(); return this.retain(); }, release: () => {
         if (!held) return; held = false;
@@ -72,12 +77,13 @@ class SharedPair {
 // NativeTheme always compiles in Component's single runtime. This cache never crosses a session/runtime boundary.
 export class ThemeCache {
   readonly #encodings = new Map<ScopeSnapshot, Map<string, Encoding>>();
-  acquire(scope: ScopeLease, normalized: NormalizedTheme, theme: NativeTheme, input: Partial<InputLimits>, resolve: Partial<ResolveLimits>): Outcome<ThemePair> {
+  acquire(scope: ScopeLease, normalized: NormalizedTheme, theme: NativeTheme, input: Partial<InputLimits>, resolve: Partial<ResolveLimits>, framing: FramingPolicy = 'identity-v1'): Outcome<ThemePair> {
+    if (framing === 'future010-product-lines-v1' && normalized.profile !== 'product') return { kind: 'unsupported', code: 'profile', location: { kind: 'request' } };
     const key = JSON.stringify([normalized.contentRevision, normalized.profile, input, resolve]);
-    const inputKey = JSON.stringify(input);
+    const inputKey = JSON.stringify([framing, input]);
     let encoding = this.#encodings.get(scope.snapshot)?.get(inputKey);
     if (!encoding) {
-      const created = createEncoding(scope, input, inputKey);
+      const created = createEncoding(scope, input, inputKey, framing);
       if (created.kind !== 'ok') return created;
       encoding = created.value;
       const encodings = this.#encodings.get(scope.snapshot) ?? new Map<string, Encoding>();
@@ -92,9 +98,10 @@ export class ThemeCache {
     if (previous) return { kind: 'ok', value: previous.retain(), warnings: [] };
     const result = theme.resolve(encoding.packet, resolve);
     if (result.kind !== 'ok') return result;
-    const runs = fullRuns(encoding.scope.snapshot, encoding.packet, result.value, normalized);
+    const runs = fullRuns(encoding.framed, encoding.packet, result.value, normalized);
     const pair = new SharedPair(encoding, theme, runs, memoBytes(runs) + key.length * 2, () => {
-      encoding.memos.delete(key); this.dropEmpty(encoding);
+      if (encoding.memos.get(key) === pair) encoding.memos.delete(key);
+      this.dropEmpty(encoding);
     });
     encoding.memos.set(key, pair);
     return { kind: 'ok', value: pair.retain(), warnings: [] };
@@ -108,14 +115,15 @@ export class ThemeCache {
     encoding.scope.release();
   }
 }
-function createEncoding(scope: ScopeLease, input: Partial<InputLimits>, inputKey: string): Outcome<Encoding> {
-  const paths = scope.snapshot.dictionary.paths.map(path => path.map(id => scope.snapshot.dictionary.names[id]));
+function createEncoding(scope: ScopeLease, input: Partial<InputLimits>, inputKey: string, framing: FramingPolicy): Outcome<Encoding> {
+  const framed = scope.projectFraming(framing), snapshot = framed.snapshot;
+  const paths = snapshot.dictionary.paths.map(path => path.map(id => snapshot.dictionary.names[id]));
   const packet = encodePathPacket(paths, input);
   if (packet.kind !== 'ok') return packet;
   const retained = scope.retain();
   try { retained.reserve(packet.value.bytes.length + packet.value.ids.length * 8 + inputKey.length * 2 + 128); }
   catch (error) { retained.release(); throw error; }
-  return { kind: 'ok', value: { scope: retained, packet: packet.value, memos: new Map(), inputKey, uses: 0, released: false }, warnings: [] };
+  return { kind: 'ok', value: { scope: retained, framed, packet: packet.value, memos: new Map(), inputKey, uses: 0, released: false }, warnings: [] };
 }
 function memoBytes(runs: readonly StyleRun[]): number {
   const styles = new Set(runs.map(run => run.style));

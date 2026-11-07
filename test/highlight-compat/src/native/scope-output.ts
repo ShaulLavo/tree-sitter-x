@@ -1,6 +1,7 @@
 import type { ScopeInterval } from '../baselines/compose.ts';
 import type { OwnerKey, ResultGeneration, WorkKey, ViewId, InterestGeneration, ThemeGeneration } from './owner-state.ts';
 import type { TextSpan } from './edit-batch.ts';
+import { sourceFactBytes, planProduct, buildProduct } from './scope-framing.ts';
 export interface ScopeDictionary { readonly names: readonly string[]; readonly paths: readonly (readonly number[])[] }
 export interface InjectionCoverage { readonly from: number; readonly to: number; readonly language: string | null; readonly reason: string | null }
 export interface ScopeSnapshot {
@@ -9,12 +10,23 @@ export interface ScopeSnapshot {
   readonly segments: readonly number[]; readonly metadata: null;
   readonly separators: readonly TextSpan[];
   readonly injections: readonly InjectionCoverage[]; readonly diagnostics: readonly string[];
+  readonly sourceFacts: SourceFacts;
 }
+export interface SourceFacts extends Pick<ScopeSnapshot, 'owner' | 'generation' | 'sourceLength' | 'separators'> {
+  readonly oversized: readonly TextSpan[]; readonly finalCr: TextSpan | null;
+}
+export type FramingPolicy = 'identity-v1' | 'future010-product-lines-v1';
+export type FramingReason = 'classified' | 'plain-line' | 'separator';
+export type FramedScopes = Readonly<{ kind: 'identity'; policy: 'identity-v1'; snapshot: ScopeSnapshot }>
+  | Readonly<{ kind: 'product-lines'; policy: 'future010-product-lines-v1'; snapshot: ScopeSnapshot; reasons: readonly FramingReason[] }>;
 export interface Publication {
   readonly view: ViewId; readonly interest: InterestGeneration; readonly theme: ThemeGeneration; readonly viewport: TextSpan;
   readonly change: Readonly<{ kind: 'reset' }> | Readonly<{ kind: 'replace'; old: ScopeSnapshot['owner']; generation: ResultGeneration; coverage: TextSpan }>;
 }
-export interface ScopeLease { readonly snapshot: ScopeSnapshot; readonly publication: Publication | null; retain(): ScopeLease; reserve(bytes: number): () => void; release(): void }
+export interface ScopeLease {
+  readonly snapshot: ScopeSnapshot; readonly publication: Publication | null;
+  retain(): ScopeLease; reserve(bytes: number): () => void; projectFraming(policy: FramingPolicy): FramedScopes; release(): void;
+}
 export function separatorSpans(source: string): readonly TextSpan[] {
   return Object.freeze(Array.from(source.matchAll(/\r?\n/g), match => Object.freeze({ from: match.index, to: match.index + match[0].length })));
 }
@@ -58,14 +70,26 @@ export function decodedSnapshot(snapshot: ScopeSnapshot): readonly ScopeInterval
     scopes: snapshot.dictionary.paths[snapshot.segments[index * 3 + 2]].map(id => snapshot.dictionary.names[id]) }));
 }
 export class OutputBudgetError extends Error {}
+type OutputRecord = { readonly kind: 'clipped'; readonly snapshot: ScopeSnapshot; count: number }
+  | { readonly kind: 'raw-full'; readonly snapshot: ScopeSnapshot; count: number; product: Extract<FramedScopes, { kind: 'product-lines' }> | undefined; productBytes: number };
 export class OutputStore {
-  readonly #live = new Map<ScopeSnapshot, number>();
+  readonly #live = new Map<ScopeSnapshot, OutputRecord>();
   readonly #ceiling: number;
+  readonly #maxSegments: number;
   #reserved = 0;
-  constructor(ceiling: number) { this.#ceiling = ceiling; }
-  bytes(extra?: ScopeSnapshot): number {
-    const snapshots = Array.from(this.#live.keys());
-    if (extra && !this.#live.has(extra)) snapshots.push(extra);
+  #working: Readonly<{ owner: object; bytes: number }> | undefined;
+  constructor(ceiling: number, maxSegments = 262144) { this.#ceiling = ceiling; this.#maxSegments = maxSegments; }
+  available(extra?: ScopeSnapshot | Omit<ScopeSnapshot, 'sourceFacts'>): number { return this.#ceiling - this.bytes(extra); }
+  working(owner: object, bytes: number): void {
+    if (!Number.isSafeInteger(bytes) || bytes < 0) throw new RangeError('Invalid working byte charge');
+    if (this.#working && this.#working.owner !== owner) throw new Error('Other active scope work');
+    if (this.bytes() - (this.#working?.bytes ?? 0) + bytes > this.#ceiling) throw new OutputBudgetError('Partial child scope byte budget');
+    this.#working = { owner, bytes };
+  }
+  clearWorking(owner: object): void { if (this.#working?.owner === owner) this.#working = undefined; }
+  bytes(extra?: ScopeSnapshot | Omit<ScopeSnapshot, 'sourceFacts'>): number {
+    const snapshots: Omit<ScopeSnapshot, 'sourceFacts'>[] = Array.from(this.#live.keys());
+    if (extra && !snapshots.includes(extra)) snapshots.push(extra);
     const dictionaries = new Set(snapshots.map(snapshot => snapshot.dictionary));
     const dictionaryBytes = Array.from(dictionaries, dictionary => dictionary.names.reduce((sum, name) => sum + name.length * 2, 0) + dictionary.paths.reduce((sum, path) => sum + path.length * 8, 0)).reduce((a, b) => a + b, 0);
     const segmentArrays = new Set(snapshots.map(snapshot => snapshot.segments));
@@ -76,7 +100,11 @@ export class OutputStore {
     const diagnosticBytes = Array.from(diagnosticArrays, diagnostics => diagnostics.reduce((sum, text) => sum + text.length * 2, 0)).reduce((a, b) => a + b, 0);
     const separators = new Set(snapshots.map(snapshot => snapshot.separators));
     const separatorBytes = Array.from(separators, spans => spans.length * 16).reduce((a, b) => a + b, 0);
-    return this.#reserved + dictionaryBytes + segmentBytes + injectionBytes + diagnosticBytes + separatorBytes + snapshots.length * 128;
+    const facts = new Set(Array.from(this.#live.keys(), snapshot => snapshot.sourceFacts));
+    if (extra && 'sourceFacts' in extra) facts.add(extra.sourceFacts);
+    const factBytes = Array.from(facts, sourceFactBytes).reduce((sum, bytes) => sum + bytes, 0);
+    const productBytes = Array.from(this.#live.values(), record => record.kind === 'raw-full' ? record.productBytes : 0).reduce((sum, bytes) => sum + bytes, 0);
+    return this.#reserved + (this.#working?.bytes ?? 0) + factBytes + productBytes + dictionaryBytes + segmentBytes + injectionBytes + diagnosticBytes + separatorBytes + snapshots.length * 128;
   }
   private reserve(bytes: number): () => void {
     if (!Number.isSafeInteger(bytes) || bytes < 0) throw new RangeError('Invalid retained byte charge');
@@ -87,8 +115,31 @@ export class OutputStore {
   }
   retain(snapshot: ScopeSnapshot, publication: Publication | null = null): ScopeLease {
     if (this.bytes(snapshot) > this.#ceiling) throw new OutputBudgetError('Retained scope byte budget');
-    this.#live.set(snapshot, (this.#live.get(snapshot) ?? 0) + 1);
-    let held: ScopeSnapshot | undefined = snapshot;
+    const record = this.#live.get(snapshot) ?? { kind: 'clipped', snapshot, count: 0 };
+    this.#live.set(snapshot, record); record.count++;
+    return this.lease(record, publication);
+  }
+  admitFull(snapshot: ScopeSnapshot): ScopeLease {
+    if (this.#live.has(snapshot)) throw new Error('Full scope already admitted');
+    if (this.bytes(snapshot) > this.#ceiling) throw new OutputBudgetError('Retained scope byte budget');
+    const record: OutputRecord = { kind: 'raw-full', snapshot, count: 1, product: undefined, productBytes: 0 };
+    this.#live.set(snapshot, record);
+    return this.lease(record, null);
+  }
+  private project(record: OutputRecord, policy: FramingPolicy): FramedScopes {
+    if (record.kind !== 'raw-full') throw new Error('Raw full scope lease required');
+    if (policy === 'identity-v1') return { kind: 'identity', policy, snapshot: record.snapshot };
+    if (policy !== 'future010-product-lines-v1') throw new Error('Unknown framing policy');
+    if (record.product) return record.product;
+    const plan = planProduct(record.snapshot, { ranges: this.#maxSegments, bytes: this.available() });
+    const product = buildProduct(record.snapshot, plan);
+    if (plan.bytes > this.available()) throw new OutputBudgetError('Retained projection byte budget');
+    record.product = product; record.productBytes = plan.bytes;
+    return product;
+  }
+  private lease(record: OutputRecord, publication: Publication | null): ScopeLease {
+    let heldRecord: OutputRecord | undefined = record;
+    let held: ScopeSnapshot | undefined = record.snapshot;
     const reservations = new Set<() => void>();
     const reserve = (bytes: number): (() => void) => {
       if (!held) throw new Error('Released scope lease');
@@ -97,12 +148,14 @@ export class OutputStore {
       reservations.add(release); return release;
     };
     const retain = (): ScopeLease => { if (!held) throw new Error('Released scope lease'); return this.retain(held, publication); };
-    return Object.freeze({ get snapshot() { if (!held) throw new Error('Released scope lease'); return held; }, publication, retain, reserve, release: () => {
-      const previous = held; if (!previous) return;
-      held = undefined;
+    const projectFraming = (policy: FramingPolicy): FramedScopes => { if (!heldRecord) throw new Error('Released scope lease'); return this.project(heldRecord, policy); };
+    return Object.freeze({ get snapshot() { if (!held) throw new Error('Released scope lease'); return held; }, publication, retain, reserve, projectFraming, release: () => {
+      const previous = held, previousRecord = heldRecord; if (!previous || !previousRecord) return;
+      held = undefined; heldRecord = undefined;
       for (const release of reservations) release();
-      const count = this.#live.get(previous) ?? 0;
-      if (count <= 1) this.#live.delete(previous); else this.#live.set(previous, count - 1);
+      if (--previousRecord.count) return;
+      if (previousRecord.kind === 'raw-full') { previousRecord.product = undefined; previousRecord.productBytes = 0; }
+      if (this.#live.get(previous) === previousRecord) this.#live.delete(previous);
     } });
   }
 }
