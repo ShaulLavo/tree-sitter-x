@@ -161,12 +161,17 @@ export class ReferenceMetadataCapture {
 /** Instance-local, same-call observation. Restore even when the target or observer throws. */
 export function observeBinaryLines<T>(grammar: Grammar, observe: BinaryObserver, run: () => T): T {
   const own = Object.getOwnPropertyDescriptor(grammar, 'tokenizeLine2')
+  if ((own && !own.configurable && (!('value' in own) || !own.writable)) || (!own && !Object.isExtensible(grammar)))
+    throw new TypeError('Cannot observe this tokenizeLine2 descriptor')
   const original = grammar.tokenizeLine2
-  grammar.tokenizeLine2 = function (...args: Parameters<Grammar['tokenizeLine2']>) {
+  if (typeof original !== 'function') throw new TypeError('Missing tokenizeLine2 method')
+  const wrapped: Grammar['tokenizeLine2'] = function (this: Grammar, ...args: Parameters<Grammar['tokenizeLine2']>) {
     const result = original.apply(this, args)
     observe(args[0], result)
     return result
   }
+  Object.defineProperty(grammar, 'tokenizeLine2', { value: wrapped, configurable: own?.configurable ?? true,
+    enumerable: own?.enumerable ?? false, writable: own?.writable ?? true })
   try {
     return run()
   } finally {
