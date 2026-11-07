@@ -1,4 +1,9 @@
 ; JSX is explicit in the TSX variant; JavaScript/JSX remain deferred.
+((lexical_declaration
+   kind: _ @_declaration_start
+   (variable_declarator) @_declaration_end .)
+  (#make-range! "meta.var.expr" @_declaration_start @_declaration_end))
+
 (jsx_element) @meta.tag
 (jsx_self_closing_element) @meta.tag
 (jsx_opening_element name: (identifier) @entity.name.tag)
