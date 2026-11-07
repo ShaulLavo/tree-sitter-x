@@ -1,0 +1,32 @@
+{
+  "name": "native-theme-precedence",
+  "type": "dark",
+  "settings": [
+    {
+      "settings": {
+        "foreground": "#0a0b0c",
+        "fontStyle": "strikethrough"
+      }
+    },
+    {
+      "scope": "variable",
+      "settings": {
+        "foreground": "#123456"
+      }
+    }
+  ],
+  "tokenColors": [
+    {
+      "settings": {
+        "foreground": "#112233",
+        "fontStyle": "italic"
+      }
+    },
+    {
+      "scope": "variable",
+      "settings": {
+        "foreground": "#abcdef"
+      }
+    }
+  ]
+}

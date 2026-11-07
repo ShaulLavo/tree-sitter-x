@@ -1,0 +1,83 @@
+{
+  "name": "native-theme-same-name",
+  "type": "dark",
+  "colors": {
+    "editor.foreground": "#778899",
+    "editor.background": "#090807"
+  },
+  "tokenColors": [
+    {
+      "settings": {
+        "foreground": "#102030",
+        "background": "#010203",
+        "fontStyle": "bold italic underline strikethrough"
+      }
+    },
+    {
+      "scope": "",
+      "settings": {
+        "foreground": "#203040"
+      }
+    },
+    {
+      "scope": "meta.parent",
+      "settings": {
+        "foreground": "#abcdef",
+        "background": "#112233",
+        "fontStyle": "underline"
+      }
+    },
+    {
+      "scope": "variable.clear",
+      "settings": {
+        "fontStyle": ""
+      }
+    },
+    {
+      "scope": "meta.parent variable.clear",
+      "settings": {
+        "foreground": "#fedcba"
+      }
+    },
+    {
+      "scope": "variable.replace",
+      "settings": {
+        "fontStyle": "italic"
+      }
+    },
+    {
+      "scope": "variable.color",
+      "settings": {
+        "foreground": "#1234"
+      }
+    },
+    {
+      "scope": "variable.zero",
+      "settings": {
+        "foreground": "#0000",
+        "background": "#00000000",
+        "fontStyle": ""
+      }
+    },
+    {
+      "scope": "variable.alpha",
+      "settings": {
+        "foreground": "#12345678",
+        "background": "#abcd"
+      }
+    },
+    {
+      "scope": "variable.short",
+      "settings": {
+        "foreground": "#AbC",
+        "background": "#123"
+      }
+    },
+    {
+      "scope": "variable.duplicate",
+      "settings": {
+        "fontStyle": "bold bold italic"
+      }
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "name": "native-theme-includes",
+  "type": "dark",
+  "colors": {
+    "editor.foreground": "#555555",
+    "editor.background": "#222222"
+  },
+  "tokenColors": [
+    {
+      "settings": {
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "scope": "variable",
+      "settings": {
+        "foreground": "#444444",
+        "fontStyle": "underline"
+      }
+    },
+    {
+      "scope": "variable",
+      "settings": {
+        "background": "#666666"
+      }
+    },
+    {
+      "scope": "variable.clear",
+      "settings": {
+        "fontStyle": ""
+      }
+    }
+  ]
+}

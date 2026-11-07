@@ -1,0 +1,22 @@
+{
+  "name": "base",
+  "type": "dark",
+  "colors": {
+    "editor.foreground": "#111111",
+    "editor.background": "#222222"
+  },
+  "tokenColors": [
+    {
+      "settings": {
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "scope": "variable",
+      "settings": {
+        "foreground": "#333333",
+        "fontStyle": "italic"
+      }
+    }
+  ]
+}

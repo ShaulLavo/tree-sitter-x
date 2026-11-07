@@ -1,0 +1,2242 @@
+{
+  "schema": "native-theme-diagnostics/v1",
+  "authority": "Hand-authored amended contract expectations; never submitted to a reference matcher.",
+  "identity": "9fae53ef7f2f013665678fbbf6fff38765e9cdb052df408af9ba10a949d79b80",
+  "cases": [
+    {
+      "id": "malformed-json",
+      "operation": "snapshotInput",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{"
+            }
+          ],
+          "edges": []
+        }
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "json",
+        "location": {
+          "kind": "resource",
+          "resource": "fixture:/rejected",
+          "jsonPointer": "",
+          "byteOffset": null
+        }
+      }
+    },
+    {
+      "id": "null-document",
+      "operation": "snapshotInput",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "null"
+            }
+          ],
+          "edges": []
+        }
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "schema",
+        "location": {
+          "kind": "resource",
+          "resource": "fixture:/rejected",
+          "jsonPointer": "",
+          "byteOffset": null
+        }
+      }
+    },
+    {
+      "id": "jsonc",
+      "operation": "snapshotInput",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "jsonc",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\"}"
+            }
+          ],
+          "edges": []
+        }
+      },
+      "expected": {
+        "kind": "unsupported",
+        "code": "input-format",
+        "location": {
+          "kind": "resource",
+          "resource": "fixture:/rejected",
+          "jsonPointer": "",
+          "byteOffset": null
+        }
+      }
+    },
+    {
+      "id": "plist",
+      "operation": "snapshotInput",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "plist",
+              "bytes": "<plist/>"
+            }
+          ],
+          "edges": []
+        }
+      },
+      "expected": {
+        "kind": "unsupported",
+        "code": "input-format",
+        "location": {
+          "kind": "resource",
+          "resource": "fixture:/rejected",
+          "jsonPointer": "",
+          "byteOffset": null
+        }
+      }
+    },
+    {
+      "id": "profile",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\"}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "unknown"
+      },
+      "expected": {
+        "kind": "unsupported",
+        "code": "profile",
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "null-color",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"variable\",\"settings\":{\"foreground\":null}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "schema",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "foreground"
+        }
+      }
+    },
+    {
+      "id": "numeric-color",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"variable\",\"settings\":{\"background\":3}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "schema",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "background"
+        }
+      }
+    },
+    {
+      "id": "empty-color",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"variable\",\"settings\":{\"foreground\":\"\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "color",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "foreground"
+        }
+      }
+    },
+    {
+      "id": "bad-hex",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"variable\",\"settings\":{\"foreground\":\"#12gg\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "color",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "foreground"
+        }
+      }
+    },
+    {
+      "id": "bad-hex-length",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"variable\",\"settings\":{\"foreground\":\"#12345\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "color",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "foreground"
+        }
+      }
+    },
+    {
+      "id": "named-color",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"variable\",\"settings\":{\"foreground\":\"red\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "unsupported",
+        "code": "color-format",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "foreground"
+        }
+      }
+    },
+    {
+      "id": "variable-color",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"variable\",\"settings\":{\"background\":\"var(--syntax)\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "unsupported",
+        "code": "color-format",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "background"
+        }
+      }
+    },
+    {
+      "id": "null-font",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"variable\",\"settings\":{\"fontStyle\":null}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "schema",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "fontStyle"
+        }
+      }
+    },
+    {
+      "id": "numeric-font",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"variable\",\"settings\":{\"fontStyle\":1}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "schema",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "fontStyle"
+        }
+      }
+    },
+    {
+      "id": "blank-font",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"variable\",\"settings\":{\"fontStyle\":\" \"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "font-style",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "fontStyle"
+        }
+      }
+    },
+    {
+      "id": "unknown-font",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"variable\",\"settings\":{\"fontStyle\":\"oblique\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "unsupported",
+        "code": "font-style",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "fontStyle"
+        }
+      }
+    },
+    {
+      "id": "font-family",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"variable\",\"settings\":{\"fontFamily\":\"serif\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "unsupported",
+        "code": "syntax-property",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "fontFamily"
+        }
+      }
+    },
+    {
+      "id": "font-size",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"variable\",\"settings\":{\"fontSize\":\"12px\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "unsupported",
+        "code": "syntax-property",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "fontSize"
+        }
+      }
+    },
+    {
+      "id": "line-height",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"variable\",\"settings\":{\"lineHeight\":\"20px\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "unsupported",
+        "code": "syntax-property",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "lineHeight"
+        }
+      }
+    },
+    {
+      "id": "unknown-property",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"variable\",\"settings\":{\"unknown\":\"x\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "unsupported",
+        "code": "syntax-property",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "unknown"
+        }
+      }
+    },
+    {
+      "id": "operator-0",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"*\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "unsupported",
+        "code": "selector",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "operator-1",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"a - b\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "unsupported",
+        "code": "selector",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "operator-2",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"a | b\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "unsupported",
+        "code": "selector",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "operator-3",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"a & b\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "unsupported",
+        "code": "selector",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "operator-4",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"(a)\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "unsupported",
+        "code": "selector",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "operator-5",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"L:a\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "unsupported",
+        "code": "selector",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "operator-6",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"R:a\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "unsupported",
+        "code": "selector",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "operator-7",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"/a/\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "unsupported",
+        "code": "selector",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "selector-structure-0",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"a,\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "selector",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "selector-structure-1",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\",a\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "selector",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "selector-structure-2",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"a,,b\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "selector",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "selector-structure-3",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"a  b\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "selector",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "selector-structure-4",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"a\\tb\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "selector",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "selector-structure-5",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"a\\nb\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "selector",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "selector-structure-6",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"> a\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "selector",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "selector-structure-7",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"a >\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "selector",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "selector-structure-8",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"a > > b\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "selector",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "selector-structure-9",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"a>b\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "selector",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "selector-structure-10",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"-\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "selector",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "selector-structure-11",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"a..b\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "selector",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "empty-array",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":[],\"settings\":{}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "selector",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "empty-array-member",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":[\"\"],\"settings\":{}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "selector",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "array-comma",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":[\"a,b\"],\"settings\":{}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "selector",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "null-scope",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":null,\"settings\":{}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "schema",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "reserved-tail-0",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"hasOwnProperty\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "unsupported",
+        "code": "trie-tail-atom",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "reserved-tail-1",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"__proto__\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "unsupported",
+        "code": "trie-tail-atom",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "reserved-tail-2",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"scope.hasOwnProperty.leaf\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "unsupported",
+        "code": "trie-tail-atom",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "reserved-tail-3",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"scope.__proto__.leaf\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "unsupported",
+        "code": "trie-tail-atom",
+        "location": {
+          "kind": "setting",
+          "resource": "fixture:/rejected",
+          "rule": 0,
+          "alternative": 0,
+          "property": "scope"
+        }
+      }
+    },
+    {
+      "id": "include-missing",
+      "operation": "snapshotInput",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"include\":\"base.json\"}"
+            }
+          ],
+          "edges": []
+        }
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "include-graph",
+        "location": {
+          "kind": "resource",
+          "resource": "fixture:/rejected",
+          "jsonPointer": "/include",
+          "byteOffset": null
+        }
+      }
+    },
+    {
+      "id": "include-self-cycle",
+      "operation": "snapshotInput",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"include\":\"base.json\"}"
+            }
+          ],
+          "edges": [
+            {
+              "from": "fixture:/rejected",
+              "to": "fixture:/rejected",
+              "ordinal": 0
+            }
+          ]
+        }
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "include-graph",
+        "location": {
+          "kind": "resource",
+          "resource": "fixture:/rejected",
+          "jsonPointer": "/include",
+          "byteOffset": null
+        }
+      }
+    },
+    {
+      "id": "include-unauthorized",
+      "operation": "snapshotInput",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\"}"
+            }
+          ],
+          "edges": [
+            {
+              "from": "fixture:/rejected",
+              "to": "fixture:/unauthorized",
+              "ordinal": 0
+            }
+          ]
+        }
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "include-authority",
+        "location": {
+          "kind": "resource",
+          "resource": "fixture:/rejected",
+          "jsonPointer": "/include",
+          "byteOffset": null
+        }
+      }
+    },
+    {
+      "id": "include-duplicate-edge",
+      "operation": "snapshotInput",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"include\":\"base.json\"}"
+            }
+          ],
+          "edges": [
+            {
+              "from": "fixture:/rejected",
+              "to": "fixture:/rejected",
+              "ordinal": 0
+            },
+            {
+              "from": "fixture:/rejected",
+              "to": "fixture:/rejected",
+              "ordinal": 1
+            }
+          ]
+        }
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "include-graph",
+        "location": {
+          "kind": "resource",
+          "resource": "fixture:/rejected",
+          "jsonPointer": "/include",
+          "byteOffset": null
+        }
+      }
+    },
+    {
+      "id": "raw-palette-foreground-first-rejection",
+      "operation": "normalizeTheme",
+      "request": {
+        "inputFile": "themes/palette-foreground-254.json",
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "unsupported",
+        "code": "raw-palette",
+        "location": {
+          "kind": "resource",
+          "resource": "fixture:/rejected",
+          "jsonPointer": "",
+          "byteOffset": null
+        }
+      }
+    },
+    {
+      "id": "raw-palette-background-first-rejection",
+      "operation": "normalizeTheme",
+      "request": {
+        "inputFile": "themes/palette-background-254.json",
+        "profile": "raw"
+      },
+      "expected": {
+        "kind": "unsupported",
+        "code": "raw-palette",
+        "location": {
+          "kind": "resource",
+          "resource": "fixture:/rejected",
+          "jsonPointer": "",
+          "byteOffset": null
+        }
+      }
+    },
+    {
+      "id": "resources-zero",
+      "operation": "snapshotInput",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\"}"
+            }
+          ],
+          "edges": []
+        },
+        "limits": {
+          "resources": 0
+        }
+      },
+      "expected": {
+        "kind": "budget",
+        "code": "resources",
+        "limit": 0,
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "input-bytes-zero",
+      "operation": "snapshotInput",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\"}"
+            }
+          ],
+          "edges": []
+        },
+        "limits": {
+          "inputBytes": 0
+        }
+      },
+      "expected": {
+        "kind": "budget",
+        "code": "input-bytes",
+        "limit": 0,
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "compile-steps-zero",
+      "operation": "compileTheme",
+      "request": {
+        "fixture": "empty-dark/raw",
+        "limits": {
+          "steps": 0
+        }
+      },
+      "expected": {
+        "kind": "budget",
+        "code": "compile-steps",
+        "limit": 0,
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "compile-trie-nodes-zero",
+      "operation": "compileTheme",
+      "request": {
+        "fixture": "inheritance/raw",
+        "limits": {
+          "trieNodes": 0
+        }
+      },
+      "expected": {
+        "kind": "budget",
+        "code": "trie-nodes",
+        "limit": 0,
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "compile-context-rules-zero",
+      "operation": "compileTheme",
+      "request": {
+        "fixture": "contexts/raw",
+        "limits": {
+          "contextRules": 0
+        }
+      },
+      "expected": {
+        "kind": "budget",
+        "code": "context-rules",
+        "limit": 0,
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "compile-owned-bytes-zero",
+      "operation": "compileTheme",
+      "request": {
+        "fixture": "empty-dark/raw",
+        "limits": {
+          "ownedBytes": 0
+        }
+      },
+      "expected": {
+        "kind": "budget",
+        "code": "owned-bytes",
+        "limit": 0,
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "resolve-steps-zero",
+      "operation": "resolvePaths",
+      "request": {
+        "fixture": "inheritance/raw",
+        "paths": [
+          []
+        ],
+        "limits": {
+          "steps": 0
+        }
+      },
+      "expected": {
+        "kind": "budget",
+        "code": "resolve-steps",
+        "limit": 0,
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "output-bytes-zero",
+      "operation": "resolvePaths",
+      "request": {
+        "fixture": "inheritance/raw",
+        "paths": [
+          []
+        ],
+        "limits": {
+          "outputBytes": 0
+        }
+      },
+      "expected": {
+        "kind": "budget",
+        "code": "output-bytes",
+        "limit": 0,
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "output-first-rejection",
+      "operation": "resolvePaths",
+      "request": {
+        "fixture": "inheritance/raw",
+        "paths": [
+          []
+        ],
+        "limits": {
+          "outputBytes": 11
+        }
+      },
+      "expected": {
+        "kind": "budget",
+        "code": "output-bytes",
+        "limit": 11,
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "empty-zero-resolve",
+      "operation": "resolvePaths",
+      "request": {
+        "fixture": "inheritance/raw",
+        "paths": [],
+        "limits": {
+          "steps": 0,
+          "outputBytes": 0
+        }
+      },
+      "expected": {
+        "kind": "ok",
+        "styleCount": 0
+      }
+    },
+    {
+      "id": "output-exact-limit",
+      "operation": "resolvePaths",
+      "request": {
+        "fixture": "inheritance/raw",
+        "paths": [
+          []
+        ],
+        "limits": {
+          "outputBytes": 12
+        }
+      },
+      "expected": {
+        "kind": "ok",
+        "styleCount": 1
+      }
+    },
+    {
+      "id": "input-rules-zero",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"a b\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw",
+        "limits": {
+          "rules": 0
+        }
+      },
+      "expected": {
+        "kind": "budget",
+        "code": "rules",
+        "limit": 0,
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "input-atoms-zero",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"a b\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw",
+        "limits": {
+          "atoms": 0
+        }
+      },
+      "expected": {
+        "kind": "budget",
+        "code": "atoms",
+        "limit": 0,
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "input-context-edges-zero",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"a b\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw",
+        "limits": {
+          "contextEdges": 0
+        }
+      },
+      "expected": {
+        "kind": "budget",
+        "code": "context-edges",
+        "limit": 0,
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "input-atom-bytes-zero",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"a b\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw",
+        "limits": {
+          "atomBytes": 0
+        }
+      },
+      "expected": {
+        "kind": "budget",
+        "code": "atom-bytes",
+        "limit": 0,
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "input-context-atoms-zero",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"a b\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw",
+        "limits": {
+          "contextAtomsPerSelector": 0
+        }
+      },
+      "expected": {
+        "kind": "budget",
+        "code": "context-atoms",
+        "limit": 0,
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "input-packet-bytes-zero",
+      "operation": "normalizeTheme",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"tokenColors\":[{\"scope\":\"a b\",\"settings\":{\"foreground\":\"#123456\"}}]}"
+            }
+          ],
+          "edges": []
+        },
+        "profile": "raw",
+        "limits": {
+          "packetBytes": 0
+        }
+      },
+      "expected": {
+        "kind": "budget",
+        "code": "packet-bytes",
+        "limit": 0,
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "resource-id-bytes-zero",
+      "operation": "snapshotInput",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\"}"
+            }
+          ],
+          "edges": []
+        },
+        "limits": {
+          "resourceIdBytes": 0
+        }
+      },
+      "expected": {
+        "kind": "budget",
+        "code": "resource-id-bytes",
+        "limit": 0,
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "paths-zero",
+      "operation": "resolvePaths",
+      "request": {
+        "fixture": "inheritance/raw",
+        "paths": [
+          []
+        ],
+        "inputLimits": {
+          "paths": 0
+        }
+      },
+      "expected": {
+        "kind": "budget",
+        "code": "paths",
+        "limit": 0,
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "input-bytes-first-over",
+      "operation": "snapshotInput",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\"}"
+            }
+          ],
+          "edges": []
+        },
+        "limits": {
+          "inputBytes": 32
+        }
+      },
+      "expected": {
+        "kind": "budget",
+        "code": "input-bytes",
+        "limit": 32,
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "input-bytes-exact-limit",
+      "operation": "snapshotInput",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\"}"
+            }
+          ],
+          "edges": []
+        },
+        "limits": {
+          "inputBytes": 33
+        }
+      },
+      "expected": {
+        "kind": "ok"
+      }
+    },
+    {
+      "id": "include-depth-zero",
+      "operation": "snapshotInput",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"include\":\"base.json\"}"
+            },
+            {
+              "id": "fixture:/base",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\"}"
+            }
+          ],
+          "edges": [
+            {
+              "from": "fixture:/rejected",
+              "to": "fixture:/base",
+              "ordinal": 0
+            }
+          ]
+        },
+        "limits": {
+          "includeDepth": 0
+        }
+      },
+      "expected": {
+        "kind": "budget",
+        "code": "include-depth",
+        "limit": 0,
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "include-cycle-two",
+      "operation": "snapshotInput",
+      "request": {
+        "input": {
+          "root": "fixture:/rejected",
+          "resources": [
+            {
+              "id": "fixture:/rejected",
+              "format": "json",
+              "bytes": "{\"name\":\"rejected\",\"type\":\"dark\",\"include\":\"base.json\"}"
+            },
+            {
+              "id": "fixture:/base",
+              "format": "json",
+              "bytes": "{\"name\":\"base\",\"type\":\"dark\",\"include\":\"root.json\"}"
+            }
+          ],
+          "edges": [
+            {
+              "from": "fixture:/rejected",
+              "to": "fixture:/base",
+              "ordinal": 0
+            },
+            {
+              "from": "fixture:/base",
+              "to": "fixture:/rejected",
+              "ordinal": 0
+            }
+          ]
+        }
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "include-graph",
+        "location": {
+          "kind": "resource",
+          "resource": "fixture:/rejected",
+          "jsonPointer": "/include",
+          "byteOffset": null
+        }
+      }
+    },
+    {
+      "id": "invalid-limit-0",
+      "operation": "resolvePaths",
+      "request": {
+        "fixture": "inheritance/raw",
+        "paths": [],
+        "limits": {
+          "steps": -1
+        }
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "schema",
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "invalid-limit-1",
+      "operation": "resolvePaths",
+      "request": {
+        "fixture": "inheritance/raw",
+        "paths": [],
+        "limits": {
+          "steps": 0.5
+        }
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "schema",
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "invalid-limit-2",
+      "operation": "resolvePaths",
+      "request": {
+        "fixture": "inheritance/raw",
+        "paths": [],
+        "limits": {
+          "steps": "1"
+        }
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "schema",
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "invalid-limit-3",
+      "operation": "resolvePaths",
+      "request": {
+        "fixture": "inheritance/raw",
+        "paths": [],
+        "limits": {
+          "steps": null
+        }
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "schema",
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "invalid-limit-4",
+      "operation": "resolvePaths",
+      "request": {
+        "fixture": "inheritance/raw",
+        "paths": [],
+        "limits": {
+          "steps": 4294967296
+        }
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "schema",
+        "location": {
+          "kind": "request"
+        }
+      }
+    },
+    {
+      "id": "unknown-limit",
+      "operation": "resolvePaths",
+      "request": {
+        "fixture": "inheritance/raw",
+        "paths": [],
+        "limits": {
+          "unknown": 1
+        }
+      },
+      "expected": {
+        "kind": "invalid",
+        "code": "schema",
+        "location": {
+          "kind": "request"
+        }
+      }
+    }
+  ]
+}
