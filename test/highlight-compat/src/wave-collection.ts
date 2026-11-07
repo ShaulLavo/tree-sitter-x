@@ -180,8 +180,9 @@ export interface SupervisorOptions<T> {
   readonly exitGraceMs?: number
   readonly maxReplyBytes?: number
 }
+type WorkerFailure = 'error' | 'integrity' | 'timeout' | 'canceled'
 export type Supervised<T> = { readonly kind: 'complete'; readonly value: T; readonly reaped: true; readonly dispatched: true; readonly replyBytes: number }
-  | { readonly kind: 'error' | 'timeout' | 'canceled'; readonly reason: string; readonly reaped: true; readonly dispatched: boolean; readonly ownership: 'not-created' | 'process-discarded' }
+  | { readonly kind: WorkerFailure; readonly reason: string; readonly reaped: true; readonly dispatched: boolean; readonly ownership: 'not-created' | 'process-discarded' }
 export function superviseWorker<T>(options: SupervisorOptions<T>): Promise<Supervised<T>> {
   if (options.signal?.aborted) return Promise.resolve({ kind: 'canceled', reason: 'abort before dispatch', reaped: true, dispatched: false, ownership: 'not-created' })
   return new WorkerSupervisor(options).start()
@@ -196,7 +197,7 @@ class WorkerSupervisor<T> {
   #replies = 0
   #replyBytes = 0
   #exited = false
-  #failure: { kind: 'error' | 'timeout' | 'canceled'; reason: string } | undefined
+  #failure: { kind: WorkerFailure; reason: string } | undefined
   #deadline: ReturnType<typeof setTimeout> | undefined
   #grace: ReturnType<typeof setTimeout> | undefined
   readonly #abort = () => this.stop('canceled', 'abort during work')
@@ -216,7 +217,7 @@ class WorkerSupervisor<T> {
     this.#worker.once('exit', code => this.finish(code))
     return this.#promise
   }
-  private stop(kind: 'error' | 'timeout' | 'canceled', reason: string): void {
+  private stop(kind: WorkerFailure, reason: string): void {
     if (this.#exited || this.#failure) return
     this.#failure = { kind, reason }
     void this.#worker?.terminate().catch(this.#reject)
@@ -229,7 +230,7 @@ class WorkerSupervisor<T> {
       need(this.#replyBytes <= (this.#options.maxReplyBytes ?? WAVE_LIMIT), 'Transport budget: oversized worker reply')
       this.#answer = this.#options.validate(value)
       this.#grace = setTimeout(() => this.stop('error', 'Reply without clean exit within grace'), this.#options.exitGraceMs ?? 1000)
-    } catch (error) { this.stop('error', diagnostic(error)) }
+    } catch (error) { this.stop('integrity', diagnostic(error)) }
   }
   private finish(code: number): void {
     this.#exited = true; clearTimeout(this.#deadline); clearTimeout(this.#grace); this.#options.signal?.removeEventListener('abort', this.#abort)
@@ -280,6 +281,9 @@ export function loadReference(directory: string, entry: Record<string, unknown> 
     const bytes = gunzipSync(compressed, { maxOutputLength: WAVE_LIMIT })
     const result = parseResult(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)), source)
     validateDocumentIdentity(result, row, input)
+    const scopes = { scopeNames: result.scopeNames, paths: result.paths, spans: result.spans }
+    if (entry.scopeSha256 !== undefined) need(entry.scopeSha256 === hash(JSON.stringify(scopes)), 'Reference scope inventory digest mismatch')
+    if (entry.styleSha256 !== undefined) need(entry.styleSha256 === hash(JSON.stringify(result.status === 'complete' ? result.styles ?? {} : {})), 'Reference style inventory digest mismatch')
     if (result.status === 'complete') {
       referenceEngine(result, row)
       same(Object.keys(result.styles ?? {}).sort(), source.length ? themes.toSorted() : [], 'Wrong reference theme membership')
@@ -334,7 +338,7 @@ function atomic(path: string, value: string | Uint8Array): void {
 }
 const jsonText = (value: unknown): string => JSON.stringify(value, null, 2) + '\n'
 type ExecutionState = { readonly kind: 'unrun' }
-  | { readonly kind: 'error' | 'timeout' | 'canceled'; readonly reason: string; readonly ownership: string; readonly dispatched: boolean }
+  | { readonly kind: WorkerFailure; readonly reason: string; readonly ownership: string; readonly dispatched: boolean }
   | { readonly kind: 'retained'; readonly record: string; readonly sha256: string; readonly replyBytes: number }
 export interface Execution {
   readonly schema: '010-native-wave-collection-1'
@@ -409,7 +413,7 @@ function parseExecutionState(value: unknown): ExecutionState {
     need(typeof state.replyBytes === 'number' && Number.isSafeInteger(state.replyBytes) && state.replyBytes >= 0 && state.replyBytes <= WAVE_LIMIT, 'Invalid reply byte count')
     return { kind: 'retained', record: string(state.record), sha256: string(state.sha256), replyBytes: state.replyBytes }
   }
-  need(state.kind === 'error' || state.kind === 'timeout' || state.kind === 'canceled', 'Unknown execution state')
+  need(state.kind === 'error' || state.kind === 'integrity' || state.kind === 'timeout' || state.kind === 'canceled', 'Unknown execution state')
   need(typeof state.dispatched === 'boolean', 'Wrong dispatch state')
   return { kind: state.kind, reason: string(state.reason), ownership: string(state.ownership), dispatched: state.dispatched }
 }
@@ -446,7 +450,7 @@ export function renderCollection(intake: JsJsxIntake, references: string, direct
   })
   const byTheme = intake.themes.map(theme => ({ theme, styles: summarizeTrack(themeRows.filter(row => row.theme === theme).map(row => row.styles)), metadata: summarizeTrack(themeRows.filter(row => row.theme === theme).map(row => row.metadata)) }))
   const operational = execution.finished && execution.requests.every(entry => entry.state.kind === 'retained') && rows.every(row => row.candidate === 'complete' && row.themeComplete)
-  const integrityFailed = rows.some(row => row.reference.startsWith('invalid:'))
+  const integrityFailed = execution.requests.some(entry => entry.state.kind === 'integrity') || rows.some(row => row.reference.startsWith('invalid:'))
   const exitCode = integrityFailed ? 3 : execution.interrupted === 'SIGINT' ? 130 : execution.interrupted === 'SIGTERM' ? 143 : operational && rows.every(row => row.accepted) ? 0 : 1
   const workers = { attempted: execution.requests.filter(entry => entry.state.kind !== 'unrun' && (entry.state.kind === 'retained' || entry.state.dispatched)).length,
     completed: execution.requests.filter(entry => entry.state.kind === 'retained').length, selections: rows.reduce((sum, row) => sum + (row.evidence?.selectionsAttempted ?? 0), 0), normalizationCallbacks: rows.reduce((sum, row) => sum + (row.evidence?.normalizationAttempts ?? 0), 0),

@@ -6,7 +6,6 @@ import type { CompleteResult, DocumentResult, IncompleteResult } from '../schema
 import { ResultBuilder } from '../build.ts'
 import { parseResult } from '../validate.ts'
 import { serializeResult } from '../serialize.ts'
-import { themeModule } from '../oracles/assets.ts'
 import { PINS, pinLabel } from '../oracles/pins.ts'
 import { sourceIdentity } from './component-inputs.ts'
 import { vendorAssets } from '../baselines/assets.ts'
@@ -22,6 +21,7 @@ import { normalizeTheme, snapshotInput } from './theme-input.ts'
 import type { NormalizedTheme } from './theme-input.ts'
 import type { Outcome, OutsideScore, Profile } from './theme-contract.ts'
 import { decodedSnapshot } from './scope-output.ts'
+import { buildProduct, collectSourceFacts, planProduct } from './scope-framing.ts'
 import type { FramingPolicy, ScopeLease, ScopeSnapshot } from './scope-output.ts'
 import { sameOwner, sameWork } from './owner-state.ts'
 import { hash, need, object, string, list, same, unique, diagnostic, nativeResolvedStyle, STYLE_PROJECTION, WAVE_LIMIT } from '../wave-collection.ts'
@@ -91,13 +91,18 @@ function themeTarget(): string {
   return hash(JSON.stringify({ packages: [pinLabel(PINS.shiki), pinLabel(PINS.themes), pinLabel(PINS.shikiTextmate)], sources: sources.map(path => [path, hash(readFileSync(new URL(path, import.meta.url)))]) }))
 }
 export async function acquireWaveTheme(id: string, profile: Profile): Promise<{ readonly outcome: Outcome<NormalizedTheme>; readonly resourceDigest: string; readonly assetDigest: string }> {
+  return normalizeWaveTheme(id, profile)
+}
+function normalizeWaveTheme(id: string, profile: Profile): Awaited<ReturnType<typeof acquireWaveTheme>> {
   const asset = themeAssets().find(asset => asset.id === id)
   need(asset, 'Unknown locked theme')
   const require = createRequire(import.meta.url), packagePath = resolve(dirname(require.resolve(`@shikijs/themes/${id}`)), '../package.json')
   need(object(JSON.parse(readFileSync(packagePath, 'utf8'))).version === asset.version, 'Theme package version mismatch')
   need(hash(readFileSync(resolve(dirname(packagePath), asset.path))) === asset.sha256, 'Theme module digest mismatch')
-  const registration = await themeModule(id)
+  const registration = object(object(require(`@shikijs/themes/${id}`)).default)
   jsonCompatible(registration)
+  const rules = list(registration.settings ?? registration.tokenColors ?? []).map(object)
+  need(!rules.some(rule => rule.scope === undefined && object(rule.settings).fontStyle !== undefined), `theme ${id}: a default font style breaks the resolved-style convention`)
   const bytes = new TextEncoder().encode(JSON.stringify(registration)), resourceDigest = hash(bytes)
   const resourceId = `package-registration-json:${id}:${asset.sha256}`
   const acquired = snapshotInput({ root: resourceId, resources: [{ id: resourceId, format: 'json', bytes }], edges: [] })
@@ -254,15 +259,34 @@ export function parseNativeWaveAnswer(value: unknown, request: NativeWaveRequest
   same(Object.keys(parsedEvidence.nativePresentationDigests).sort(), themes.filter(theme => theme.kind === 'complete').map(theme => theme.theme).sort(), 'Presentation digest membership mismatch')
   for (const theme of themes.filter(theme => theme.kind === 'complete')) {
     need(Object.hasOwn(parsedEvidence.nativePresentationDigests, theme.theme), 'Missing original presentation digest')
-    need(theme.assetDigest === themeAssets().find(asset => asset.id === theme.theme)?.sha256 && theme.targetIdentity === themeTarget(), 'Wrong normalized theme identity')
+    const expected = normalizeWaveTheme(theme.theme, wavePolicy(request.row.profile).normalization)
+    need(expected.outcome.kind === 'ok', 'Successful theme has no admitted normalization')
+    const normalized = expected.outcome.value
+    same([theme.assetDigest, theme.resourceDigest, theme.acquisitionRevision, theme.contentRevision, theme.targetIdentity, theme.normalizedPacketDigest],
+      [expected.assetDigest, expected.resourceDigest, normalized.acquisitionRevision, normalized.contentRevision, normalized.targetIdentity, normalized.normalizedPacketDigest], 'Wrong normalized theme identity')
   }
   need(rawFull.engine.selectionSha256 === request.selectionSha256 && presented.engine.selectionSha256 === request.selectionSha256, 'Wrong candidate selection')
   validateNativeEngine(presented.engine, request.row.language)
   validateNativeEngine(rawFull.engine, request.row.language)
   need(rawFull.engine.framing === 'identity-v1' && presented.engine.framing === wavePolicy(request.row.profile).framing, 'Mislabeled raw/projected native scopes')
-  if (wavePolicy(request.row.profile).framing === 'identity-v1') same([rawFull.scopeNames, rawFull.paths, rawFull.spans], [presented.scopeNames, presented.paths, presented.spans], 'Identity framing changed scopes')
+  validateProjectedScopes(request, rawFull, presented, parsedEvidence.scopeIdentity)
   return { kind: 'scopes-complete', rawFull, presented, themes, evidence: parsedEvidence }
 }
+function validateProjectedScopes(request: NativeWaveRequest, raw: CompleteResult, presented: CompleteResult, identity: NonNullable<NativeWaveEvidence['scopeIdentity']>): void {
+  if (wavePolicy(request.row.profile).framing === 'identity-v1') {
+    same([raw.scopeNames, raw.paths, raw.spans], [presented.scopeNames, presented.paths, presented.spans], 'Identity framing changed scopes')
+    return
+  }
+  const bounds = { ranges: Math.floor(WAVE_LIMIT / 32), bytes: WAVE_LIMIT }
+  const facts = collectSourceFacts(request.source, { owner: identity.owner, generation: identity.generation }, bounds)
+  const snapshot: ScopeSnapshot = { ...identity, coverage: { from: 0, to: request.source.length }, sourceLength: request.source.length,
+    dictionary: { names: raw.scopeNames, paths: raw.paths }, segments: raw.spans, metadata: null, separators: facts.separators,
+    injections: [], diagnostics: [], sourceFacts: facts }
+  const projected = buildProduct(snapshot, planProduct(snapshot, bounds)).snapshot
+  const expected = buildScopes(request, projected, presented.engine).complete()
+  same([presented.scopeNames, presented.paths, presented.spans], [expected.scopeNames, expected.paths, expected.spans], 'Product framing changed scopes')
+}
+
 function nonnegative(value: unknown): number { need(typeof value === 'number' && Number.isSafeInteger(value) && value >= 0, 'Invalid counter'); return value }
 function digestString(value: unknown): string { const result = string(value); need(/^[a-f0-9]{64}$/.test(result), 'Invalid digest'); return result }
 function validateEvidence(value: Record<string, unknown>): NativeWaveEvidence {

@@ -7,7 +7,8 @@ function validate(value: unknown): true {
 }
 it.each(['success', 'throw', 'exit', 'never', 'duplicate', 'nonzero', 'hang', 'malformed'])('reaps bounded worker %s before returning', async mode => {
   const outcome = await superviseWorker({ url, data: mode, validate, deadlineMs: 500, exitGraceMs: 50 })
-  expect(outcome.kind).toBe(mode === 'success' ? 'complete' : mode === 'never' ? 'timeout' : 'error')
+  const expected = mode === 'duplicate' || mode === 'malformed' ? 'integrity' : mode === 'success' ? 'complete' : mode === 'never' ? 'timeout' : 'error'
+  expect(outcome.kind).toBe(expected)
   expect(outcome.reaped).toBe(true)
 })
 it('does not dispatch when already aborted', async () => {
@@ -24,6 +25,6 @@ it('terminates active workers on abort', async () => {
 })
 it('rejects a reply exceeding its transport budget and reaps it', async () => {
   const outcome = await superviseWorker({ url, data: 'success', validate, maxReplyBytes: 2 })
-  expect(outcome.kind).toBe('error')
+  expect(outcome.kind).toBe('integrity')
   expect(outcome.reaped).toBe(true)
 })
