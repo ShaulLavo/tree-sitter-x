@@ -15,6 +15,7 @@ export interface ThemePair {
 }
 interface Encoding {
   readonly scope: ScopeLease; readonly packet: PathPacket; readonly memos: Map<string, SharedPair>; readonly inputKey: string;
+  uses: number; released: boolean;
 }
 const empty = Object.freeze({});
 function fullRuns(snapshot: ScopeSnapshot, packet: PathPacket, styles: readonly EffectiveStyle[], theme: NormalizedTheme): readonly StyleRun[] {
@@ -82,8 +83,9 @@ export class ThemeCache {
       const encodings = this.#encodings.get(scope.snapshot) ?? new Map<string, Encoding>();
       encodings.set(inputKey, encoding); this.#encodings.set(scope.snapshot, encodings);
     }
+    encoding.uses++;
     try { return this.memo(encoding, key, normalized, theme, resolve); }
-    finally { this.dropEmpty(encoding); }
+    finally { encoding.uses--; this.dropEmpty(encoding); }
   }
   private memo(encoding: Encoding, key: string, normalized: NormalizedTheme, theme: NativeTheme, resolve: Partial<ResolveLimits>): Outcome<ThemePair> {
     const previous = encoding.memos.get(key);
@@ -98,9 +100,10 @@ export class ThemeCache {
     return { kind: 'ok', value: pair.retain(), warnings: [] };
   }
   private dropEmpty(encoding: Encoding): void {
-    if (encoding.memos.size) return;
+    if (encoding.released || encoding.uses || encoding.memos.size) return;
     const snapshot = encoding.scope.snapshot, encodings = this.#encodings.get(snapshot);
-    encodings?.delete(encoding.inputKey);
+    encoding.released = true;
+    if (encodings?.get(encoding.inputKey) === encoding) encodings.delete(encoding.inputKey);
     if (!encodings?.size) this.#encodings.delete(snapshot);
     encoding.scope.release();
   }
@@ -112,7 +115,7 @@ function createEncoding(scope: ScopeLease, input: Partial<InputLimits>, inputKey
   const retained = scope.retain();
   try { retained.reserve(packet.value.bytes.length + packet.value.ids.length * 8 + inputKey.length * 2 + 128); }
   catch (error) { retained.release(); throw error; }
-  return { kind: 'ok', value: { scope: retained, packet: packet.value, memos: new Map(), inputKey }, warnings: [] };
+  return { kind: 'ok', value: { scope: retained, packet: packet.value, memos: new Map(), inputKey, uses: 0, released: false }, warnings: [] };
 }
 function memoBytes(runs: readonly StyleRun[]): number {
   const styles = new Set(runs.map(run => run.style));

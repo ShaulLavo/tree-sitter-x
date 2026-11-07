@@ -25,6 +25,9 @@ interface View {
   output: ScopeLease | undefined; outcome: ScopeOutcome | undefined;
 }
 interface Work { readonly key: WorkKey; canceled: boolean; readonly interests: ReadonlyMap<ViewId, InterestGeneration>; readonly progress: { next: number; intervals: ScopeInterval[]; bytes: number } }
+function notifyPresentation(listener: (view: ViewId | null) => void, view: ViewId | null, errors: unknown[]): void {
+  try { listener(view); } catch (error) { errors.push(error); }
+}
 class ScopeFailure extends Error {
   readonly reason: 'unsupported' | 'budget' | 'invalid' | 'no-memory';
   constructor(reason: ScopeFailure['reason'], diagnostic: string) { super(diagnostic); this.reason = reason; }
@@ -68,26 +71,26 @@ export class ScopeSession {
   request(id: ViewId, input: Readonly<{ viewport: TextSpan; theme: number }>): InterestGeneration {
     this.open(); this.viewport(input.viewport);
     const theme = counter<'ThemeGeneration'>(input.theme), view = this.view(id);
-    this.presentationChanged(id);
     const interest = counter<'InterestGeneration'>(view.interest + 1);
     view.viewport = Object.freeze({ ...input.viewport }); view.theme = theme; view.interest = interest; view.wants = true; view.outcome = undefined;
-    this.#pending = this.#owner.key(); return interest;
+    this.#pending = this.#owner.key(); this.presentationChanged(id); return interest;
   }
   cancel(id: ViewId, interest: InterestGeneration): void {
     const view = this.#views.get(id);
     if (!view || view.interest !== interest) return;
-    this.presentationChanged(id);
     view.wants = false;
     view.outcome = { kind: 'canceled', work: this.#active?.key ?? this.workKey(this.#owner.key()), reason: 'explicit' };
     if (!this.interested()) { this.cancelActive(); this.#pending = undefined; }
+    this.presentationChanged(id);
   }
   detachView(id: ViewId): void {
     const view = this.#views.get(id); if (!view) return;
+    this.#views.delete(id); view.output?.release();
+    if (!this.#views.size) {
+      this.cancelActive();
+      const cache = this.#cache; this.#pending = undefined; this.#cache = undefined; cache?.release();
+    }
     this.presentationChanged(id);
-    view.output?.release(); this.#views.delete(id);
-    if (this.#views.size) return;
-    this.cancelActive();
-    this.#pending = undefined; this.#cache?.release(); this.#cache = undefined;
   }
   acquire(id: ViewId): ScopeLease | undefined {
     const output = this.#views.get(id)?.output;
@@ -97,7 +100,7 @@ export class ScopeSession {
     const view = this.#views.get(id);
     if (this.#disposed || !view) return undefined;
     const theme = counter<'ThemeGeneration'>(view.theme + 1);
-    this.presentationChanged(id); view.theme = theme; return theme;
+    view.theme = theme; this.presentationChanged(id); return theme;
   }
   acquireFull(id: ViewId): ScopeLease | undefined {
     const view = this.#views.get(id), snapshot = this.#cache?.snapshot;
@@ -119,7 +122,9 @@ export class ScopeSession {
     this.open(); this.#presentationListeners.add(listener); return () => { this.#presentationListeners.delete(listener); };
   }
   private presentationChanged(view: ViewId | null): void {
-    for (const listener of Array.from(this.#presentationListeners)) listener(view);
+    const errors: unknown[] = [];
+    for (const listener of Array.from(this.#presentationListeners)) notifyPresentation(listener, view, errors);
+    if (errors.length) throw new AggregateError(errors, 'Presentation notification failed');
   }
   outcome(id: ViewId): ScopeOutcome | undefined { return this.#views.get(id)?.outcome; }
   retainedBytes(): number { return this.#outputs.bytes() + (this.#active?.progress.bytes ?? 0); }
@@ -230,12 +235,13 @@ export class ScopeSession {
     for (const view of this.#views.values()) { if (view.wants) view.outcome = { kind: 'incomplete', work: work.key, reason, diagnostic: diagnostic.slice(0, 1024) }; }
   }
   private invalidate(): void {
-    this.presentationChanged(null);
+    if (this.#owner.observe().kind === 'closed') { this.dispose(); return; }
     this.cancelActive();
-    this.#cache?.release(); this.#cache = undefined;
-    for (const view of this.#views.values()) { view.output?.release(); view.output = undefined; }
+    const cache = this.#cache; this.#cache = undefined;
+    const outputs = Array.from(this.#views.values(), view => { const output = view.output; view.output = undefined; return output; });
     this.#pending = this.interested() ? this.#owner.key() : undefined;
-    if (this.#owner.observe().kind === 'closed') this.dispose();
+    this.releaseScopeOutputs(outputs, cache);
+    this.presentationChanged(null);
   }
   private workKey(key: OwnerKey): WorkKey { return Object.freeze({ ...key, request: counter<'RequestId'>(this.#request + 1) }); }
   private interested(): boolean { for (const view of this.#views.values()) { if (view.wants) return true; } return false; }
@@ -248,11 +254,17 @@ export class ScopeSession {
   dispose(): void {
     if (this.#disposed) return;
     this.#disposed = true; ScopeSession.#attached.delete(this.#owner); this.#unsubscribe();
-    this.presentationChanged(null); this.#presentationListeners.clear();
     this.cancelActive();
-    for (const id of this.#views.keys()) this.detachView(id);
-    this.#cache?.release(); this.#cache = undefined; this.#pending = undefined;
-    this.releasePacks();
+    const outputs = Array.from(this.#views.values(), view => view.output), cache = this.#cache;
+    this.#views.clear(); this.#cache = undefined; this.#pending = undefined;
+    try { this.presentationChanged(null); }
+    finally {
+      this.#presentationListeners.clear();
+      try { this.releaseScopeOutputs(outputs, cache); } finally { this.releasePacks(); }
+    }
+  }
+  private releaseScopeOutputs(outputs: readonly (ScopeLease | undefined)[], cache: ScopeLease | undefined): void {
+    try { for (const output of outputs) output?.release(); } finally { cache?.release(); }
   }
   private cancelActive(): void { if (this.#active) this.#active.canceled = true; this.#active = undefined; }
   private releasePacks(): void { for (const release of this.#releasePacks.splice(0)) release(); }

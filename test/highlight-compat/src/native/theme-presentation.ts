@@ -68,9 +68,13 @@ export class ThemePresentation {
     if (this.#disposed) return { kind: 'unavailable', reason: 'closed' };
     const checked = attempt(() => snapshotOptions(options));
     if (checked.kind !== 'ok') return checked;
-    if (this.#session.selectTheme(view) === undefined) return { kind: 'unavailable', reason: 'closed' };
+    const generation = this.#session.selectTheme(view);
+    if (generation === undefined) return { kind: 'unavailable', reason: 'closed' };
     const scope = this.#session.acquireFull(view);
     if (!scope) return { kind: 'unavailable', reason: 'scope-not-current' };
+    if (this.#disposed || scope.publication?.theme !== generation || !this.#session.presentationCurrent(scope)) {
+      scope.release(); return { kind: 'discarded' };
+    }
     const request: Request = { view, scope, options: checked.value, canceled: false, released: false };
     this.#pending.set(view, request);
     const abort = () => { request.canceled = true; this.finish(request); };
@@ -130,13 +134,16 @@ export class ThemePresentation {
   }
   acquire(view: ViewId): PresentationLease | undefined { return this.#outputs.get(view)?.retain(); }
   private drop(view: ViewId): void {
-    const request = this.#pending.get(view); if (request) this.finish(request);
-    this.#outputs.get(view)?.release(); this.#outputs.delete(view);
+    const request = this.#pending.get(view), output = this.#outputs.get(view);
+    this.#pending.delete(view); this.#outputs.delete(view);
+    if (request) this.finish(request);
+    output?.release();
   }
   private clear(): void {
-    for (const request of this.#pending.values()) this.finish(request);
-    for (const output of this.#outputs.values()) output.release();
-    this.#outputs.clear();
+    const requests = Array.from(this.#pending.values()), outputs = Array.from(this.#outputs.values());
+    this.#pending.clear(); this.#outputs.clear();
+    for (const request of requests) this.finish(request);
+    for (const output of outputs) output.release();
   }
   dispose(): void {
     if (this.#disposed) return;
