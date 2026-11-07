@@ -10,6 +10,7 @@ import { Component } from '../src/native/component.ts'
 import { collectNativeWaveDocument } from '../src/native/wave-document.ts'
 import { readWaveSource } from '../src/wave-collection.ts'
 import { NativeTheme } from '../src/native/theme.ts'
+import { ThemePresentation } from '../src/native/theme-presentation.ts'
 import { PilotDocument } from '../src/native/owner.ts'
 const owned: string[] = []
 afterEach(() => { vi.restoreAllMocks(); for (const root of owned.splice(0)) rmSync(root, { recursive: true, force: true }) })
@@ -71,10 +72,19 @@ it('rechecks a real partial-theme native document without invoking a native owne
   const tiny = { ...dev, inputs: [selected], profiles: ['product'] as const }
   const planned = planWave(tiny).scopeRows[0]
   const request = { row: planned, source: readWaveSource(selected), themes: tiny.themes, selectionSha256: tiny.selectionSha256 }
+  const select = ThemePresentation.prototype.select
+  let selections = 0
+  vi.spyOn(ThemePresentation.prototype, 'select').mockImplementation(function(this: ThemePresentation, view, callback, options) {
+    if (tiny.themes[selections++] === 'light-plus') return select.call(this, view, callback, options)
+    return select.call(this, view, async () => ({ kind: 'unsupported', code: 'selector', location: { kind: 'request' } }), options)
+  })
   const answer = await collectNativeWaveDocument(request, new AbortController().signal)
   expect(answer.kind).toBe('scopes-complete')
   if (answer.kind !== 'scopes-complete') throw new Error('Missing native scopes')
   expect(answer.themes.some(theme => theme.kind === 'failed')).toBe(true)
+  expect(selections).toBe(65)
+  expect(answer.themes.filter(theme => theme.kind === 'failed')).toHaveLength(64)
+  expect(answer.themes.filter(theme => theme.kind === 'complete').map(theme => theme.theme)).toEqual(['light-plus'])
   mkdirSync(resolve(current.root, 'documents'))
   const state = retainAnswer(current.root, 0, answer, Buffer.byteLength(JSON.stringify(answer)))
   const execution: Execution = { ...current.execution, requests: [{ row: planned, state }] }
