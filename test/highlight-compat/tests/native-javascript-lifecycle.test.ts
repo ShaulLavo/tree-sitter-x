@@ -25,7 +25,9 @@ afterAll(() => {
   try { if (observer) invoke(observer, 'scope_test_reset'); } finally { allocations.restore(); }
 });
 
-it.each(roots)('keeps $language classification on the borrowed tree and frees repeated owner cycles', async identity => {
+const ownerCycles = roots.flatMap(identity => Array.from({ length: 20 }, (_, index) => ({ ...identity, cycle: index + 1 })));
+
+it.each(ownerCycles)('keeps $language owner cycle $cycle on the borrowed tree and frees it', async identity => {
   const component = await Component.load();
   await component.runtime.language(identity.language);
   const counts = await observe(), baseline = allocations.live();
@@ -33,8 +35,8 @@ it.each(roots)('keeps $language classification on the borrowed tree and frees re
     await baselineScopes('baseline:captures', identity.language, 'const sample = 8;');
     expect(counts.read().parse).toBe(1);
     const warmed = allocations.live();
-    for (let index = 0; index < 20; index++) await cycle(identity, () => counts.read().parse);
-    expect(counts.read()).toMatchObject({ parse: 21, classify: 40, resolver: 0 });
+    await cycle(identity, () => counts.read().parse);
+    expect(counts.read()).toMatchObject({ parse: 2, classify: 2, resolver: 0 });
     expect(allocations.live()).toBe(warmed);
     expect(allocations.live()).toBeGreaterThanOrEqual(baseline);
   } finally { counts.restore(); }

@@ -6,6 +6,7 @@ import { nativeDocument, nativeScopes } from '../src/native/adapter.ts';
 import { explainDocument } from '../src/native/evidence.ts';
 import { ScopeSession } from '../src/native/incremental.ts';
 import { roots, usingRoot, decoded, intervals, pathAt, clip, scoped } from './native-javascript-root-controls.ts';
+import type { Root } from './native-javascript-root-controls.ts';
 
 it.each(roots)('loads the real experimental $language root', async identity => {
   await usingRoot(identity, 'const answer = 2;', async (pack, owner) => {
@@ -85,17 +86,7 @@ it.each(roots)('preserves $language BOM, CRLF and split-surrogate windows', asyn
 it.each(roots)('rejects real crossed $language packs before borrowing or retaining', async identity => {
   const other = roots.find(root => root.language !== identity.language);
   if (!other) throw new Error('Missing crossed root');
-  await usingRoot(identity, 'const value = 7;', async (_pack, owner) => {
-    const crossed = await loadLanguagePack(other.language);
-    const borrow = vi.spyOn(PilotDocument.prototype, 'borrow'), retain = vi.spyOn(NativePack.prototype, 'retain');
-    try {
-      expect(() => nativeScopes(crossed, owner)).toThrow('public language mismatch');
-      expect((await nativeDocument(crossed, owner, 'raw')).status).toBe('error');
-      await expect(explainDocument(crossed, owner)).rejects.toThrow('public language mismatch');
-      expect(() => ScopeSession.attach(owner, new Map([[identity.language, crossed]]))).toThrow('public language mismatch');
-      expect(borrow).not.toHaveBeenCalled(); expect(retain).not.toHaveBeenCalled();
-    } finally { borrow.mockRestore(); retain.mockRestore(); crossed.dispose(); }
-  });
+  await usingRoot(identity, 'const value = 7;', (_pack, owner) => checkCrossed(identity, other, owner));
 });
 
 it.each(roots)('uses the bounded $language newline recovery only for accepted ASCII LF/CRLF shapes', async identity => {
@@ -176,3 +167,15 @@ it.each(rejectedTails)('does not recover unrelated bindings, closed tails or lat
     expect(decoded(pack, owner).status).toBe(0);
   });
 });
+
+async function checkCrossed(identity: Root, other: Root, owner: PilotDocument): Promise<void> {
+  const crossed = await loadLanguagePack(other.language);
+  const borrow = vi.spyOn(PilotDocument.prototype, 'borrow'), retain = vi.spyOn(NativePack.prototype, 'retain');
+  try {
+    expect(() => nativeScopes(crossed, owner)).toThrow('public language mismatch');
+    expect((await nativeDocument(crossed, owner, 'raw')).status).toBe('error');
+    await expect(explainDocument(crossed, owner)).rejects.toThrow('public language mismatch');
+    expect(() => ScopeSession.attach(owner, new Map([[identity.language, crossed]]))).toThrow('public language mismatch');
+    expect(borrow).not.toHaveBeenCalled(); expect(retain).not.toHaveBeenCalled();
+  } finally { borrow.mockRestore(); retain.mockRestore(); crossed.dispose(); }
+}
