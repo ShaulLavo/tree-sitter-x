@@ -71,38 +71,129 @@ static bool compile_operator(ScopeCompatPack *p, ScPredicate *op, const char *na
                              uint32_t length, uint32_t pattern) {
   if (same(name, length, "set!")) { op->kind = SC_SET; return true; }
   if (same(name, length, "make-range!")) { op->kind = SC_RANGE; return true; }
+  if (same(name, length, "make-span!")) { op->kind = SC_SPAN; return true; }
+  if (same(name, length, "starts-with?") || same(name, length, "not-starts-with?")) {
+    op->kind = SC_PREFIX; op->data.prefix.positive = same(name, length, "starts-with?"); return true;
+  }
+  if (same(name, length, "text-class?") || same(name, length, "not-text-class?")) {
+    op->kind = SC_CLASS; op->data.text_class.positive = same(name, length, "text-class?"); return true;
+  }
+  if (same(name, length, "any-of?") || same(name, length, "not-any-of?")) {
+    op->kind = SC_MEMBERSHIP; op->data.membership.positive = same(name, length, "any-of?"); return true;
+  }
   op->kind = SC_EQ;
-  op->positive = same(name, length, "eq?") || same(name, length, "any-eq?") || same(name, length, "any-of?");
-  op->any = same(name, length, "any-eq?") || same(name, length, "any-not-eq?");
-  op->membership = same(name, length, "any-of?") || same(name, length, "not-any-of?");
-  if (op->positive || op->any || op->membership || same(name, length, "not-eq?")) return true;
+  op->data.equality.positive = same(name, length, "eq?") || same(name, length, "any-eq?");
+  op->data.equality.any = same(name, length, "any-eq?") || same(name, length, "any-not-eq?");
+  if (op->data.equality.positive || op->data.equality.any || same(name, length, "not-eq?")) return true;
   sc_pack_error(p, SCOPE_COMPAT_UNSUPPORTED, SCOPE_COMPAT_DETAIL_UNKNOWN_OPERATOR, 0, pattern, name, length);
   return false;
 }
 
-static bool compile_arguments(ScopeCompatPack *p, ScPredicate *op, uint32_t pattern,
-                              const char *suffix, uint32_t suffix_length) {
-  const TSQueryPredicateStep *a = op->arguments;
+static bool class_character(uint16_t c) {
+  return c >= 32 && c <= 126 && c != '^' && c != '\\' && c != '[' && c != ']';
+}
+
+static void set_range(ScAsciiSet *set, uint16_t first, uint16_t last) {
+  for (uint32_t c = first; c <= last; ++c) set->words[c / 64] |= UINT64_C(1) << (c % 64);
+}
+
+static bool class_token(ScText text, uint32_t end, uint32_t *at, ScAsciiSet *set) {
+  uint16_t first = text.text[(*at)++];
+  if (!class_character(first) || (first == '-' && *at != 2)) return false;
+  if (first == '-' || *at == end || text.text[*at] != '-') { set_range(set, first, first); return true; }
+  if (++*at == end) return false;
+  uint16_t last = text.text[(*at)++];
+  if (!class_character(last) || last == '-' || last < first) return false;
+  set_range(set, first, last);
+  return true;
+}
+
+static bool compile_ascii_set(ScText text, ScAsciiSet *set) {
+  if (text.length < 3 || text.text[0] != '[' || text.text[text.length - 1] != ']') return false;
+  uint32_t end = text.length - 1;
+  for (uint32_t i = 1; i < end;) {
+    if (!class_token(text, end, &i, set)) return false;
+  }
+  return true;
+}
+
+static bool compile_class(ScopeCompatPack *p, ScPredicate *op, const TSQueryPredicateStep *a, uint32_t count) {
+  if ((count != 3 && count != 4) || a[0].type != TSQueryPredicateStepTypeCapture) return false;
+  for (uint32_t i = 1; i < count; ++i) {
+    if (a[i].type != TSQueryPredicateStepTypeString) return false;
+  }
+  ScClass body = {.capture = a[0].value_id, .positive = op->data.text_class.positive};
+  if (!compile_ascii_set(p->strings[a[1].value_id], &body.first) ||
+      !compile_ascii_set(p->strings[a[2].value_id], &body.tail)) return false;
+  if (count == 3) { op->data.text_class = body; return true; }
+  op->kind = SC_CLASS_LAST;
+  op->data.text_class_last = (ScClassLast){.body = body};
+  return compile_ascii_set(p->strings[a[3].value_id], &op->data.text_class_last.last);
+}
+
+static bool compile_edge(const ScopeCompatPack *p, const TSQueryPredicateStep *a, ScEdge *edge) {
+  if (a[0].type != TSQueryPredicateStepTypeCapture) return false;
+  edge->capture = a[0].value_id;
+  if (string_is(p, a[1], "start")) edge->side = SC_AT_START;
+  else if (string_is(p, a[1], "end")) edge->side = SC_AT_END;
+  else return false;
+  const char *deltas[] = {"-2", "-1", "0", "1", "2"};
+  for (uint32_t i = 0; i < 5; ++i) {
+    if (string_is(p, a[2], deltas[i])) { edge->delta = (int8_t)i - 2; return true; }
+  }
+  return false;
+}
+
+static uint32_t scope_argument(ScopeCompatPack *p, TSQueryPredicateStep a, const char *suffix, uint32_t length) {
+  uint32_t size;
+  const char *name = ts_query_string_value_for_id(p->query, a.value_id, &size);
+  return add_scope(p, name, size, suffix, length);
+}
+
+static bool compile_range(ScopeCompatPack *p, ScPredicate *op, const TSQueryPredicateStep *a, uint32_t count,
+                           const char *suffix, uint32_t length) {
+  if (count != 3 || a[0].type != TSQueryPredicateStepTypeString ||
+      a[1].type != TSQueryPredicateStepTypeCapture || a[2].type != TSQueryPredicateStepTypeCapture) return false;
+  op->data.range = (ScRange){.scope = scope_argument(p, a[0], suffix, length),
+                            .first = a[1].value_id, .second = a[2].value_id};
+  return op->data.range.scope != SC_NONE;
+}
+
+static bool compile_span(ScopeCompatPack *p, ScPredicate *op, const TSQueryPredicateStep *a, uint32_t count,
+                          const char *suffix, uint32_t length) {
+  if (count != 8 || a[0].type != TSQueryPredicateStepTypeString || a[1].type != TSQueryPredicateStepTypeCapture) return false;
+  ScSpanSpec *span = &op->data.span;
+  if (!compile_edge(p, a + 2, &span->left) || !compile_edge(p, a + 5, &span->right)) return false;
+  span->container = a[1].value_id;
+  span->scope = scope_argument(p, a[0], suffix, length);
+  if (span->scope == SC_NONE) return false;
+  p->order_policy = SC_CONTAINED_SPAN_ORDER;
+  return true;
+}
+
+static bool compile_arguments(ScopeCompatPack *p, ScPredicate *op, const TSQueryPredicateStep *a,
+                              uint32_t count, uint32_t pattern, const char *suffix, uint32_t length) {
+  if (op->kind == SC_RANGE) return compile_range(p, op, a, count, suffix, length);
+  if (op->kind == SC_SPAN) return compile_span(p, op, a, count, suffix, length);
+  if (op->kind == SC_CLASS) return compile_class(p, op, a, count);
   if (op->kind == SC_SET) {
-    if (op->count != 2 || a[0].type != TSQueryPredicateStepTypeString) return false;
+    if (count != 2 || a[0].type != TSQueryPredicateStepTypeString) return false;
     if (!string_is(p, a[0], "priority")) { p->detail = SCOPE_COMPAT_DETAIL_UNKNOWN_SETTING; return false; }
-    if (!priority(p, a[1], &p->patterns[pattern].priority)) { p->detail = SCOPE_COMPAT_DETAIL_BAD_PRIORITY; return false; }
+    if (!priority(p, a[1], &op->data.priority)) { p->detail = SCOPE_COMPAT_DETAIL_BAD_PRIORITY; return false; }
+    p->patterns[pattern].priority = op->data.priority;
     return true;
   }
-  if (op->kind == SC_RANGE) {
-    if (op->count != 3 || a[0].type != TSQueryPredicateStepTypeString ||
-        a[1].type != TSQueryPredicateStepTypeCapture || a[2].type != TSQueryPredicateStepTypeCapture) return false;
-    uint32_t length;
-    const char *name = ts_query_string_value_for_id(p->query, a[0].value_id, &length);
-    op->scope = add_scope(p, name, length, suffix, suffix_length);
-    op->first = a[1].value_id;
-    op->second = a[2].value_id;
-    return op->scope != SC_NONE;
+  if (count < 2 || a[0].type != TSQueryPredicateStepTypeCapture) return false;
+  if (op->kind == SC_PREFIX) {
+    op->data.prefix.capture = a[0].value_id; op->data.prefix.literal = a[1].value_id;
+    return count == 2 && a[1].type == TSQueryPredicateStepTypeString;
   }
-  if (op->count < 2 || a[0].type != TSQueryPredicateStepTypeCapture) return false;
-  op->first = a[0].value_id;
-  if (!op->membership) return op->count == 2 && (a[1].type == TSQueryPredicateStepTypeCapture || a[1].type == TSQueryPredicateStepTypeString);
-  for (uint32_t i = 1; i < op->count; ++i) {
+  if (op->kind == SC_EQ) {
+    op->data.equality.capture = a[0].value_id; op->data.equality.arguments = a; op->data.equality.count = count;
+    return count == 2 && (a[1].type == TSQueryPredicateStepTypeCapture || a[1].type == TSQueryPredicateStepTypeString);
+  }
+  op->data.membership.capture = a[0].value_id; op->data.membership.arguments = a; op->data.membership.count = count;
+  for (uint32_t i = 1; i < count; ++i) {
     if (a[i].type != TSQueryPredicateStepTypeString) return false;
   }
   return true;
@@ -113,9 +204,9 @@ static bool compile_step(ScopeCompatPack *p, const TSQueryPredicateStep *steps, 
   if (!count || steps[0].type != TSQueryPredicateStepTypeString) return false;
   uint32_t length;
   const char *name = ts_query_string_value_for_id(p->query, steps[0].value_id, &length);
-  ScPredicate op = {.arguments = steps + 1, .count = count - 1};
+  ScPredicate op = {0};
   if (!compile_operator(p, &op, name, length, pattern)) return false;
-  if (!compile_arguments(p, &op, pattern, suffix, suffix_length)) {
+  if (!compile_arguments(p, &op, steps + 1, count - 1, pattern, suffix, suffix_length)) {
     uint32_t status = p->status == SCOPE_COMPAT_NO_MEMORY ? p->status : SCOPE_COMPAT_INVALID;
     uint32_t detail = p->detail ? p->detail : SCOPE_COMPAT_DETAIL_BAD_ARGUMENTS;
     sc_pack_error(p, status, detail, count, pattern, name, length);

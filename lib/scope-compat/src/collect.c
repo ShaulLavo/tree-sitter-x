@@ -12,6 +12,7 @@ bool sc_node_span(TSNode node, uint32_t bytes, ScCollection *c) {
 }
 
 static bool append(ScCollection *c, ScInterval item, uint32_t ws, uint32_t we, uint32_t limit) {
+  item.logical_from = item.from; item.logical_to = item.to;
   if (item.to < ws || item.from > we) return true;
   if (item.from < ws) item.from = ws;
   if (item.to > we) item.to = we;
@@ -23,7 +24,7 @@ static bool append(ScCollection *c, ScInterval item, uint32_t ws, uint32_t we, u
   return true;
 }
 
-static bool range_interval(const ScPredicate *op, const TSQueryMatch *match, ScInterval *item) {
+static bool range_interval(const ScRange *op, const TSQueryMatch *match, ScInterval *item) {
   uint32_t first = UINT32_MAX, last = 0;
   bool has_last = false;
   for (uint32_t i = 0; i < match->capture_count; ++i) {
@@ -33,7 +34,54 @@ static bool range_interval(const ScPredicate *op, const TSQueryMatch *match, ScI
     if (capture.index == op->second && (!has_last || to > last)) { last = to; has_last = true; }
   }
   if (first == UINT32_MAX || !has_last) return false;
-  item->from = first; item->to = last; item->scope = op->scope; item->range = true;
+  item->from = first; item->to = last; item->scope = op->scope; item->kind = SC_LEGACY_RANGE_INTERVAL;
+  return true;
+}
+
+static bool one_capture(const TSQueryMatch *match, uint32_t id, TSNode *node) {
+  uint32_t count = 0;
+  for (uint32_t i = 0; i < match->capture_count; ++i) {
+    if (match->captures[i].index != id) continue;
+    *node = match->captures[i].node; ++count;
+  }
+  return count == 1;
+}
+
+static bool descendant_or_same(TSNode node, TSNode container) {
+  while (!ts_node_is_null(node)) {
+    if (ts_node_eq(node, container)) return true;
+    node = ts_node_parent(node);
+  }
+  return false;
+}
+
+bool sc_resolve_edge(ScEdge edge, uint32_t start, uint32_t end, uint32_t *resolved, ScCollection *c) {
+  uint32_t base = edge.side == SC_AT_START ? start : end;
+  int64_t value = (int64_t)base + edge.delta;
+  if (value < start || value > end) {
+    error(c, SCOPE_COMPAT_INVALID, SCOPE_COMPAT_DETAIL_WINDOW, base); return false;
+  }
+  *resolved = (uint32_t)value;
+  return true;
+}
+
+bool sc_span_interval(const ScSpanSpec *spec, const TSQueryMatch *match, uint32_t length,
+                       uint32_t ordinal, ScCollection *c, ScInterval *item) {
+  TSNode container, left, right;
+  if (!one_capture(match, spec->container, &container) || !one_capture(match, spec->left.capture, &left) ||
+      !one_capture(match, spec->right.capture, &right)) {
+    error(c, SCOPE_COMPAT_INVALID, SCOPE_COMPAT_DETAIL_BAD_ARGUMENTS, ordinal); return false;
+  }
+  if (!descendant_or_same(left, container) || !descendant_or_same(right, container)) {
+    error(c, SCOPE_COMPAT_INVALID, SCOPE_COMPAT_DETAIL_BAD_ARGUMENTS, ordinal); return false;
+  }
+  if (!sc_resolve_edge(spec->left, ts_node_start_byte(left) / 2, ts_node_end_byte(left) / 2, &item->from, c) ||
+      !sc_resolve_edge(spec->right, ts_node_start_byte(right) / 2, ts_node_end_byte(right) / 2, &item->to, c)) return false;
+  uint32_t start = ts_node_start_byte(container) / 2, end = ts_node_end_byte(container) / 2;
+  if (item->from < start || item->from > end || item->to < start || item->to > end || item->to > length || item->from > length || item->from > item->to) {
+    error(c, SCOPE_COMPAT_INVALID, SCOPE_COMPAT_DETAIL_WINDOW, item->to); return false;
+  }
+  item->scope = spec->scope; item->kind = SC_EDGE_SPAN_INTERVAL;
   return true;
 }
 
@@ -50,7 +98,7 @@ static bool accept_match(const ScopeCompatPack *p, const TSQueryMatch *match, co
 }
 
 static bool collect_match(const ScopeCompatPack *p, const TSQueryMatch *match, ScCollection *c,
-                          uint32_t ws, uint32_t we, uint32_t limit) {
+                          uint32_t length, uint32_t ws, uint32_t we, uint32_t limit) {
   ScPattern pattern = p->patterns[match->pattern_index];
   ScInterval item = {.pattern = match->pattern_index, .priority = pattern.priority};
   for (uint32_t i = 0; i < match->capture_count; ++i) {
@@ -62,7 +110,9 @@ static bool collect_match(const ScopeCompatPack *p, const TSQueryMatch *match, S
   }
   for (uint32_t i = 0; i < pattern.count; ++i) {
     const ScPredicate *op = &p->predicates[pattern.start + i];
-    if (op->kind != SC_RANGE || !range_interval(op, match, &item)) continue;
+    if (op->kind != SC_RANGE && op->kind != SC_SPAN) continue;
+    if (op->kind == SC_RANGE && !range_interval(&op->data.range, match, &item)) continue;
+    if (op->kind == SC_SPAN && !sc_span_interval(&op->data.span, match, length, pattern.start + i, c, &item)) return false;
     item.capture = i;
     if (item.from > item.to) { error(c, SCOPE_COMPAT_INVALID, SCOPE_COMPAT_DETAIL_WINDOW, item.to); return false; }
     if (!append(c, item, ws, we, limit)) return false;
@@ -82,6 +132,7 @@ ScCollection sc_collect(const ScopeCompatPack *p, const TSTree *tree, const uint
   if (ts_tree_language(tree) != p->language) { error(&c, SCOPE_COMPAT_INVALID, SCOPE_COMPAT_DETAIL_LANGUAGE_MISMATCH, 0); return c; }
   if (ws > we || we > length) { error(&c, SCOPE_COMPAT_INVALID, SCOPE_COMPAT_DETAIL_WINDOW, we); return c; }
   if (!sc_node_span(ts_tree_root_node(tree), length * 2, &c)) return c;
+  c.order_policy = p->order_policy;
   TSQueryCursor *cursor = ts_query_cursor_new();
   ts_query_cursor_set_byte_range(cursor, ws * 2, we * 2);
   if (match_limit) ts_query_cursor_set_match_limit(cursor, match_limit);
@@ -93,7 +144,7 @@ ScCollection sc_collect(const ScopeCompatPack *p, const TSTree *tree, const uint
     c.captures_seen += match.capture_count;
     bool accepted = accept_match(p, &match, source, length * 2, &c);
     if (c.status != SCOPE_COMPAT_OK) break;
-    if (accepted && !collect_match(p, &match, &c, ws, we, limit)) break;
+    if (accepted && !collect_match(p, &match, &c, length, ws, we, limit)) break;
   }
   if (c.status == SCOPE_COMPAT_OK && ts_query_cursor_did_exceed_match_limit(cursor)) error(&c, SCOPE_COMPAT_BUDGET, SCOPE_COMPAT_DETAIL_MATCH_LIMIT, match_limit);
   ts_query_cursor_delete(cursor);

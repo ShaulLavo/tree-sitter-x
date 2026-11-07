@@ -62,7 +62,7 @@ function failure(header: Uint32Array): Failure | undefined {
     return undefined;
   }
   if (status !== 1 && status !== 2 && status !== 3 && status !== 4) throw new Error('Unknown native status');
-  const details = status === 1 ? [16] : status === 2 ? [22,23,24] : status === 3 ? [0,7,17,18,19,20,21] : [0];
+  const details = status === 1 ? [16] : status === 2 ? [22,23,24] : status === 3 ? [0,3,7,17,18,19,20,21] : [0];
   if (!details.includes(header[2]) || (status === 4 && header[3])) throw new Error('Invalid native failure detail');
   return { status, detail: header[2], value: header[3] };
 }
