@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { tmpdir } from 'node:os'
 import { gzipSync } from 'node:zlib'
 import { ResultBuilder } from '../src/build.ts'
 import { serializeResult } from '../src/serialize.ts'
@@ -11,7 +12,7 @@ import type { DocumentResult } from '../src/schema.ts'
 
 const owned: string[] = []
 afterEach(() => { for (const path of owned.splice(0)) rmSync(path, { recursive: true, force: true }) })
-function directory(): string { const root = mkdtempSync('/work/tmp/wave010-reference-'); owned.push(root); mkdirSync(resolve(root, 'documents')); return root }
+function directory(): string { const root = mkdtempSync(resolve(tmpdir(), 'wave010-reference-')); owned.push(root); mkdirSync(resolve(root, 'documents')); return root }
 const source = 'x'
 const row: ScopeRequest = { key: JSON.stringify(['javascript', 'tiny', 'raw', 'fresh-full']), fixture: 'tiny', language: 'javascript', profile: 'raw', split: 'development', state: 'fresh-full', utf16Units: 1 }
 const input: WaveInput = { id: 'tiny', languageId: 'javascript', split: 'development', path: 'tiny', sha256: hash(source), utf16Units: 1, storage: 'wave-packet', derivationFamilies: [] }

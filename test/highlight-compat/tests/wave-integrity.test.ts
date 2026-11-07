@@ -1,6 +1,7 @@
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { tmpdir } from 'node:os'
 import { gzipSync } from 'node:zlib'
 import { ResultBuilder } from '../src/build.ts'
 import { readJsJsxSplit, materializeJsJsxRows } from '../src/fixtures/js-jsx-wave.ts'
@@ -14,7 +15,7 @@ import { PINS, pinLabel } from '../src/oracles/pins.ts'
 const owned: string[] = []
 const dev = readJsJsxSplit('development')
 function directory(): string {
-  const path = mkdtempSync('/work/tmp/wave010-integrity-')
+  const path = mkdtempSync(resolve(tmpdir(), 'wave010-integrity-'))
   owned.push(path)
   mkdirSync(resolve(path, 'documents'))
   writeFileSync(resolve(path, 'scope-rows.json'), '[]')

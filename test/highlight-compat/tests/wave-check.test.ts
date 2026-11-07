@@ -1,6 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { tmpdir } from 'node:os'
 import { checkWaveFiles, renderCollection, planWave, REFERENCE_ORIGIN, STYLE_PROJECTION, retainAnswer } from '../src/wave-collection.ts'
 import type { Execution } from '../src/wave-collection.ts'
 import { readJsJsxSplit } from '../src/fixtures/js-jsx-wave.ts'
@@ -15,7 +16,7 @@ afterEach(() => { vi.restoreAllMocks(); for (const root of owned.splice(0)) rmSy
 const dev = readJsJsxSplit('development')
 const intake = { ...dev, inputs: dev.inputs.filter(input => input.path.endsWith('/javascript/ordinary.js') || input.path.endsWith('/javascript/empty.js')) }
 function control() {
-  const root = mkdtempSync('/work/tmp/wave010-check-'); owned.push(root)
+  const root = mkdtempSync(resolve(tmpdir(), 'wave010-check-')); owned.push(root)
   writeFileSync(resolve(root, 'scope-rows.json'), '[]')
   const identity = { revision: 'test-owned', implementationDigest: 'a'.repeat(64), packFiles: [], referenceOrigin: REFERENCE_ORIGIN, styleProjection: STYLE_PROJECTION, retainAnswer }
   const execution: Execution = { schema: '010-native-wave-collection-1', split: 'development', identity, selectionSha256: intake.selectionSha256, themes: intake.themes,
@@ -26,7 +27,7 @@ function control() {
 it('checks failure accounting read-only without creating any native owner/runtime', () => {
   const current = control()
   // Reference and candidate output live in separate partitions, even in this tiny control.
-  const references = mkdtempSync('/work/tmp/wave010-check-references-'); owned.push(references)
+  const references = mkdtempSync(resolve(tmpdir(), 'wave010-check-references-')); owned.push(references)
   writeFileSync(resolve(references, 'scope-rows.json'), '[]')
   current.options.references = references
   const rendered = renderCollection(intake, references, current.root, current.execution)
@@ -43,7 +44,7 @@ it('checks failure accounting read-only without creating any native owner/runtim
   expect(rendered.rows.flatMap(row => row.themes)).toHaveLength(650)
 })
 it.each(['rows', 'themes', 'report', 'identity', 'duplicate', 'unfinished'] as const)('rejects altered %s in retained check', mode => {
-  const current = control(), references = mkdtempSync('/work/tmp/wave010-check-ref-'); owned.push(references)
+  const current = control(), references = mkdtempSync(resolve(tmpdir(), 'wave010-check-ref-')); owned.push(references)
   writeFileSync(resolve(references, 'scope-rows.json'), '[]'); current.options.references = references
   const rendered = renderCollection(intake, references, current.root, current.execution)
   writeFileSync(resolve(current.root, 'execution.json'), JSON.stringify(current.execution))
@@ -63,7 +64,7 @@ it('requires explicit paths/split and rejects selectors, recollection, duplicate
 })
 
 it('rechecks a real partial-theme native document without invoking a native owner, compiler or worker', async () => {
-  const current = control(), references = mkdtempSync('/work/tmp/wave010-check-real-ref-'); owned.push(references)
+  const current = control(), references = mkdtempSync(resolve(tmpdir(), 'wave010-check-real-ref-')); owned.push(references)
   writeFileSync(resolve(references, 'scope-rows.json'), '[]')
   const selected = dev.inputs.find(input => input.path.endsWith('/javascript/ordinary.js'))
   if (!selected) throw new Error('Missing DEV control')
