@@ -175,7 +175,7 @@ export class Component {
       ...this.#identity, packId: spec.id, packVersion: spec.version, querySha256: digest(new TextEncoder().encode(query)),
       languageId: spec.languageId, parserLanguageId: parserId,
       parserSha256: parser.sha256, composition: 'scope-compat-compose-1+contained-span-order-1',
-      predicateDialect: 'eq/any-of/make-range/priority;text-class-ascii-1;prefix-utf16-1;make-span-utf16-1',
+      predicateDialect: 'eq/any-of/make-range/priority;text-class-ascii-1;prefix-utf16-1;make-span-utf16-1;source-gap-utf16-max2-1',
       selectedOrderPolicy: orderPolicy,
     });
   }
