@@ -102,6 +102,21 @@ it('checks ordinary empty scope paths through the actual product plain-line cont
   expect(actual.direct[0]?.style).toEqual(fixture.cases.find(row => row.id === 'empty')?.applied)
 })
 
+it.each(['raw', 'product'] as const)('distinguishes ancestor dot prefixes from sibling names for %s', profile => {
+  const fixture = suite.fixtures.find(item => item.id === 'contexts' && item.profile === profile)
+  assert(fixture)
+  const exact = fixture.cases.find(row => row.id === 'immediate')
+  const prefix = fixture.cases.find(row => row.id === 'ancestor-dot-prefix')
+  const sibling = fixture.cases.find(row => row.id === 'ancestor-dot-boundary')
+  assert(exact && prefix && sibling, 'ancestor boundary reference cases')
+  expect(prefix.scopes).toEqual(['source.native-theme', 'a.more', 'variable.immediate'])
+  expect(sibling.scopes).toEqual(['source.native-theme', 'aOther', 'variable.immediate'])
+  const bare = observeNativeTheme(Theme.createFromRawTheme(fixture.normalized), ['source.native-theme', 'variable.immediate'], profile)
+  expect(prefix.effective).toEqual(exact.effective)
+  expect(sibling.effective).toEqual(bare.effective)
+  expect(sibling.effective).not.toEqual(exact.effective)
+})
+
 it.each(['foreground', 'background'])('counts equivalent %s spellings as separate raw palette entries', async role => {
   const colors = Array.from({ length: 252 }, (_, index) => `#${(index + 1).toString(16).padStart(6, '0')}`)
     .concat(['#123', '#112233'])
