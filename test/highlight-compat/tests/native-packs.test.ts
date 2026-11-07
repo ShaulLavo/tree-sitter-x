@@ -65,8 +65,14 @@ describe('explicit native language variants', () => {
     'keeps the declaration ancestor on original/$fixtureId tokens and gaps',
     input => checkDeclarationFrame(input.source),
   );
-  it('frames every declarator once and leaves the terminator outside the declaration', async () => {
-    const source = 'const a = 1, b = 2; let c = 3;\n';
+  it.each([
+    'const a = 1, b = 2; let c = 3;\n',
+    'const a = 1 /* tail */; let c = 3;\n',
+    'const a = 1, b = 2 /* tail */; let c = 3;\n',
+    'const a = 1, b = 2 /* first */ /* second */; let c = 3;\n',
+    'const a = 1, b = 2 /* a */ /* b */ /* c */ /* d */ /* e */; let c = 3;\n',
+    'const a = 1, b = 2 // tail\n; let c = 3;\n',
+  ])('frames every declarator once and leaves trailing comments and terminators outside the range: %s', async source => {
     const pack = await loadLanguagePack('tsx');
     const owner = await PilotDocument.open('tsx', source);
     try {
@@ -74,9 +80,14 @@ describe('explicit native language variants', () => {
       const storage = ['source.tsx', 'meta.var.expr.tsx', 'storage.type.tsx'];
       const assignment = ['source.tsx', 'meta.var.expr.tsx', 'keyword.operator.assignment.tsx'];
       expect(scopesAt(pack, result, 0)).toEqual(storage);
+      expect(scopesAt(pack, result, 5)).toEqual(['source.tsx', 'meta.var.expr.tsx']);
       expect(scopesAt(pack, result, source.indexOf('let'))).toEqual(storage);
-      expect(scopesAt(pack, result, source.indexOf('='))).toEqual(assignment);
-      expect(scopesAt(pack, result, source.indexOf('= 2'))).toEqual(assignment);
+      for (const match of source.matchAll(/=/g)) {
+        expect(scopesAt(pack, result, match.index)).toEqual(assignment);
+      }
+      for (const match of source.matchAll(/\/\*|\/\//g)) {
+        expect(scopesAt(pack, result, match.index)).not.toContain('meta.var.expr.tsx');
+      }
       expect(scopesAt(pack, result, source.indexOf(';'))).toEqual(['source.tsx', 'punctuation.terminator.statement.tsx']);
       expect(scopesAt(pack, result, source.indexOf(';') + 1)).toEqual(['source.tsx']);
       expect(scopesAt(pack, result, source.length - 1)).toEqual([]);

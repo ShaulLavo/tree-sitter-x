@@ -2,13 +2,13 @@
 
 Limited experiment. This report is candidate evidence and never a golden. Phase 2 acceptance remains OPEN until safety/schema CI and every strict improvement cell pass. No performance benefit or consumer cutover is claimed.
 
-Stable report input identity: 50446e597eb2bcf82d12ff6e6cf16e0724407800f79f6a822cfcd34a86c85770. Identity uses runtime/artifact/input content hashes and never moving Git HEAD.
+Stable report input identity: 4ddac56e1dd55194c33d597d4780dcf6753aa596104a3ce8a4e0a0011d865ec7. Identity uses runtime/artifact/input content hashes and never moving Git HEAD.
 
 ## Identities
 
 - json: {"componentSha256":"011d93dffd721f10badc0c07f6dd6c0c1114251fc2933fb6cd10d7f0afd7e156","sourceDigest":"049ef7f9ee11168b442ceaf10f3ed9acc435d60a44d143ddd518bf39429151f2","runtimeSha256":"317f46a0357a4bff9064f2be6256b70a5116bacd76c93a3143d7ae7cab3767b2","abi":"1","packId":"json","packVersion":"pilot-1","querySha256":"2a7d911634197084f96a7ebc6f149f8bc29012b45943268d0939d049d0fbaccf","parserSha256":"d2119fb98d5912719b13f9458574f8608d2d29dfbe45f6be1f860ea1fe2a2405","composition":"scope-compat-compose-1","predicateDialect":"eq/any-of/make-range/priority"}
 - typescript: {"componentSha256":"011d93dffd721f10badc0c07f6dd6c0c1114251fc2933fb6cd10d7f0afd7e156","sourceDigest":"049ef7f9ee11168b442ceaf10f3ed9acc435d60a44d143ddd518bf39429151f2","runtimeSha256":"317f46a0357a4bff9064f2be6256b70a5116bacd76c93a3143d7ae7cab3767b2","abi":"1","packId":"typescript","packVersion":"pilot-1","querySha256":"91b0277ec2e98b009a6af9c689b49e0f4b45ceccd92f5990088e19a257ba9031","parserSha256":"778025db5a8be0e70f8ccc3671e486dfeddd048c25d9e8a70c26de2e1bf6f97d","composition":"scope-compat-compose-1","predicateDialect":"eq/any-of/make-range/priority"}
-- tsx: {"componentSha256":"011d93dffd721f10badc0c07f6dd6c0c1114251fc2933fb6cd10d7f0afd7e156","sourceDigest":"049ef7f9ee11168b442ceaf10f3ed9acc435d60a44d143ddd518bf39429151f2","runtimeSha256":"317f46a0357a4bff9064f2be6256b70a5116bacd76c93a3143d7ae7cab3767b2","abi":"1","packId":"tsx","packVersion":"pilot-1","querySha256":"f24b905ec68835f91300c68c97c07f780267dbae99a36978af44b7b10ddb2f89","parserSha256":"79e5da75ea62855a0cd67177685f0164eac87d5f630b3cbe1e0a099751ad30f8","composition":"scope-compat-compose-1","predicateDialect":"eq/any-of/make-range/priority"}
+- tsx: {"componentSha256":"011d93dffd721f10badc0c07f6dd6c0c1114251fc2933fb6cd10d7f0afd7e156","sourceDigest":"049ef7f9ee11168b442ceaf10f3ed9acc435d60a44d143ddd518bf39429151f2","runtimeSha256":"317f46a0357a4bff9064f2be6256b70a5116bacd76c93a3143d7ae7cab3767b2","abi":"1","packId":"tsx","packVersion":"pilot-1","querySha256":"334bcebea8545b50a6df7babd4f5a57e42d4ff28c38d9ac74b8ab5e0f2bc732a","parserSha256":"79e5da75ea62855a0cd67177685f0164eac87d5f630b3cbe1e0a099751ad30f8","composition":"scope-compat-compose-1","predicateDialect":"eq/any-of/make-range/priority"}
 - markdown: {"LICENSE":"1cf2a3936adda9351dc283c619665a77b48d094cb9c63f68ec7ca60dd7355f18","NOTICE.md":"fc739a000b9c57359150b65a90795c0e4f639349bc13ae06cfeca3a8d04f418a","tree-sitter-markdown.wasm":"27d067c772acc4adce2c79217aaec5168914338246ad5d8ecaf4bd9d0d0548d5","tree-sitter-md.wasm":"a62768930dddde0a5d9cf49cd35f583d83e9b4aedb34de0f047fcd7879df5159","licenses/cloudlibc.txt":"c8b789cf5a746611e6300a0cc7750dbf92b61912a709d04e639245f7290656d0","licenses/cmark-gfm.txt":"c22e885f33b821bddb24cf007145e5540655b6c0f403e49e6c76a93c28e6d9a9","licenses/cmark.txt":"c22e885f33b821bddb24cf007145e5540655b6c0f403e49e6c76a93c28e6d9a9","licenses/dlmalloc.txt":"0205ac38409bb02178268367a550adf1968b34ce8e21041259505e2038540379","licenses/icu.txt":"6a18c5fac70d7860b57f5b72b4e2c9a1ba6b3d2741eef7ff9767c5379364f10d","licenses/llvm.txt":"a6c48161a09acc75a0e25503bab66a731eb5fba5392ed4bb4743e4ba5085327a","licenses/markdown-cjk-friendly.txt":"2556e6c4c696ca913376e7937b5e4125226296aafa74106a3e9b097172cf6d99","licenses/micromark-extension-gfm-strikethrough.txt":"536804b3adbff17dbbb9ed0d2bf9655b78f07640278581e37e3d7475282d5e61","licenses/micromark.txt":"dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb","licenses/musl.txt":"b870108ec5e7790e9f9919064f1b9421d62d5f9b0e6c230c6adf7ea2da62e97b","licenses/tree-sitter-markdown.txt":"52ec8a1bf8256511e2a92613e0bb41ffefba3897f16fa958d7bb28c466dd4804","licenses/tree-sitter.txt":"c5cfb43042b6b72045f4ba997834d0a7786d2793d91680868b5815b39f14fc78","licenses/wasi-libc.txt":"23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"}
 - markdownCommit: f02e277a34375f326572b4ade2602f44ac769005
 - markdownManifest: 5ad738fbb9bd385bf2dfbb24b2ca12d348133a92a48601329130ff8d210f5c65
@@ -19,7 +19,7 @@ Stable report input identity: 50446e597eb2bcf82d12ff6e6cf16e0724407800f79f6a822c
 
 ## Coverage and limits
 
-One bounded pack-authoring round. JSON is the unchanged PR A pack; TypeScript and TSX are explicit variants. JavaScript and JSX are distinct deferred variants. Regex predicates, local analysis, documentation-comment specialization and contextual all-caps naming are deferred. Unsupported operators fail pack load; they are never silently skipped. Markdown uses current consumer Git pin f02e277, package version 0.1.32 plus unreleased changes, flags 3. The historical 0.1.1 baseline is unchanged.
+Two bounded pilot pack-authoring rounds. JSON is the unchanged PR A pack; TypeScript and TSX are explicit variants. JavaScript and JSX are distinct deferred variants. Regex predicates, local analysis, documentation-comment specialization and contextual all-caps naming are deferred. Unsupported operators fail pack load; they are never silently skipped. Markdown uses current consumer Git pin f02e277, package version 0.1.32 plus unreleased changes, flags 3. The historical 0.1.1 baseline is unchanged.
 
 | Language | Inputs | Complete | Unsupported | Error | Timeout |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -624,7 +624,7 @@ Native: source.tsx meta.var.expr.tsx meta.type.parameters.tsx keyword.operator.c
 - [0, 23) meta.var.expr.tsx, pattern 60, make-range meta.var.expr, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:2
 - [13, 21) meta.type.parameters.tsx, pattern 9, @meta.type.parameters, priority 0, kept, lib/scope-compat/packs/tsx/../shared/typescript-common.scm:13
 - [13, 14) keyword.operator.comparison.tsx, pattern 50, @keyword.operator.comparison, priority 0, kept, lib/scope-compat/packs/tsx/../shared/typescript-common.scm:57
-- [13, 14) punctuation.definition.tag.tsx, pattern 69, @punctuation.definition.tag, priority 0, exclusive, lib/scope-compat/packs/tsx/tsx.scm:15
+- [13, 14) punctuation.definition.tag.tsx, pattern 70, @punctuation.definition.tag, priority 0, exclusive, lib/scope-compat/packs/tsx/tsx.scm:20
 
 ### tsx / raw / real / extra-scope
 
@@ -672,7 +672,7 @@ Native: source.tsx meta.var.expr.tsx meta.type.parameters.tsx keyword.operator.c
 - [0, 23) meta.var.expr.tsx, pattern 60, make-range meta.var.expr, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:2
 - [13, 21) meta.type.parameters.tsx, pattern 9, @meta.type.parameters, priority 0, kept, lib/scope-compat/packs/tsx/../shared/typescript-common.scm:13
 - [13, 14) keyword.operator.comparison.tsx, pattern 50, @keyword.operator.comparison, priority 0, kept, lib/scope-compat/packs/tsx/../shared/typescript-common.scm:57
-- [13, 14) punctuation.definition.tag.tsx, pattern 69, @punctuation.definition.tag, priority 0, exclusive, lib/scope-compat/packs/tsx/tsx.scm:15
+- [13, 14) punctuation.definition.tag.tsx, pattern 70, @punctuation.definition.tag, priority 0, exclusive, lib/scope-compat/packs/tsx/tsx.scm:20
 
 ### tsx / product / real / extra-scope
 
@@ -720,7 +720,7 @@ Native: source.tsx meta.var.expr.tsx meta.type.parameters.tsx keyword.operator.c
 - [0, 23) meta.var.expr.tsx, pattern 60, make-range meta.var.expr, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:2
 - [13, 21) meta.type.parameters.tsx, pattern 9, @meta.type.parameters, priority 0, kept, lib/scope-compat/packs/tsx/../shared/typescript-common.scm:13
 - [13, 14) keyword.operator.comparison.tsx, pattern 50, @keyword.operator.comparison, priority 0, kept, lib/scope-compat/packs/tsx/../shared/typescript-common.scm:57
-- [13, 14) punctuation.definition.tag.tsx, pattern 69, @punctuation.definition.tag, priority 0, exclusive, lib/scope-compat/packs/tsx/tsx.scm:15
+- [13, 14) punctuation.definition.tag.tsx, pattern 70, @punctuation.definition.tag, priority 0, exclusive, lib/scope-compat/packs/tsx/tsx.scm:20
 
 ### tsx / shiki-api / real / extra-scope
 
@@ -1242,8 +1242,8 @@ Reference: source.tsx meta.var.expr.tsx meta.tag.without-attributes.tsx meta.jsx
 Native: source.tsx meta.var.expr.tsx meta.tag.tsx meta.embedded.expression.tsx variable.other.readwrite.tsx
 
 - [0, 39) meta.var.expr.tsx, pattern 60, make-range meta.var.expr, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:2
-- [14, 37) meta.tag.tsx, pattern 61, @meta.tag, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:7
-- [25, 28) meta.embedded.expression.tsx, pattern 67, @meta.embedded.expression, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:13
+- [14, 37) meta.tag.tsx, pattern 62, @meta.tag, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:12
+- [25, 28) meta.embedded.expression.tsx, pattern 68, @meta.embedded.expression, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:18
 - [26, 27) variable.other.readwrite.tsx, pattern 20, @variable.other.readwrite, priority 0, kept, lib/scope-compat/packs/tsx/../shared/typescript-common.scm:25
 
 ### tsx / product / original / ancestor
@@ -1255,8 +1255,8 @@ Reference: source.tsx meta.var.expr.tsx meta.tag.without-attributes.tsx meta.jsx
 Native: source.tsx meta.var.expr.tsx meta.tag.tsx meta.embedded.expression.tsx variable.other.readwrite.tsx
 
 - [0, 39) meta.var.expr.tsx, pattern 60, make-range meta.var.expr, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:2
-- [14, 37) meta.tag.tsx, pattern 61, @meta.tag, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:7
-- [25, 28) meta.embedded.expression.tsx, pattern 67, @meta.embedded.expression, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:13
+- [14, 37) meta.tag.tsx, pattern 62, @meta.tag, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:12
+- [25, 28) meta.embedded.expression.tsx, pattern 68, @meta.embedded.expression, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:18
 - [26, 27) variable.other.readwrite.tsx, pattern 20, @variable.other.readwrite, priority 0, kept, lib/scope-compat/packs/tsx/../shared/typescript-common.scm:25
 
 ### tsx / shiki-api / original / ancestor
@@ -1268,8 +1268,8 @@ Reference: source.tsx meta.var.expr.tsx meta.tag.without-attributes.tsx meta.jsx
 Native: source.tsx meta.var.expr.tsx meta.tag.tsx meta.embedded.expression.tsx variable.other.readwrite.tsx
 
 - [0, 39) meta.var.expr.tsx, pattern 60, make-range meta.var.expr, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:2
-- [14, 37) meta.tag.tsx, pattern 61, @meta.tag, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:7
-- [25, 28) meta.embedded.expression.tsx, pattern 67, @meta.embedded.expression, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:13
+- [14, 37) meta.tag.tsx, pattern 62, @meta.tag, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:12
+- [25, 28) meta.embedded.expression.tsx, pattern 68, @meta.embedded.expression, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:18
 - [26, 27) variable.other.readwrite.tsx, pattern 20, @variable.other.readwrite, priority 0, kept, lib/scope-compat/packs/tsx/../shared/typescript-common.scm:25
 
 ### tsx / raw / original / leaf
@@ -1281,9 +1281,9 @@ Reference: source.tsx meta.var.expr.tsx meta.tag.tsx punctuation.definition.tag.
 Native: source.tsx meta.var.expr.tsx meta.tag.tsx keyword.operator.comparison.tsx
 
 - [0, 33) meta.var.expr.tsx, pattern 60, make-range meta.var.expr, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:2
-- [10, 33) meta.tag.tsx, pattern 61, @meta.tag, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:7
+- [10, 33) meta.tag.tsx, pattern 62, @meta.tag, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:12
 - [10, 11) keyword.operator.comparison.tsx, pattern 50, @keyword.operator.comparison, priority 0, kept, lib/scope-compat/packs/tsx/../shared/typescript-common.scm:57
-- [10, 11) punctuation.definition.tag.tsx, pattern 69, @punctuation.definition.tag, priority 0, exclusive, lib/scope-compat/packs/tsx/tsx.scm:15
+- [10, 11) punctuation.definition.tag.tsx, pattern 70, @punctuation.definition.tag, priority 0, exclusive, lib/scope-compat/packs/tsx/tsx.scm:20
 
 ### tsx / product / original / leaf
 
@@ -1294,9 +1294,9 @@ Reference: source.tsx meta.var.expr.tsx meta.tag.tsx punctuation.definition.tag.
 Native: source.tsx meta.var.expr.tsx meta.tag.tsx keyword.operator.comparison.tsx
 
 - [0, 33) meta.var.expr.tsx, pattern 60, make-range meta.var.expr, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:2
-- [10, 33) meta.tag.tsx, pattern 61, @meta.tag, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:7
+- [10, 33) meta.tag.tsx, pattern 62, @meta.tag, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:12
 - [10, 11) keyword.operator.comparison.tsx, pattern 50, @keyword.operator.comparison, priority 0, kept, lib/scope-compat/packs/tsx/../shared/typescript-common.scm:57
-- [10, 11) punctuation.definition.tag.tsx, pattern 69, @punctuation.definition.tag, priority 0, exclusive, lib/scope-compat/packs/tsx/tsx.scm:15
+- [10, 11) punctuation.definition.tag.tsx, pattern 70, @punctuation.definition.tag, priority 0, exclusive, lib/scope-compat/packs/tsx/tsx.scm:20
 
 ### tsx / shiki-api / original / extra-scope
 
@@ -1317,9 +1317,9 @@ Reference: source.tsx meta.var.expr.tsx meta.tag.tsx punctuation.definition.tag.
 Native: source.tsx meta.var.expr.tsx meta.tag.tsx keyword.operator.comparison.tsx
 
 - [0, 33) meta.var.expr.tsx, pattern 60, make-range meta.var.expr, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:2
-- [10, 33) meta.tag.tsx, pattern 61, @meta.tag, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:7
+- [10, 33) meta.tag.tsx, pattern 62, @meta.tag, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:12
 - [10, 11) keyword.operator.comparison.tsx, pattern 50, @keyword.operator.comparison, priority 0, kept, lib/scope-compat/packs/tsx/../shared/typescript-common.scm:57
-- [10, 11) punctuation.definition.tag.tsx, pattern 69, @punctuation.definition.tag, priority 0, exclusive, lib/scope-compat/packs/tsx/tsx.scm:15
+- [10, 11) punctuation.definition.tag.tsx, pattern 70, @punctuation.definition.tag, priority 0, exclusive, lib/scope-compat/packs/tsx/tsx.scm:20
 
 ### typescript / raw / original / missing-scope
 
