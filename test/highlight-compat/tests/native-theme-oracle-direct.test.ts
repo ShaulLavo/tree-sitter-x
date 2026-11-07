@@ -115,6 +115,8 @@ it.each(['foreground', 'background'])('counts equivalent %s spellings as separat
   const grammar = { scopeName: 'source.native-theme', patterns: [{ match: 'x', name: 'probe.c253' }] }
   await expect(directNativeTheme(input, 'raw', grammar, 'x')).rejects.toThrow('preflight before reference compilation')
   expect(nativeThemeReferenceEligibility(input, 'product')).toEqual({ kind: 'eligible' })
+  const product = await directNativeTheme(input, 'product', grammar, 'x')
+  expect(nativeThemeSpansEqual(product.direct, product.repaint, 1)).toBe(true)
 })
 
 it('rejects unsafe tail components before either actual target compiles them', async () => {
