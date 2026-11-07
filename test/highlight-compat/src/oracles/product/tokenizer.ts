@@ -2,8 +2,10 @@
 // platform-commit: 7f0dfc9e29fa9e3ee90c981147f77f6fcb656481
 // platform-blob-sha256: c62d1e5db1e07e16634814725e9a1d41289341d06ed4a8a2783612f6331864e7
 // Changes: import paths carry .ts; TextEdit is declared here, as in editor/src/tokens.ts.
+// Reference diagnostics can pass an optional same-owner binary observer.
 import type { HighlighterGeneric, ThemedToken } from 'shiki/core'
 import { createScopedLineTokenizer } from './scopedTokens.ts'
+import type { BinaryObserver } from '../metadata.ts'
 
 export interface TextEdit {
   from: number
@@ -52,6 +54,7 @@ export interface CreateIncrementalTokenizerOptions<
   highlighter: Highlighter
   /** Longest line, in UTF-16 units, that is tokenized; longer lines stay plain. */
   maxLineLength: number
+  readonly binaryObserver?: BinaryObserver
 }
 
 export interface CreateIncrementalTokenizerResult<
@@ -413,6 +416,7 @@ export async function createIncrementalTokenizer<Highlighter extends TokenizerHi
     options.lang,
     options.theme,
     options.maxLineLength,
+    options.binaryObserver,
   )
 
   return {

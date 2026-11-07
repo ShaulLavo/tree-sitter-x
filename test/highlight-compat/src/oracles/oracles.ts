@@ -1,5 +1,5 @@
 import { ResultBuilder } from '../build.ts'
-import type { CompleteResult } from '../schema.ts'
+import type { DocumentResult } from '../schema.ts'
 import { actualTokens, caseGrammarSet, loadCase } from './conformance.ts'
 import { SEPARATOR_SCOPES, sourceLines, writeTrack } from './lines.ts'
 import { productDocument } from './product/document.ts'
@@ -7,9 +7,10 @@ import { loadRootGrammar, rawDocument, tokenizeScopes } from './raw.ts'
 import type { ConformanceAnswer, ConformanceProfileId, ConformanceRequest, DocumentRequest, OracleProfileId } from './request.ts'
 import { shikiApiDocument } from './shiki-api.ts'
 import { type EngineId, textmateEngine } from './textmate.ts'
+import { validateMetadataOption } from './request.ts'
 
 /** Each call builds its own engine, registry or highlighter; nothing survives between calls. */
-const DOCUMENT_ORACLES: Readonly<Record<OracleProfileId, (request: DocumentRequest) => Promise<CompleteResult>>> = {
+const DOCUMENT_ORACLES: Readonly<Record<OracleProfileId, (request: DocumentRequest) => Promise<DocumentResult>>> = {
   raw: async (request) => rawDocument(await textmateEngine('upstream'), request),
   'raw:shiki-fork': async (request) => rawDocument(await textmateEngine('shiki-fork'), request),
   'shiki-api': shikiApiDocument,
@@ -22,7 +23,8 @@ const CONFORMANCE_ENGINES: Readonly<Record<ConformanceProfileId, EngineId>> = {
   'raw:shiki-fork': 'shiki-fork',
 }
 
-export function documentOracle(request: DocumentRequest): Promise<CompleteResult> {
+export async function documentOracle(request: DocumentRequest): Promise<DocumentResult> {
+  validateMetadataOption(request)
   if (request.themeIds.length === 0) throw new Error('an oracle request needs at least one theme')
   return DOCUMENT_ORACLES[request.profileId](request)
 }
