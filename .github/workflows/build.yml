@@ -32,6 +32,8 @@ jobs:
     - name: Set up Rust
       uses: actions-rust-lang/setup-rust-toolchain@v2
 
+    - uses: ./.github/actions/rust-build-cache
+
     - name: Resolve fixture artifact names
       id: fixture_artifact_names
       run: |
@@ -55,14 +57,14 @@ jobs:
 
     - name: Fetch fixtures
       if: steps.cache.outputs.cache-hit != 'true'
-      run: cargo run -p xtask -- fetch-fixtures
+      run: bash scripts/with-build-cache.sh cargo run -p xtask -- fetch-fixtures
 
     - name: Generate fixtures
       if: steps.cache.outputs.cache-hit != 'true'
-      run: cargo run -p xtask -- generate-fixtures
+      run: bash scripts/with-build-cache.sh cargo run -p xtask -- generate-fixtures
 
     - name: Generate Wasm fixtures
-      run: cargo run -p xtask -- generate-fixtures --wasm
+      run: bash scripts/with-build-cache.sh cargo run -p xtask -- generate-fixtures --wasm
 
     - name: Upload normal fixtures
       uses: actions/upload-artifact@v7
@@ -148,6 +150,9 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+    - uses: ./.github/actions/rust-build-cache
+      if: matrix.platform == 'linux-x64'
 
     - name: Set up cross-compilation
       if: matrix.cross
@@ -410,11 +415,11 @@ jobs:
       if: inputs.run-test && !matrix.no-run
       working-directory: lib
       shell: bash
-      run: cargo check --no-default-features --target='${{ matrix.target }}'
+      run: bash ../scripts/with-build-cache.sh cargo check --no-default-features --target='${{ matrix.target }}'
 
     - name: Build target
       if: "!inputs.run-test && !matrix.vm"
-      run: cargo build --release --target='${{ matrix.target }}' --features='${{ (matrix.run-wasm-test || !inputs.run-test) && matrix.features || '' }}' $PACKAGE
+      run: bash scripts/with-build-cache.sh cargo build --release --target='${{ matrix.target }}' --features='${{ (matrix.run-wasm-test || !inputs.run-test) && matrix.features || '' }}' $PACKAGE
       env:
         PACKAGE: ${{ matrix.platform == 'wasm32' && '-p tree-sitter' || '' }}
 
@@ -434,11 +439,11 @@ jobs:
 
     - name: Run main tests
       if: inputs.run-test && !matrix.no-run
-      run: cargo test --workspace --target='${{ matrix.target }}' --features='${{ (matrix.run-wasm-test || !inputs.run-test) && matrix.features || '' }}'
+      run: bash scripts/with-build-cache.sh cargo test --workspace --target='${{ matrix.target }}' --features='${{ (matrix.run-wasm-test || !inputs.run-test) && matrix.features || '' }}'
 
     - name: Run Wasm tests
       if: inputs.run-test && !matrix.no-run && contains(matrix.features, 'wasm') && matrix.run-wasm-test
-      run: cargo run -p xtask --target='${{ matrix.target }}' -- test-wasm
+      run: bash scripts/with-build-cache.sh cargo run -p xtask --target='${{ matrix.target }}' -- test-wasm
 
     - name: Set up Node.js 24 for fixed-buffer tests
       if: inputs.run-test && !matrix.no-run && contains(matrix.features, 'wasm') && matrix.run-wasm-test
@@ -454,11 +459,11 @@ jobs:
     # The runner's schema version must match wasm-bindgen in Cargo.lock.
     - name: Install wasm-bindgen test runner
       if: inputs.run-test && !matrix.no-run && contains(matrix.features, 'wasm') && matrix.run-wasm-test
-      run: cargo install --locked --version 0.2.129 wasm-bindgen-cli
+      run: bash scripts/with-build-cache.sh cargo install --locked --version 0.2.129 wasm-bindgen-cli
 
     - name: Run Rust Wasm web test
       if: inputs.run-test && !matrix.no-run && contains(matrix.features, 'wasm') && matrix.run-wasm-test
-      run: cargo run -p xtask --target='${{ matrix.target }}' -- test-rust-wasm-web
+      run: bash scripts/with-build-cache.sh cargo run -p xtask --target='${{ matrix.target }}' -- test-rust-wasm-web
 
     - name: Upload CLI artifact
       if: "!inputs.run-test && !matrix.no-run"
