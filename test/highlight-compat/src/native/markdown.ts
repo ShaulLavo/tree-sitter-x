@@ -9,12 +9,12 @@ import type { Foreign } from './runtime.ts';
 import { MarkdownResolver } from './markdown-resolver.ts';
 import type { ResolverRecord } from './markdown-resolver.ts';
 import { withBorrowed } from './borrow.ts';
-import { embeddedScope, NATIVE_LANGUAGES } from './packs.ts';
+import { embeddedScope } from './packs.ts';
+import { MARKDOWN_CHILD_ALIASES } from './markdown-membership.ts';
 import type { NativeLanguage } from './packs.ts';
 import { NativeScopeError } from './component.ts';
 import type { Limits } from './component.ts';
 import type { NativePack } from './component.ts';
-import { languageRegistrations } from '../oracles/assets.ts';
 import { sourceLines } from '../oracles/lines.ts';
 import { paintScopes } from '../baselines/theme.ts';
 import type { StyleReference } from '../baselines/theme.ts';
@@ -31,13 +31,7 @@ interface MarkdownAnalysis {
 }
 interface MarkdownUpdate { readonly key: OwnerKey; readonly children: Child[] }
 async function aliases(): Promise<ReadonlyMap<string, NativeLanguage>> {
-  const entries: [string, NativeLanguage][] = [];
-  for (const id of NATIVE_LANGUAGES) {
-    const registration = (await languageRegistrations(id)).find(item => item.name === id);
-    const names: string[] = [id];
-    for (const name of names.concat(registration?.aliases ?? [])) entries.push([name, id]);
-  }
-  return new Map(entries);
+  return new Map(MARKDOWN_CHILD_ALIASES);
 }
 function supportedContainer(source: string, injection: ResolverRecord, decorations: readonly ResolverRecord[]): boolean {
   const block = decorations.find(item => item.kind === 4 && item.extra === 1 && item.start <= injection.start && item.end >= injection.end);

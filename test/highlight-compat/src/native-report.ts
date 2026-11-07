@@ -10,11 +10,12 @@ import { compareResults } from './compare.ts';
 import type { Comparison, Agreement, ScopeRun } from './compare.ts';
 import type { DocumentResult } from './schema.ts';
 import { isWhitespaceUnit, sourceSha256 } from './source.ts';
-import { baselineScopes, baselineSupport } from './baselines/run.ts';
+import { baselineScopes } from './baselines/run.ts';
+import { EXPERIMENT_007, historicalBaselineSupport as baselineSupport, historicalPackManifests, checkHistoricalPack } from './experiment-007.ts';
 import type { BaselineId } from './baselines/run.ts';
 import { paintScopes } from './baselines/theme.ts';
 import type { StyleReference } from './baselines/theme.ts';
-import { loadLanguagePack, NATIVE_LANGUAGES } from './native/packs.ts';
+import { loadLanguagePack } from './native/packs.ts';
 import { nativeDocument } from './native/adapter.ts';
 import { PilotDocument } from './native/owner.ts';
 import { MarkdownPilotDocument } from './native/markdown.ts';
@@ -25,8 +26,7 @@ import type { IntervalEvidence } from './native/evidence.ts';
 
 type Reference = StyleReference | 'shiki-api' | 'product:warm';
 type Candidate = 'native' | BaselineId;
-const BASELINES: readonly BaselineId[] = ['baseline:captures', 'baseline:vscode-ts'];
-const REFERENCES: readonly Reference[] = ['raw', 'product', 'shiki-api'];
+const BASELINES: readonly BaselineId[] = EXPERIMENT_007.baselines;
 export interface ScoreInput { readonly units: number; readonly nonWhitespace: number; readonly matching?: number; readonly matchingNonWhitespace?: number }
 export interface Score { readonly matching: number; readonly units: number; readonly matchingNonWhitespace: number; readonly nonWhitespace: number; readonly macro: number | null }
 export function unionScore(rows: readonly ScoreInput[]): Score {
@@ -112,7 +112,7 @@ function requiredResult(map: ReadonlyMap<StyleReference, DocumentResult>, style:
   const result = map.get(style); if (!result) throw new Error('Missing candidate result'); return result;
 }
 function rowsFor(fixture: FixtureResult, root: string): Row[] {
-  const profiles = fixture.input.languageId === 'markdown' ? REFERENCES.concat(['product:warm']) : REFERENCES;
+  const profiles: readonly Reference[] = fixture.input.languageId === 'markdown' ? EXPERIMENT_007.markdownReferences : EXPERIMENT_007.references;
   return profiles.flatMap(reference => {
     const truth = parseResultText(readFileSync(goldenPath(root, reference, fixture.input.languageId, fixture.input.fixtureId), 'utf8'), fixture.input.source);
     const style = reference === 'raw' ? 'raw' : 'product';
@@ -165,13 +165,18 @@ function failingCells(rows: readonly Row[]): string[] {
   const failures: string[] = [];
   for (const [key, values] of groups(rows)) {
     const first = values[0];
-    if (!NATIVE_LANGUAGES.some(id => id === first.fixture.input.languageId) || !['raw', 'product'].includes(first.reference)) continue;
-    for (const baseline of BASELINES) {
-      if (baselineSupport(baseline, first.fixture.input.languageId)) continue;
-      if (!strictlyImproves(scoreRows(values.filter(row => row.candidate === 'native')), scoreRows(values.filter(row => row.candidate === baseline)))) failures.push(`${key} versus ${baseline}`);
-    }
+    const member = EXPERIMENT_007.packs.some(pack => pack.id === first.fixture.input.languageId);
+    const strict = EXPERIMENT_007.strictReferences.some(id => id === first.reference);
+    if (!member || !strict) continue;
+    for (const baseline of BASELINES) failures.push(...failingBaseline(key, values, baseline));
   }
   return failures;
+}
+function failingBaseline(key: string, rows: readonly Row[], baseline: BaselineId): string[] {
+  if (baselineSupport(baseline, rows[0].fixture.input.languageId)) return [];
+  const native = scoreRows(rows.filter(row => row.candidate === 'native'));
+  const comparison = scoreRows(rows.filter(row => row.candidate === baseline));
+  return strictlyImproves(native, comparison) ? [] : [`${key} versus ${baseline}`];
 }
 function styleTable(rows: readonly Row[]): string[] {
   const lines = ['| Language | Reference | Lane | Candidate | Theme | All | Non-whitespace | File macro | Matching / union | Non-whitespace matching / union |', '| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |'];
@@ -266,8 +271,14 @@ function regionScores(row: Row): readonly (readonly [string, Score])[] {
 export async function buildNativeReport(root = GOLDEN_ROOT): Promise<string> {
   const packs = new Map<string, NativePack>();
   try {
-    for (const id of NATIVE_LANGUAGES) packs.set(id, await loadLanguagePack(id));
-    const inputs = corpusInputs().filter(input => ['json', 'typescript', 'tsx', 'markdown', 'javascript', 'jsx'].includes(input.languageId));
+    const manifests = historicalPackManifests();
+    for (const expected of EXPERIMENT_007.packs) {
+      const pack = await loadLanguagePack(expected.id);
+      packs.set(expected.id, pack);
+      checkHistoricalPack(pack, expected);
+    }
+    const languages: readonly string[] = EXPERIMENT_007.languages;
+    const inputs = corpusInputs().filter(input => languages.includes(input.languageId));
     const fixtures: FixtureResult[] = [];
     for (const input of inputs) fixtures.push(await collectFixture(input, packs));
     const rows = fixtures.flatMap(fixture => rowsFor(fixture, root));
@@ -275,10 +286,10 @@ export async function buildNativeReport(root = GOLDEN_ROOT): Promise<string> {
     const identity = Object.fromEntries(Array.from(packs, ([id, pack]) => [id, JSON.stringify(pack.engine)]));
     identity.markdown = JSON.stringify(identities); identity.markdownCommit = MARKDOWN_COMMIT;
     identity.markdownManifest = reportIdentity({ manifest: readFileSync(new URL('../vendor/native-pilot/assets.json', import.meta.url), 'utf8') });
-    identity.packManifests = reportIdentity(Object.fromEntries(NATIVE_LANGUAGES.map(id => [id,
-      readFileSync(new URL(`../../../lib/scope-compat/packs/${id}/pack.json`, import.meta.url), 'utf8')])));
+    identity.packManifests = reportIdentity(manifests);
     identity.corpus = reportIdentity(Object.fromEntries(inputs.map(input => [`${input.languageId}/${input.fixtureId}`, sourceSha256(input.source)])));
     identity.references = reportIdentity(Object.fromEntries(rows.filter(row => row.candidate === 'native').map(row => [`${row.reference}/${row.fixture.input.languageId}/${row.fixture.input.fixtureId}`, reportIdentity({ result: JSON.stringify(row.truth) })])));
+    if (inputs.length !== EXPERIMENT_007.corpusCount || identity.corpus !== EXPERIMENT_007.corpusSha256 || identity.references !== EXPERIMENT_007.referencesSha256) throw new Error('007 fixed corpus or reference inputs changed');
     identity.baselines = reportIdentity(Object.fromEntries(rows.filter(row => row.candidate !== 'native').map(row => [
       `${row.candidate}/${row.reference}/${row.fixture.input.languageId}/${row.fixture.input.fixtureId}`, JSON.stringify(row.result.engine)])));
     return renderReport(rows, fixtures, failures, identity);
@@ -292,7 +303,7 @@ function renderReport(rows: readonly Row[], fixtures: readonly FixtureResult[], 
     '## Coverage and limits', '',
     'Two bounded pilot pack-authoring rounds. JSON is the unchanged PR A pack; TypeScript and TSX are explicit variants. JavaScript and JSX are distinct deferred variants. Regex predicates, local analysis, documentation-comment specialization and contextual all-caps naming are deferred. Unsupported operators fail pack load; they are never silently skipped. Markdown uses current consumer Git pin f02e277, package version 0.1.32 plus unreleased changes, flags 3. The historical 0.1.1 baseline is unchanged.', '',
     '| Language | Inputs | Complete | Unsupported | Error | Timeout |', '| --- | ---: | ---: | ---: | ---: | ---: |',
-    ...['json', 'typescript', 'tsx', 'markdown', 'javascript', 'jsx'].map(id => coverage(fixtures, id)), '',
+    ...EXPERIMENT_007.languages.map(id => coverage(fixtures, id)), '',
     'Scope tables use the unchanged raw, product and shiki-api reference scopes; shiki-api is scope-only. Markdown product:warm remains separate from cold product and raw. Styles use each raw/product reference matcher and theme normalization unchanged, and are reported rather than gated. A union includes a reference-complete file when any applicable candidate completed it. An incomplete native or applicable baseline receives zero matching units on that same union, including per-file macro. Baselines outside their declared language support are N/A, including both Markdown baselines. Reference failures and files all candidates fail have no comparable truth/output and are listed explicitly. Empty denominators are N/A.', '',
     '## Exact scope agreement on common union denominators', '', ...scopeTable(rows), '',
     '## Style agreement by theme', '', ...styleTable(rows), '',

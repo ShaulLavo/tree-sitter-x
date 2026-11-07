@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { ResultBuilder } from '../build.ts'
 import type { DocumentResult } from '../schema.ts'
 import { languageRegistrations } from '../oracles/assets.ts'
-import { checkAssets, parserUrl, PILOT_LANGUAGES, querySource, sha256, VENDOR_ROOT, VSCODE_COMMIT, VSCODE_QUERY_SHA256 } from './assets.ts'
+import { CAPTURE_LANGUAGES, checkAssets, parserUrl, querySource, sha256, VENDOR_ROOT, VSCODE_COMMIT, VSCODE_QUERY_SHA256 } from './assets.ts'
 import { CAPTURE_MAP_VERSION, captureScopes } from './capture-map.ts'
 import { captureIntervals, composeCaptures } from './compose.ts'
 import type { NamedCapture, ScopeInterval } from './compose.ts'
@@ -53,7 +53,7 @@ async function loadBinding(): Promise<Binding> {
 }
 
 export function baselineSupport(profileId: BaselineId, languageId: string): string | undefined {
-  if (!(PILOT_LANGUAGES as readonly string[]).includes(languageId)) return `no pinned pilot parser for ${languageId}`
+  if (!CAPTURE_LANGUAGES.includes(languageId)) return `no pinned pilot parser for ${languageId}`
   if (profileId === 'baseline:vscode-ts' && languageId !== 'typescript' && languageId !== 'tsx') return 'VS Code TypeScript query applies only to the TypeScript and TSX variants'
   if (languageId === 'markdown') return 'pinned tree-sitter-md 0.1.1 uses MarkdownDocument.highlights; no external highlights query or markdown_inline parser is configured'
   return undefined
