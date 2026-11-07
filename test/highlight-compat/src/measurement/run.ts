@@ -1,11 +1,9 @@
-import { spawnSync } from 'node:child_process';
-import { performance } from 'node:perf_hooks';
-import { fileURLToPath } from 'node:url';
 import { digest } from '../native/component-inputs.ts';
 import { nativeLanguage } from '../native/packs.ts';
 import { catalog, environment, sourceIdentity } from './identity.ts';
 import { LANES, LIMITS, distribution, integer, record } from './model.ts';
-import type { Lane, Request } from './model.ts';
+import type { Lane } from './model.ts';
+import { runWorker } from './worker-process.ts';
 
 export interface Options {
   readonly language: string;
@@ -14,15 +12,6 @@ export interface Options {
   readonly repetitions: number;
   readonly warmups: number;
   readonly lanes: readonly Lane[];
-}
-
-function child(request: Request, controls = false) {
-  const started = performance.now();
-  const args = [fileURLToPath(new URL('worker.ts', import.meta.url))].concat(controls ? ['--controls'] : []);
-  const result = spawnSync(process.execPath, args, { input: JSON.stringify(request), encoding: 'utf8',
-    timeout: 120_000, killSignal: 'SIGKILL', maxBuffer: 32 * 1024 * 1024 });
-  if (result.error || result.status !== 0 || result.signal) throw new Error(`Measurement worker failed: ${result.error?.message ?? result.stderr ?? result.signal}`);
-  return { data: record(JSON.parse(result.stdout)), processLaunchToExitMs: performance.now() - started };
 }
 
 function samples(value: unknown): Record<string, unknown>[] {
@@ -34,10 +23,17 @@ function duration(value: unknown): number {
   return value;
 }
 
-function lane(options: Options, lane: Lane) {
+async function lane(options: Options, lane: Lane) {
   const request = { ...options, lane };
   const cold = lane === 'cold-open';
-  const runs = cold ? Array.from({ length: options.repetitions }, () => child({ ...request, repetitions: 1, warmups: 0 })) : [child(request)];
+  const runs: Awaited<ReturnType<typeof runWorker>>[] = [];
+  if (cold) {
+    for (let index = 0; index < options.repetitions; index++) runs.push(await runWorker({ ...request, repetitions: 1, warmups: 0 }));
+  } else runs.push(await runWorker(request));
+  for (const run of runs) {
+    const control = record(run.data.contextControls);
+    if (control.status !== 'passed' || control.processId !== run.workerPid || control.sourceParses !== 0) throw new Error('Measured context observer control missing');
+  }
   const observations = runs.flatMap(run => samples(run.data.samples));
   const durations = observations.map(sample => duration(cold ? sample.firstOutputFromWorkerStartMs : sample.durationMs));
   const expectedParses = lane === 'shared-tree' ? 0 : 1;
@@ -59,9 +55,10 @@ export async function runMeasurement(options: Options) {
   integer(options.warmups);
   if (options.lanes.some(lane => !LANES.includes(lane))) throw new Error('Unknown measurement lane');
   const identity = await sourceIdentity();
-  const controls = child({ ...options, lane: 'end-to-end-adapter', repetitions: 1, warmups: 0 }, true);
+  const controls = await runWorker({ ...options, lane: 'end-to-end-adapter', repetitions: 1, warmups: 0 }, true);
   if (controls.data.status !== 'passed') throw new Error('Observer controls did not pass');
-  const lanes = options.lanes.map(selected => lane(options, selected));
+  const lanes: Awaited<ReturnType<typeof lane>>[] = [];
+  for (const selected of options.lanes) lanes.push(await lane(options, selected));
   const hashes = new Set(lanes.flatMap(lane => lane.runs.flatMap(run => samples(run.data.samples).map(sample => record(sample.work).outputSha256))));
   if (hashes.size !== 1) throw new Error('Lanes did not produce equivalent full-document output');
   const after = await sourceIdentity();
@@ -76,6 +73,6 @@ export async function runMeasurement(options: Options) {
       peaks: 'Routed requested-byte high water since instrumentation began, not a whole-process or stage peak.',
       capacity: 'Wasm linear-memory capacity is retained high water, not live memory.',
       latency: 'Instrumented elapsed wall time; distributions have no CI timing thresholds.',
-      cold: 'Positive controls run in a separate process before all loops. Cold workers never load the runtime before the timed initialization. Initialization includes installing the test allocator hook; OS caches are uncontrolled.' },
+      cold: 'Every measured engine proves core-query allocation and reclamation before cycles, without a source parse or classification warmup. This control is timed within initialization and reported separately. Cold workers use a fresh process; OS caches are uncontrolled. The separate full control process supplements these same-engine checks.' },
     controls, lanes };
 }

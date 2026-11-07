@@ -1,5 +1,10 @@
-import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { spawn, spawnSync } from 'node:child_process';
+import type { ChildProcess } from 'node:child_process';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
 import { distribution, parseRequest, record } from '../src/measurement/model.ts';
 import { allocationLedger } from '../src/measurement/observer.ts';
@@ -9,12 +14,123 @@ function objects(value: unknown): Record<string, unknown>[] {
   if (!Array.isArray(value)) throw new Error('Expected array');
   return Array.from(value, record);
 }
-function command(args: readonly string[]) {
+function command(args: readonly string[], env = process.env) {
   return spawnSync(process.execPath, [fileURLToPath(new URL('../src/cli/measure.ts', import.meta.url))].concat(args),
-    { encoding: 'utf8', timeout: 30_000, maxBuffer: 8 * 1024 * 1024 });
+    { encoding: 'utf8', timeout: 30_000, maxBuffer: 8 * 1024 * 1024, env });
+}
+
+function fixture(kind: 'observer' | 'pause') {
+  const root = mkdtempSync(join(tmpdir(), 'measurement-control-'));
+  writeFileSync(join(root, 'package.json'), '{"type":"module","private":true}\n');
+  const marker = join(root, 'worker.json');
+  const runtime = new URL('../src/native/runtime.ts', import.meta.url).href;
+  const body = kind === 'observer'
+    ? `const extension = Runtime.prototype.extension;
+Runtime.prototype.extension = async function(module) {
+  const exports = await extension.call(this, module);
+  return typeof exports.scope_test_install === 'function' ? { ...exports, scope_test_install() {} } : exports;
+};
+const construct = Runtime.prototype.construct;
+Runtime.prototype.construct = function(name, args) {
+  if (name === 'TextBuffer') writeFileSync(${JSON.stringify(marker)}, JSON.stringify({ pid: process.pid }));
+  return construct.call(this, name, args);
+};`
+    : `const construct = Runtime.prototype.construct;
+let paused = false;
+Runtime.prototype.construct = function(name, args) {
+  const result = construct.call(this, name, args);
+  if (name === 'TextBuffer' && !paused) {
+    paused = true;
+    writeFileSync(${JSON.stringify(marker)}, JSON.stringify({ pid: process.pid }));
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 30000);
+  }
+  return result;
+};`;
+  const path = join(root, 'preload.ts');
+  writeFileSync(path, `import { writeFileSync } from 'node:fs';
+if (process.argv[1]?.endsWith('/measurement/worker.ts') && !process.argv.includes('--controls')) {
+  const { Runtime } = await import(${JSON.stringify(runtime)});
+  ${body}
+}
+`);
+  const env = { ...process.env, NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --import=${pathToFileURL(path).href}` };
+  return { root, marker, env };
+}
+
+function alive(pid: number): boolean {
+  try { process.kill(pid, 0); return true; }
+  catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ESRCH') return false;
+    throw error;
+  }
+}
+
+function stop(pid: number | undefined): void {
+  if (!pid || !alive(pid)) return;
+  process.kill(pid, 'SIGKILL');
+}
+
+async function ready(marker: string, controller: ChildProcess): Promise<number> {
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline) {
+    if (existsSync(marker)) return workerPid(marker);
+    if (controller.exitCode !== null || controller.signalCode !== null) throw new Error('Controller exited before target worker');
+    await delay(10);
+  }
+  throw new Error('Target worker did not reach the controlled pause');
+}
+
+function workerPid(marker: string): number {
+  const pid = record(JSON.parse(readFileSync(marker, 'utf8'))).pid;
+  if (typeof pid !== 'number' || !Number.isSafeInteger(pid) || pid <= 0) throw new Error('Invalid fixture worker PID');
+  return pid;
+}
+
+async function closedWithin(result: Promise<number | null>): Promise<number | null> {
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    return await Promise.race([result, new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('Controller did not reap its worker')), 10_000);
+    })]);
+  } finally { clearTimeout(timer); }
 }
 
 describe('internal measurement command', () => {
+  it.each(['cold-open', 'shared-tree', 'end-to-end-adapter'])(
+    'rejects an inactive allocation observer in the actual %s context before source work', lane => {
+      const control = fixture('observer');
+      try {
+        const result = command(['--lane', lane, '--repetitions', '1', '--warmups', '0'], control.env);
+        expect(result.status, result.stderr).toBe(1);
+        expect(result.stdout).toBe('');
+        expect(result.stderr).toContain('Measured context allocation observer did not arm');
+        expect(existsSync(control.marker)).toBe(false);
+      } finally { rmSync(control.root, { recursive: true, force: true }); }
+    },
+  );
+
+  it.skipIf(process.platform === 'win32')('reaps an active worker before exiting on controller SIGTERM', async () => {
+    const control = fixture('pause');
+    const controller = spawn(process.execPath, [fileURLToPath(new URL('../src/cli/measure.ts', import.meta.url)),
+      '--lane', 'cold-open', '--repetitions', '1', '--warmups', '0'], { env: control.env, stdio: 'pipe' });
+    controller.stdin.end(); controller.stdout.resume(); controller.stderr.resume();
+    const closed = new Promise<number | null>((resolve, reject) => {
+      controller.once('close', resolve); controller.once('error', reject);
+    });
+    let pid: number | undefined;
+    try {
+      pid = await ready(control.marker, controller);
+      expect(alive(pid)).toBe(true);
+      controller.kill('SIGTERM');
+      expect(await closedWithin(closed)).toBe(143);
+      expect(alive(pid)).toBe(false);
+    } finally {
+      stop(pid ?? (existsSync(control.marker) ? workerPid(control.marker) : undefined));
+      stop(controller.pid);
+      await closedWithin(closed);
+      rmSync(control.root, { recursive: true, force: true });
+    }
+  }, 30_000);
   it('tracks requested live bytes, realloc failure, reclamation and unknown frees separately', () => {
     const ledger = allocationLedger();
     ledger.track('malloc', [12], 100);
@@ -91,6 +207,7 @@ function verifyLane(lane: Record<string, unknown>, hashes: Set<unknown>): void {
 
 function verifyRun(run: Record<string, unknown>, shared: boolean, hashes: Set<unknown>): void {
   const data = record(run.data), identity = record(data.identity);
+  expect(record(data.contextControls)).toMatchObject({ status: 'passed', sourceParses: 0, processId: run.workerPid });
   expect(identity.compiler).toEqual(expect.any(String));
   expect(identity.flags).toEqual(expect.any(Array));
   expect(record(identity.engine).parserSha256).toMatch(/^[a-f0-9]{64}$/);

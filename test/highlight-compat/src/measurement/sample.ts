@@ -42,6 +42,22 @@ async function context(language: string) {
 }
 type Context = Awaited<ReturnType<typeof context>>;
 
+async function coreAllocationControl(ctx: Context, language: string) {
+  const started = performance.now();
+  const baseline = ctx.allocations.snapshot(), parses = ctx.parses.count();
+  const query = ctx.runtime.construct('Query', [await ctx.runtime.language(language), '(_) @measurement_context']);
+  let retained: ReturnType<typeof ctx.allocations.snapshot>;
+  try { retained = ctx.allocations.snapshot(); } finally { release(query); }
+  const released = ctx.allocations.snapshot();
+  if (retained.requestedBytes <= baseline.requestedBytes || retained.blocks <= baseline.blocks ||
+      released.requestedBytes !== baseline.requestedBytes || released.blocks !== baseline.blocks || ctx.parses.count() !== parses) {
+    throw new Error('Measured context allocation observer did not arm');
+  }
+  return { status: 'passed', processId: process.pid, sourceParses: ctx.parses.count() - parses,
+    kind: 'core query retain/release before measurement cycles', durationMs: performance.now() - started,
+    baseline, retained, released };
+}
+
 function memory(ctx: Context) {
   return { routedAllocator: ctx.allocations.snapshot(), componentLiveBlocks: ctx.component.liveAllocations(),
     wasmCapacityBytes: ctx.runtime.heap().byteLength, process: process.memoryUsage() };
@@ -139,9 +155,10 @@ export async function positiveControls(request: Request) {
 
 export async function measure(request: Request, started: number) {
   const ctx = await context(request.language);
-  const initializationMs = performance.now() - started;
   let shared: PilotDocument | undefined;
   try {
+    const contextControls = await coreAllocationControl(ctx, request.language);
+    const initializationMs = performance.now() - started;
     if (request.lane === 'shared-tree') shared = await PilotDocument.open(request.language, request.source);
     for (let i = 0; i < request.warmups; ++i) await iteration(ctx, request, shared, started);
     const samples = [];
@@ -150,7 +167,7 @@ export async function measure(request: Request, started: number) {
     const manifest = record(JSON.parse(await readFile(resolve(repositoryRoot, manifestPath), 'utf8')));
     shared?.dispose(); shared = undefined;
     ctx.pack.dispose();
-    return { lane: request.lane, samples, initializationMs, completedLifecycleFromWorkerStartMs,
+    return { lane: request.lane, samples, initializationMs, contextControls, completedLifecycleFromWorkerStartMs,
       identity: { engine: ctx.pack.engine, compiler: manifest.compiler, flags: manifest.flags, observerSha256: ctx.observerSha256 },
       afterDocumentAndPackDispose: memory(ctx) };
   } finally { try { shared?.dispose(); } finally { ctx.dispose(); } }
