@@ -79,12 +79,17 @@ export function nativeThemeRawRegistration(raw: RawTheme): IRawTheme {
 
 export type ReferenceEligibility = { readonly kind: 'eligible' } | { readonly kind: 'unsupported'; readonly code: 'raw-palette' | 'trie-tail-atom' }
 
+function unsupportedReferenceTail(selector: string): boolean {
+  const tail = selector.trim().split(' ').at(-1)
+  return tail?.split('.').some(atom => atom === 'hasOwnProperty' || atom === '__proto__') ?? false
+}
+
 /** Safety preflight for the two known pinned-target limits, never a candidate normalizer. */
 export function nativeThemeReferenceEligibility(input: IRawTheme, profile: NativeThemeProfile): ReferenceEligibility {
   const colors = new Set(['#000000ff', '#ffffffff'])
   for (const rule of input.settings) {
     const selectors = typeof rule.scope === 'string' ? rule.scope.split(',') : rule.scope ?? []
-    if (selectors.some(selector => selector.trim().split(' ').at(-1)?.split('.').some(atom => atom === 'hasOwnProperty' || atom === '__proto__')))
+    if (selectors.some(unsupportedReferenceTail))
       return { kind: 'unsupported', code: 'trie-tail-atom' }
     if (rule.settings.foreground !== undefined) colors.add(nativeThemeRgba(rule.settings.foreground))
     if (rule.settings.background !== undefined) colors.add(nativeThemeRgba(rule.settings.background))
