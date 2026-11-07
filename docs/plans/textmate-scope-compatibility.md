@@ -1,6 +1,6 @@
 # Plan: native Tree-sitter scopes with VS Code theme compatibility
 
-Status: **Approved.** Phases 0 and 1 complete 2026-10-01; Phase 2 not started.
+Status: **Approved.** Phases 0 and 1 complete 2026-10-01; Phase 2 has a limited immutable pilot, with acceptance open. Phase 6 remains open. The [consumer handoff](../scope-compat-consumer-handoff.md) records current adapter limits and missing cutover evidence.
 
 Date: 2026-09-28. Target: `ShaulLavo/tree-sitter-x`, based on `90dae9cb8e78b074d99d411c6cb3e440d3cd7def`.
 
