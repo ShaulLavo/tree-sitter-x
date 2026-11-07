@@ -42,7 +42,7 @@ const recovery = ['\n', '\r\n'].map(ending => `((variable_declarator
 
 describe('native bounded source gaps', () => {
   it('executes both recovery patterns and the retained mandatory DEV marker', async () => {
-    await using(recovery, 'const open = "pending\nconst tail = 2;\n}\n', async (p, owner) => {
+    await using(recovery, 'const open = "pending\nconst tail = 2;\n', async (p, owner) => {
       expect(rows(p, result(p, owner))).toContainEqual({ from: 20, to: 21, path: markerPath });
       expect(rows(p, result(p, owner))).toContainEqual({ from: 13, to: 20, path: markerPath.slice(0, 3) });
       const explained = await explainDocument(p, owner);
@@ -130,7 +130,7 @@ describe('native bounded source gaps', () => {
   });
 
   it('keeps budget failures and allocation restoration on the actual recovery component', async () => {
-    await using(recovery, 'const open = "pending\nconst tail = 2;\n}\n', (p, owner) => {
+    await using(recovery, 'const open = "pending\nconst tail = 2;\n', (p, owner) => {
       owner.borrow(p.sameLanguage, borrow => {
         expect(p.run(borrow, { start: 0, end: owner.source.length }, { maxIntervals: 1 })).toEqual({ status: 2, detail: 23, value: 1 });
         expect(p.run(borrow, { start: 0, end: owner.source.length }, { maxSegments: 1 })).toEqual({ status: 2, detail: 24, value: 1 });
