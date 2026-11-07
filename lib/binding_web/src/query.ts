@@ -598,7 +598,7 @@ function readQuery(address: number) {
       TRANSFER_BUFFER
     );
     const nameLength = C.getValue(TRANSFER_BUFFER, 'i32');
-    stringValues[i] = C.UTF8ToString(valueAddress, nameLength);
+    stringValues[i] = C.UTF8ToString(valueAddress, nameLength, true);
   }
 
   const setProperties = new Array<QueryProperties>(patternCount);
