@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
-import { readdirSync, readFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { expect, it } from 'vitest'
@@ -129,8 +130,7 @@ it('keeps every packet file explicitly inventoried, without shipping acquisition
   const lock: unknown = JSON.parse(read(prefix + 'selection-lock.json').toString('utf8'))
   if (!lock || typeof lock !== 'object' || !('files' in lock) || !lock.files || typeof lock.files !== 'object') throw new Error('Invalid selection lock')
   const expected = Object.keys(lock.files).filter(path => !path.startsWith('manifest/') && !path.endsWith('.py')).concat(['selection-lock.json', 'scope-requests.tsv'])
-  const actual = readdirSync(new URL(prefix, harnessRoot), { recursive: true, withFileTypes: true }).filter(entry => entry.isFile()).map(entry => relative(fileURLToPath(new URL(prefix, harnessRoot)), join(entry.parentPath, entry.name)))
-  expect(actual.sort()).toEqual(expected.sort())
+  expectInventory(fileURLToPath(new URL(prefix, harnessRoot)), expected)
 })
 
 it.each(['raw', 'raw:shiki-fork', 'shiki-api', 'product', 'product:warm'])('rejects silently missing profile requests: %s', profile => {
@@ -141,4 +141,29 @@ it.each(['raw', 'raw:shiki-fork', 'shiki-api', 'product', 'product:warm'])('reje
 
 function withoutProfile(text: string, profile: string): string {
   return text.split('\n').filter(line => line.split('\t')[3] !== profile).join('\n')
+}
+
+it.each(['file', 'file-link', 'directory-link'] as const)('rejects an unregistered inventory entry: %s', kind => {
+  const root = mkdtempSync(join(tmpdir(), 'js-jsx-inventory-'))
+  try {
+    writeFileSync(join(root, 'known.js'), 'known')
+    if (kind === 'file') writeFileSync(join(root, 'extra.js'), 'extra')
+    if (kind === 'file-link') symlinkSync('known.js', join(root, 'extra.js'))
+    if (kind === 'directory-link') {
+      mkdirSync(join(root, 'known-directory'))
+      symlinkSync('known-directory', join(root, 'extra-directory'))
+    }
+    expect(() => expectInventory(root, ['known.js'])).toThrow()
+  } finally { rmSync(root, { recursive: true, force: true }) }
+})
+
+function expectInventory(root: string, expected: readonly string[]): void {
+  expect(inventoryFiles(root).sort()).toEqual(expected.toSorted())
+}
+function inventoryFiles(root: string): string[] {
+  const entries = readdirSync(root, { recursive: true, withFileTypes: true })
+  for (const entry of entries) {
+    if (!entry.isDirectory() && !entry.isFile()) throw new Error(`Unsupported inventory entry: ${relative(root, join(entry.parentPath, entry.name))}`)
+  }
+  return entries.filter(entry => entry.isFile()).map(entry => relative(root, join(entry.parentPath, entry.name)))
 }
