@@ -24,10 +24,7 @@ describe('bounded session measurement input', () => {
     const root = await mkdtemp(join(tmpdir(), 'session-bounds-'));
     try {
       const path = join(root, 'case.json');
-      await writeFile(path, '1234'); expect(await readBounded(path, 4)).toEqual(Buffer.from('1234'));
-      for (const source of ['1234 ', '     ', '{"unknown":true}']) {
-        await writeFile(path, source); await expect(readBounded(path, 4)).rejects.toThrow(/budget/i);
-      }
+      await checkBoundedRead(path);
     } finally { await rm(root, { recursive: true, force: true }); }
   });
   it('uses identical frozen source limits and rejects aggregate and descending intermediate overflow', () => {
@@ -155,3 +152,10 @@ it('keeps two raw samples in every lane with the exact warmup and cold-process s
     if (lane.lane === 'cold-open') expect(new Set(lane.runs.map(run => record(run).workerPid)).size).toBe(2);
   }
 });
+
+async function checkBoundedRead(path: string): Promise<void> {
+  await writeFile(path, '1234'); expect(await readBounded(path, 4)).toEqual(Buffer.from('1234'));
+  for (const source of ['1234 ', '     ', '{"unknown":true}']) {
+    await writeFile(path, source); await expect(readBounded(path, 4)).rejects.toThrow(/budget/i);
+  }
+}

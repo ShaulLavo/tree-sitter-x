@@ -17,8 +17,12 @@ async function context(language: string): Promise<Context> {
   const ctx = await openMeasurementContext(language);
   try {
     const parses = observeParses(ctx.runtime.binding);
-    return { ...ctx, parses, dispose: () => { try { parses.restore(); } finally { ctx.dispose(); } } };
+    return { ...ctx, parses, dispose: () => disposeContext(ctx, parses.restore) };
   } catch (error) { ctx.dispose(); throw error; }
+}
+
+function disposeContext(ctx: MeasurementContext, restore: () => void): void {
+  try { restore(); } finally { ctx.dispose(); }
 }
 
 async function coreAllocationControl(ctx: Context, language: string) {

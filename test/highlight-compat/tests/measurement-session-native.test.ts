@@ -13,6 +13,7 @@ import { foreign } from '../src/native/runtime.ts';
 import { PilotDocument } from '../src/native/owner.ts';
 import { ScopeSession } from '../src/native/incremental.ts';
 import { ThemePresentation } from '../src/native/theme-presentation.ts';
+import type { PresentationLease } from '../src/native/theme-presentation.ts';
 import * as packet from '../src/native/theme-packet.ts';
 
 const request: SessionRequest = { adapter: 'session-native', lane: 'end-to-end-adapter', case: BUILTIN_CASE, repetitions: 1, warmups: 0, reportBudget: SESSION_LIMITS.reportBytes };
@@ -117,7 +118,7 @@ it.each(['select-b', 'encode-b', 'decode', 'attach', 'budget', 'stale'])('unwind
     if (phase === 'encode-b') spies.push(vi.spyOn(ThemePresentation.prototype, 'acquire').mockImplementation(function(this: ThemePresentation, view) {
       const result = originalAcquire.call(this, view);
       if (++selections !== 3 || !result) return result;
-      return { ...result, get snapshot(): import('../src/native/theme-presentation.ts').StyleSnapshot { throw new Error('encode-b control'); } };
+      return failedEncoding(result);
     }));
     if (phase === 'decode') spies.push(vi.spyOn(ctx.component, 'number').mockImplementation(function(name, args = []) {
       const value = number.call(ctx.component, name, args);
@@ -185,3 +186,7 @@ it('preserves actual component wrapper return and thrown identities without nest
     expect(thrown).toBe(error); expect(counters.read().scopeCalls).toBe(0);
   } finally { counters.restore(); run.mockRestore(); call.mockRestore(); }
 });
+
+function failedEncoding(lease: PresentationLease): PresentationLease {
+  return { ...lease, get snapshot(): PresentationLease['snapshot'] { throw new Error('encode-b control'); } };
+}
