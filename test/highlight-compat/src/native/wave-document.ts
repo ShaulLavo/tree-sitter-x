@@ -321,6 +321,10 @@ function parseWarning(value: unknown): OutsideScore {
   const result = { kind: 'outside-score' as const, resource: string(warning.resource), property: string(warning.property) }
   if (!('location' in warning)) return result
   const location = parseLocation(warning.location)
+  if (location.kind === 'resource') {
+    const { jsonPointer } = location
+    need((jsonPointer === '' || jsonPointer.startsWith('/')) && !/~(?![01])/u.test(jsonPointer), 'Invalid location JSON pointer')
+  }
   if ('resource' in location) need(location.resource === result.resource, 'Warning location resource mismatch')
   return { ...result, location }
 }
@@ -348,9 +352,7 @@ function parseLocation(value: unknown): Location {
   if (row.kind === 'packet') return { kind: 'packet', byteOffset: nonnegative(row.byteOffset) }
   const resource = string(row.resource)
   if (row.kind === 'resource') {
-    const jsonPointer = string(row.jsonPointer)
-    need((jsonPointer === '' || jsonPointer.startsWith('/')) && !/~(?![01])/u.test(jsonPointer), 'Invalid location JSON pointer')
-    return { kind: 'resource', resource, jsonPointer, byteOffset: row.byteOffset === null ? null : nonnegative(row.byteOffset) }
+    return { kind: 'resource', resource, jsonPointer: string(row.jsonPointer), byteOffset: row.byteOffset === null ? null : nonnegative(row.byteOffset) }
   }
   need(row.kind === 'setting', 'Invalid failure location')
   return { kind: 'setting', resource, rule: nonnegative(row.rule), alternative: row.alternative === null ? null : nonnegative(row.alternative), property: string(row.property) }

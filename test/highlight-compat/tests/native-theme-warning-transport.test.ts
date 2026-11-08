@@ -10,6 +10,7 @@ import { loadLanguagePack } from '../src/native/packs.ts'
 import { Component } from '../src/native/component.ts'
 import { PilotDocument } from '../src/native/owner.ts'
 import { NativeTheme } from '../src/native/theme.ts'
+import { normalizeTheme, snapshotInput } from '../src/native/theme-input.ts'
 import { acquireWaveTheme, parseNativeWaveAnswer } from '../src/native/wave-document.ts'
 import type { NativeWaveAnswer, NativeWaveRequest, ThemeAttempt } from '../src/native/wave-document.ts'
 import type { JsJsxIntake } from '../src/fixtures/js-jsx-wave.ts'
@@ -114,3 +115,20 @@ function rejectLocation(status: string, location: unknown): void {
   const execution = { ...retained.execution, requests: [{ row: request.row, state }] }
   expect(() => renderCollection(intake, references, retained.out, execution)).toThrow()
 }
+
+it.each(['a~/b', 'terminal.ansi~/b'])('preserves an actual %s schema failure in live replies and retained readback', key => {
+  const bytes = new TextEncoder().encode(JSON.stringify({ colors: { [key]: 1 } }))
+  const acquired = snapshotInput({ root: 'theme', edges: [], resources: [{ id: 'theme', format: 'json', bytes }] })
+  if (acquired.kind !== 'ok' || answer.kind !== 'scopes-complete') throw new Error('Missing failure transport control')
+  const outcome = normalizeTheme(acquired.value, 'raw', 'failure-transport-control')
+  expect(outcome).toEqual({ kind: 'invalid', code: 'schema', location: { kind: 'resource', resource: 'theme', jsonPointer: `/colors/${key}`, byteOffset: null } })
+  const payload = { ...answer, themes: answer.themes.map(theme => theme.kind === 'failed' ? { ...theme, outcome } : theme) }
+  const parsed = roundtrip(payload)
+  expect(parsed).toEqual(payload)
+  const retained = retain(parsed), path = resolve(retained.out, retained.state.record)
+  const record = object(JSON.parse(readFileSync(path, 'utf8')))
+  expect(list(record.themes).map(object).find(theme => theme.kind === 'failed')?.outcome).toEqual(outcome)
+  const original = readFileSync(path)
+  expect(() => renderCollection(intake, references, retained.out, retained.execution)).not.toThrow()
+  expect(readFileSync(path)).toEqual(original)
+})
