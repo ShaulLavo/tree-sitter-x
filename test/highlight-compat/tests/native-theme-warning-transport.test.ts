@@ -1,7 +1,6 @@
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { resolve, relative } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { resolve } from 'node:path'
 import { afterAll, beforeAll, expect, it, vi } from 'vitest'
 import { loadAdmissionSuite } from '../src/oracles/theme-admission/load.ts'
 import { ResultBuilder } from '../src/build.ts'
@@ -21,19 +20,18 @@ const suite = loadAdmissionSuite(), controls = object(suite.transport)
 const successes = list(controls.successes).map(object), locations = list(controls.validLocationUnion), malformed = list(controls.rejectedLocations)
 const owned: string[] = []
 afterAll(() => { vi.restoreAllMocks(); for (const path of owned.reverse()) rmSync(path, { recursive: true, force: true }) })
-function directory(parent = tmpdir()): string {
-  const path = mkdtempSync(resolve(parent, 'theme-warning-'))
+function directory(): string {
+  const path = mkdtempSync(resolve(tmpdir(), 'theme-warning-'))
   owned.push(path)
   return path
 }
-const harness = fileURLToPath(new URL('../', import.meta.url))
 let request: NativeWaveRequest, intake: JsJsxIntake, answer: NativeWaveAnswer, references: string
 const sourceId = 'synthetic-theme-warning-empty'
 beforeAll(async () => {
-  const sourceDirectory = directory(resolve(harness, 'tests')), path = resolve(sourceDirectory, 'empty.txt')
-  writeFileSync(path, '')
+  const path = 'fixtures/original/json/empty.json'
+  expect(readFileSync(new URL(`../${path}`, import.meta.url))).toHaveLength(0)
   const themes = ['light-plus'].concat(Array.from({ length: 64 }, (_, index) => `synthetic-failure-${index}`))
-  intake = { selectionSha256: hash('synthetic-warning-transport'), inputs: [{ id: sourceId, languageId: 'javascript', split: 'development', path: relative(harness, path), sha256: hash(''), utf16Units: 0, storage: 'existing-repository', derivationFamilies: [] }],
+  intake = { selectionSha256: hash('synthetic-warning-transport'), inputs: [{ id: sourceId, languageId: 'javascript', split: 'development', path, sha256: hash(''), utf16Units: 0, storage: 'existing-repository', derivationFamilies: [] }],
     profiles: ['raw'], themes, requiredTracks: [], metadataAvailability: 'unavailable', nonPassing: [] }
   request = { row: planWave(intake).scopeRows[0], source: '', themes, selectionSha256: intake.selectionSha256 }
   const pack = await loadLanguagePack('javascript')
