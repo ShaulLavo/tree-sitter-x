@@ -14,7 +14,7 @@ export type Failure = { readonly kind: 'invalid'; readonly code: InvalidCode; re
   | { readonly kind: 'unsupported'; readonly code: UnsupportedCode; readonly location: Location }
   | { readonly kind: 'budget'; readonly code: BudgetCode; readonly limit: number; readonly location: Location }
   | { readonly kind: 'no-memory'; readonly code: 'allocation'; readonly location: Location };
-export interface OutsideScore { readonly kind: 'outside-score'; readonly resource: string; readonly property: string }
+export interface OutsideScore { readonly kind: 'outside-score'; readonly resource: string; readonly property: string; readonly location?: Location }
 export type Outcome<T> = { readonly kind: 'ok'; readonly value: T; readonly warnings: readonly OutsideScore[] } | Failure;
 export interface OperationalFailure { readonly kind: 'error'; readonly code: 'acquisition-failed' | 'runtime-failed'; readonly location: { readonly kind: 'request' } }
 export interface InputLimits {

@@ -14,6 +14,12 @@ export interface NormalizedTheme {
   readonly acquisitionRevision: string; readonly targetIdentity: string; readonly normalizedPacketDigest: string;
 }
 type Setting = NonNullable<ThemeRegistration['tokenColors']>[number];
+type ValidatedSetting = Omit<Setting,'settings'> & { readonly settings: Setting['settings'] & {
+  readonly content?: string; readonly 'text-decoration'?: string; readonly '-webkit-font-smoothing'?: string;
+} };
+interface SettingSource { readonly resource: string; readonly rule: number }
+interface OriginalSettingSource extends SettingSource { readonly array: 'settings' | 'tokenColors'; readonly warnings: OutsideScore[] }
+const fontBits: ReadonlyMap<string,number> = new Map([['italic',1],['bold',2],['underline',4],['strikethrough',8],['normal',0],['regular',0],['none',0]]);
 interface Resource { readonly id: string; readonly bytes: Uint8Array; readonly document: Record<string,unknown> }
 interface SnapshotData { readonly resources: readonly Resource[]; readonly bounds: InputLimits }
 const snapshots = new WeakMap<InputSnapshot,SnapshotData>();
@@ -106,17 +112,27 @@ function color(value: unknown, location: Location): string {
 function font(value: unknown, location: Location): string {
   if (typeof value !== 'string') schema(location);
   if (value === '') return value;
-  if (!value.trim() || value.trim() !== value || / {2}|[\t\r\n\f\v]/.test(value)) reject({kind:'invalid',code:'font-style',location});
-  if (!value.split(' ').every(word => ['italic','bold','underline','strikethrough'].includes(word))) reject({kind:'unsupported',code:'font-style',location});
+  const words = value.replace(/^ +| +$/g,'');
+  if (!words || words.trim() !== words || /[\t\r\n\f\v]/.test(value)) reject({kind:'invalid',code:'font-style',location});
+  if (!words.split(/ +/).every(word => fontBits.has(word))) reject({kind:'unsupported',code:'font-style',location});
   return value;
 }
-function setting(value: unknown, resource: string, rule: number): Setting {
+function pointer(key: string): string { return key.replaceAll('~','~0').replaceAll('/','~1'); }
+function setting(value: unknown, source: SettingSource | OriginalSettingSource): ValidatedSetting {
+  const {resource,rule} = source;
   const location = (property: string): Location => ({kind:'setting',resource,rule,alternative:0,property});
   if (!record(value) || !record(value.settings)) schema(location('settings'));
-  const settings: { -readonly [K in keyof Setting['settings']]: Setting['settings'][K] } = {};
+  const settings: { -readonly [K in keyof ValidatedSetting['settings']]: ValidatedSetting['settings'][K] } = {};
   for (const [property,field] of Object.entries(value.settings)) {
     if (property === 'foreground' || property === 'background') { settings[property] = color(field,location(property)); continue; }
     if (property === 'fontStyle') { settings.fontStyle = font(field,location(property)); continue; }
+    if (property === 'content' || property === 'text-decoration' || property === '-webkit-font-smoothing') {
+      const where = 'array' in source ? resourceLocation(resource,`/${source.array}/${rule}/settings/${pointer(property)}`) : location(property);
+      if (typeof field !== 'string') schema(where);
+      settings[property] = field;
+      if ('array' in source) source.warnings.push({kind:'outside-score',resource,property,location:where});
+      continue;
+    }
     reject({kind:'unsupported',code:'syntax-property',location:location(property)});
   }
   const name = value.name;
@@ -134,7 +150,7 @@ function registration(entry: Resource, warnings: OutsideScore[]): ThemeRegistrat
     const value = doc[key];
     if (value === undefined) continue;
     if (!Array.isArray(value)) schema(resourceLocation(entry.id,`/${key}`));
-    result[key] = value.map((rule,index) => setting(rule,entry.id,index));
+    result[key] = value.map((rule,index) => setting(rule,{resource:entry.id,rule:index,array:key,warnings}));
   }
   if ('type' in doc) {
     if (doc.type !== 'dark' && doc.type !== 'light') schema(resourceLocation(entry.id,'/type'));
@@ -156,7 +172,12 @@ function colors(value: unknown, resource: string, warnings: OutsideScore[]): Rec
   if (!record(value)) schema(resourceLocation(resource,'/colors'));
   const result: Record<string,string> = {};
   for (const [key,entry] of Object.entries(value)) {
-    if (typeof entry !== 'string') schema(resourceLocation(resource,`/colors/${key}`));
+    if (typeof entry !== 'string') {
+      if (key === 'editor.foreground' || key === 'editor.background' || key.startsWith('terminal.ansi')) schema(resourceLocation(resource,`/colors/${key}`));
+      if (entry !== null && !(Array.isArray(entry) && entry.every((item: unknown) => typeof item === 'string'))) schema(resourceLocation(resource,`/colors/${key}`));
+      warnings.push({kind:'outside-score',resource,property:`colors/${key}`,location:resourceLocation(resource,`/colors/${pointer(key)}`)});
+      continue;
+    }
     result[key] = entry;
     if (key === 'editor.foreground' || key === 'editor.background') color(entry,resourceLocation(resource,`/colors/${key}`));
     else warnings.push({kind:'outside-score',resource,property:`colors/${key}`});
@@ -168,8 +189,7 @@ function canonical(value: string): string {
   return (expanded.length === 6 ? `${expanded}ff` : expanded).toLowerCase();
 }
 function mask(value: string): number {
-  const bits: ReadonlyMap<string,number> = new Map([['italic',1],['bold',2],['underline',4],['strikethrough',8]]);
-  return value.split(' ').reduce((result,word) => result | (bits.get(word) ?? 0),0);
+  return value.split(' ').reduce((result,word) => result | (fontBits.get(word) ?? 0),0);
 }
 function selectors(scope: Setting['scope'], location: Location): readonly string[] {
   if (scope === undefined || scope === '') return [''];
@@ -267,7 +287,7 @@ function normalize(input: InputSnapshot, profile: Profile, targetIdentity: strin
   const builder: RuleBuilder = {atoms:new Map(),rules:[],bounds,edges:0};
   const palette = new Set(['#000000','#FFFFFF']);
   normalized.forEach((entry,index) => {
-    const source = setting(entry,'<normalized>',index);
+    const source = setting(entry,{resource:'<normalized>',rule:index});
     addRule(builder,source,index,locations[index]);
     if (profile === 'raw' && source.settings.foreground !== undefined) palette.add(source.settings.foreground.toUpperCase());
     if (profile === 'raw' && source.settings.background !== undefined) palette.add(source.settings.background.toUpperCase());
@@ -275,7 +295,7 @@ function normalize(input: InputSnapshot, profile: Profile, targetIdentity: strin
   if (profile === 'raw' && palette.size > 255) reject({kind:'unsupported',code:'raw-palette',location:resourceLocation(snapshot.resources.at(-1)?.id ?? '')});
   const packet = themePacket(Array.from(builder.atoms.keys()),builder.rules,bounds.packetBytes);
   const packetDigest = hash('scope-compat/theme-packet-1',[packet]);
-  const revision = hash('scope-compat/normalized-theme-1',[input.acquisitionRevision,profile,targetIdentity,'base-first-1',packet]);
+  const revision = hash('scope-compat/normalized-theme-2',[input.acquisitionRevision,profile,targetIdentity,'base-first-1',packet]);
   const result = Object.freeze({[normalizedBrand]:true,profile,contentRevision:revision,
     acquisitionRevision:input.acquisitionRevision,targetIdentity,normalizedPacketDigest:packetDigest} satisfies NormalizedTheme);
   packets.set(result,packet); return result;
