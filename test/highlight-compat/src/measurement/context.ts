@@ -38,7 +38,7 @@ export async function openMeasurementContext(language: string) {
     const component = await Component.load(), pack = await loadLanguagePack(language);
     releases.add(() => pack.dispose());
     return { runtime, component, pack, allocations, observerSha256: digest(bytes), dispose: () => releases.close() };
-  } catch (error) { releases.closeOnFailure(error); }
+  } catch (error) { return releases.closeOnFailure(error); }
 }
 export type MeasurementContext = Awaited<ReturnType<typeof openMeasurementContext>>;
 

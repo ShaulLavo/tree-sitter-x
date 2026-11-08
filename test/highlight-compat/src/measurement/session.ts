@@ -77,7 +77,7 @@ class SessionLifetime {
       const session = ScopeSession.attach(owner, new Map([['json', ctx.pack]])); resources.add(() => session.dispose());
       const presentation = new ThemePresentation(session); resources.add(() => presentation.dispose());
       return new SessionLifetime(owner, session, presentation, resources, ctx);
-    } catch (error) { resources.closeOnFailure(error); }
+    } catch (error) { return resources.closeOnFailure(error); }
   }
   attach(): void {
     if (this.#view !== undefined) throw new Error('Measurement view already attached');
@@ -119,7 +119,7 @@ class SessionLifetime {
     this.releaseView();
     if (this.owner.observe().kind !== 'ready') throw new Error('View detach closed the source owner');
   }
-  fail(error: unknown): never { this.#resources.closeOnFailure(error); }
+  fail(error: unknown): never { return this.#resources.closeOnFailure(error); }
   observe() { return memory(this.#ctx, this); }
   close(): void { this.#resources.close(); }
 }
@@ -148,7 +148,7 @@ async function iteration(ctx: MeasurementContext, request: SessionRequest, theme
       identity: { before: owner, after: shared ? owner : null } });
     return { index, lifecycleMs: performance.now() - begin, firstOutputFromWorkerStartMs: firstOutput, steps, checkpoints, memory: snapshots.concat([{ phase: 'after-dispose', value: after }]) };
   } catch (error) {
-    if (!shared) current.fail(error);
+    if (!shared) return current.fail(error);
     throw error;
   } finally { if (!shared) current.close(); }
 }
@@ -223,7 +223,7 @@ async function warmControls(ctx: MeasurementContext, counters: SessionCounters, 
   requireWork(sample, request.lane);
   const shared = await SessionLifetime.open(ctx, BUILTIN_CASE.source, bounds);
   try { requireWork(await iteration(ctx, { ...request, lane: 'shared-tree' }, themes, counters, shared, 0, started, bounds), 'shared-tree'); }
-  catch (error) { shared.fail(error); }
+  catch (error) { return shared.fail(error); }
   finally { shared.close(); }
   const after = memory(ctx), a = sample.checkpoints[1], b = sample.checkpoints[2];
   if (a.stylesSha256 === b.stylesSha256 || a.scope.generation !== b.scope.generation || after.componentLiveBlocks !== baseline.componentLiveBlocks ||
@@ -238,7 +238,7 @@ async function freshComparators(ctx: MeasurementContext, input: SessionCase, the
   const initial = await SessionLifetime.open(ctx, input.source, bounds);
   try {
     initial.attach(); const a = await initial.checkpoint(themes[0], 'initial-a', bounds.checkpointBytes); checkpoints.push(a.checkpoint); a.release(); initial.detach();
-  } catch (error) { initial.fail(error); }
+  } catch (error) { return initial.fail(error); }
   finally { initial.close(); }
   const final = prepareEdits(input.source, input.edits, numericLimits(bounds)).source;
   const edited = await SessionLifetime.open(ctx, final, bounds);
@@ -247,7 +247,7 @@ async function freshComparators(ctx: MeasurementContext, input: SessionCase, the
     const a = await edited.checkpoint(themes[0], 'edited-a', bounds.checkpointBytes); checkpoints.push(a.checkpoint);
     const b = await edited.checkpoint(themes[1], 'edited-b', bounds.checkpointBytes); checkpoints.push(b.checkpoint);
     b.release(); a.release(); edited.detach();
-  } catch (error) { edited.fail(error); }
+  } catch (error) { return edited.fail(error); }
   finally { edited.close(); }
   return { boundary: 'after measured owners close; outside samples, included in worker launch-to-exit', durationMs: performance.now() - started, checkpoints };
 }
