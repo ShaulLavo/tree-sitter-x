@@ -11,7 +11,7 @@ import type { ScopeLease } from '../native/scope-output.ts';
 import type { PresentationLease } from '../native/theme-presentation.ts';
 import type { EditOutcome, OwnerKey, ViewId } from '../native/owner-state.ts';
 import type { NormalizedTheme } from '../native/theme-input.ts';
-import { openMeasurementContext, Releases } from './context.ts';
+import { openMeasurementContext, Releases, failureText } from './context.ts';
 import type { MeasurementContext } from './context.ts';
 import { observed, unsupported, record } from './model.ts';
 import { CHECKPOINT_RETENTION, SESSION_LIMITS, BUILTIN_CASE, numericLimits } from './session-case.ts';
@@ -77,12 +77,12 @@ class SessionLifetime {
       const session = ScopeSession.attach(owner, new Map([['json', ctx.pack]])); resources.add(() => session.dispose());
       const presentation = new ThemePresentation(session); resources.add(() => presentation.dispose());
       return new SessionLifetime(owner, session, presentation, resources, ctx);
-    } catch (error) { resources.close(); throw error; }
+    } catch (error) { resources.closeOnFailure(error); }
   }
   attach(): void {
     if (this.#view !== undefined) throw new Error('Measurement view already attached');
     const view = this.session.attachView({ from: 0, to: this.owner.source.length }); this.#view = view;
-    this.#resources.add(() => this.detach()); this.flush();
+    this.#resources.add(() => this.releaseView()); this.flush();
   }
   private view(): ViewId { if (this.#view === undefined) throw new Error('Missing measurement view'); return this.#view; }
   flush(): void {
@@ -110,12 +110,16 @@ class SessionLifetime {
     this.heldStyles++;
     return this.#resources.add(() => { try { style.release(); } finally { this.heldStyles--; } });
   }
-  detach(): void {
+  private releaseView(): void {
     const view = this.#view; this.#view = undefined;
     if (view !== undefined) this.session.detachView(view);
     if (this.session.retainedBytes() !== 0) throw new Error('Logical output charge after last detach');
+  }
+  detach(): void {
+    this.releaseView();
     if (this.owner.observe().kind !== 'ready') throw new Error('View detach closed the source owner');
   }
+  fail(error: unknown): never { this.#resources.closeOnFailure(error); }
   observe() { return memory(this.#ctx, this); }
   close(): void { this.#resources.close(); }
 }
@@ -143,6 +147,9 @@ async function iteration(ctx: MeasurementContext, request: SessionRequest, theme
     steps.push({ step: 'dispose', nativeWork: nativeWork(counters, disposeWork), durationMs: performance.now() - disposeStarted, counts: delta(counters, disposeCalls), before: live, after,
       identity: { before: owner, after: shared ? owner : null } });
     return { index, lifecycleMs: performance.now() - begin, firstOutputFromWorkerStartMs: firstOutput, steps, checkpoints, memory: snapshots.concat([{ phase: 'after-dispose', value: after }]) };
+  } catch (error) {
+    if (!shared) current.fail(error);
+    throw error;
   } finally { if (!shared) current.close(); }
 }
 async function editAndTheme(current: SessionLifetime, input: SessionCase, themes: readonly [NormalizedTheme, NormalizedTheme],
@@ -216,6 +223,7 @@ async function warmControls(ctx: MeasurementContext, counters: SessionCounters, 
   requireWork(sample, request.lane);
   const shared = await SessionLifetime.open(ctx, BUILTIN_CASE.source, bounds);
   try { requireWork(await iteration(ctx, { ...request, lane: 'shared-tree' }, themes, counters, shared, 0, started, bounds), 'shared-tree'); }
+  catch (error) { shared.fail(error); }
   finally { shared.close(); }
   const after = memory(ctx), a = sample.checkpoints[1], b = sample.checkpoints[2];
   if (a.stylesSha256 === b.stylesSha256 || a.scope.generation !== b.scope.generation || after.componentLiveBlocks !== baseline.componentLiveBlocks ||
@@ -230,7 +238,8 @@ async function freshComparators(ctx: MeasurementContext, input: SessionCase, the
   const initial = await SessionLifetime.open(ctx, input.source, bounds);
   try {
     initial.attach(); const a = await initial.checkpoint(themes[0], 'initial-a', bounds.checkpointBytes); checkpoints.push(a.checkpoint); a.release(); initial.detach();
-  } finally { initial.close(); }
+  } catch (error) { initial.fail(error); }
+  finally { initial.close(); }
   const final = prepareEdits(input.source, input.edits, numericLimits(bounds)).source;
   const edited = await SessionLifetime.open(ctx, final, bounds);
   try {
@@ -238,7 +247,8 @@ async function freshComparators(ctx: MeasurementContext, input: SessionCase, the
     const a = await edited.checkpoint(themes[0], 'edited-a', bounds.checkpointBytes); checkpoints.push(a.checkpoint);
     const b = await edited.checkpoint(themes[1], 'edited-b', bounds.checkpointBytes); checkpoints.push(b.checkpoint);
     b.release(); a.release(); edited.detach();
-  } finally { edited.close(); }
+  } catch (error) { edited.fail(error); }
+  finally { edited.close(); }
   return { boundary: 'after measured owners close; outside samples, included in worker launch-to-exit', durationMs: performance.now() - started, checkpoints };
 }
 export async function runSessionWorker(request: SessionRequest, started: number, bounds: Bounds = SESSION_LIMITS) {
@@ -286,7 +296,7 @@ export async function runSessionWorker(request: SessionRequest, started: number,
     return result;
   } catch (error) {
     let cleanup: string | null = null;
-    try { resources.close(); } catch (failure) { cleanup = failure instanceof Error ? failure.message : String(failure); }
+    try { resources.close(); } catch (failure) { cleanup = failureText(failure); }
     throw new SessionMeasurementFailure(error, { phase, source: sourceIdentity(request.case.source),
       cleanup: { error: cleanup, componentLiveBlocks: ctx.component.liveAllocations(), routedAllocator: ctx.allocations.snapshot() } });
   } finally { resources.close(); }
@@ -294,7 +304,7 @@ export async function runSessionWorker(request: SessionRequest, started: number,
 export class SessionMeasurementFailure extends Error {
   readonly envelope: { readonly schema: 'scope-compat/session-failure@1'; readonly adapter: 'session-native'; readonly workerPid: number; readonly error: string; readonly phase: string; readonly source: ReturnType<typeof sourceIdentity>; readonly cleanup: { readonly error: string | null; readonly componentLiveBlocks: number; readonly routedAllocator: ReturnType<MeasurementContext['allocations']['snapshot']> } };
   constructor(error: unknown, detail: Omit<SessionMeasurementFailure['envelope'], 'schema' | 'adapter' | 'workerPid' | 'error'>) {
-    const message = error instanceof Error ? error.stack ?? error.message : String(error);
+    const message = failureText(error);
     super(message, { cause: error });
     this.envelope = { schema: 'scope-compat/session-failure@1', adapter: 'session-native', workerPid: process.pid, error: message, ...detail };
   }

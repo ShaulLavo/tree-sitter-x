@@ -12,6 +12,11 @@ export class Releases {
     const release = () => { if (!held) return; held = false; action(); };
     this.#actions.push(release); return release;
   }
+  closeOnFailure(primary: unknown): never {
+    try { this.close(); }
+    catch (cleanup) { throw new AggregateError([primary, cleanup], 'Measurement operation and cleanup failed', { cause: primary }); }
+    throw primary;
+  }
   close(): void {
     const errors: unknown[] = [];
     for (const action of this.#actions.reverse()) {
@@ -33,6 +38,18 @@ export async function openMeasurementContext(language: string) {
     const component = await Component.load(), pack = await loadLanguagePack(language);
     releases.add(() => pack.dispose());
     return { runtime, component, pack, allocations, observerSha256: digest(bytes), dispose: () => releases.close() };
-  } catch (error) { releases.close(); throw error; }
+  } catch (error) { releases.closeOnFailure(error); }
 }
 export type MeasurementContext = Awaited<ReturnType<typeof openMeasurementContext>>;
+
+export function failureText(error: unknown): string {
+  const pending: unknown[] = [error], seen = new Set<unknown>(), messages: string[] = [];
+  while (pending.length) {
+    const current = pending.pop();
+    if (seen.has(current)) continue;
+    seen.add(current); messages.push(current instanceof Error ? current.stack ?? current.message : String(current));
+    if (current instanceof AggregateError) pending.push(...current.errors.toReversed());
+    else if (current instanceof Error && current.cause !== undefined) pending.push(current.cause);
+  }
+  return messages.join('\nCaused by:\n');
+}

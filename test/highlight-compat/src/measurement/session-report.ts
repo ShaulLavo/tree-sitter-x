@@ -2,8 +2,8 @@ import { counter, sameOwner, sameWork } from '../native/owner-state.ts';
 import type { OwnerKey, WorkKey } from '../native/owner-state.ts';
 import type { PresentationKey } from '../native/theme-presentation.ts';
 import { record, integer } from './model.ts';
-import { CHECKPOINT_RETENTION, SESSION_LIMITS, exactKeys } from './session-case.ts';
-import type { SessionRequest } from './session-case.ts';
+import { CHECKPOINT_RETENTION, SESSION_LIMITS, BUILTIN_CASE, exactKeys } from './session-case.ts';
+import type { SessionCase, SessionRequest } from './session-case.ts';
 import type { SessionWorkerReport, SessionSample, MemoryCheckpoint, Counts, Evidence, StepRecord } from './session.ts';
 import { NONACCEPTANCE } from './session.ts';
 import type { CheckpointRecord } from './session-checkpoint.ts';
@@ -183,6 +183,8 @@ function mode(value: unknown, lane: SessionRequest['lane'], pid: number): Sessio
   const nativeWork = array(control.nativeWork, workRecord);
   if (!nativeWork.length) throw new Error('Missing actual native work control');
   const checkedSample = sample(control.sample, 'end-to-end-adapter');
+  const expected = expectedCase(BUILTIN_CASE);
+  verifyExpected(checkedSample.checkpoints, expected); verifySampleIdentity(checkedSample, 'end-to-end-adapter', expected);
   if (checkedSample.checkpoints[1].stylesSha256 === checkedSample.checkpoints[2].stylesSha256) throw new Error('Warm themes did not change actual styles');
   return { kind: 'warm', controls: { status: literal(control.status, 'passed'), workerPid: pid, contextId: string(control.contextId),
     durationMs: duration(control.durationMs), observerSha256: hash(control.observerSha256), engine: engine(control.engine), allocation: allocationControl(control.allocation, pid),
@@ -200,11 +202,14 @@ export function parseSessionWorkerReport(value: unknown, request: SessionRequest
   if (samples.length !== request.repetitions || samples.some((sample, index) => sample.index !== index)) throw new Error('Session sample count/index mismatch');
   const fresh = array(comparators.checkpoints, checkpoint, 3);
   if (fresh.map(item => item.checkpoint).join(',') !== CHECKPOINTS.join(',')) throw new Error('Invalid fresh checkpoint sequence');
-  for (const item of samples.flatMap(sample => sample.checkpoints)) {
-    if (fresh.find(checkpoint => checkpoint.checkpoint === item.checkpoint)?.semanticSha256 !== item.semanticSha256) throw new Error('Fresh checkpoint equality failed');
+  const expected = expectedCase(request.case);
+  verifyExpected(fresh, expected); verifyFreshIdentity(fresh);
+  for (const sample of samples) {
+    verifyExpected(sample.checkpoints, expected); verifySampleIdentity(sample, request.lane, expected);
+    verifyFreshEquality(sample.checkpoints, fresh);
   }
-  verifyExpected(fresh, request);
-  if (!sameOwner(fresh[1].scope.owner, fresh[2].scope.owner) || fresh[0].scope.owner.epoch === fresh[1].scope.owner.epoch) throw new Error('Fresh comparator owner schedule mismatch');
+  verifySampleOwners(samples, fresh, request.lane);
+  if (checkedMode.kind === 'warm' && samples.some(sample => sample.checkpoints[0].scope.owner.epoch <= checkedMode.controls.sample.checkpoints[0].scope.owner.epoch)) throw new Error('Measured owner predates warm controls');
   if (checkedMode.kind === 'warm' && (JSON.stringify(checkedMode.controls.engine) !== JSON.stringify(engine(identity.engine)) || checkedMode.controls.observerSha256 !== identity.observerSha256)) throw new Error('Worker/context engine identity mismatch');
   const after = parseMemory(input.afterDocumentAndPackDispose);
   if (after.componentLiveBlocks || after.retainedOutputBudgetChargeBytes.value || after.adapterLiveOwners || after.adapterHeldScopeLeases || after.adapterHeldPresentationLeases) throw new Error('Incomplete worker cleanup');
@@ -215,11 +220,79 @@ export function parseSessionWorkerReport(value: unknown, request: SessionRequest
     afterDocumentAndPackDispose: after, sharedPreparationMs: duration(input.sharedPreparationMs), sharedOwnerDisposeMs: duration(input.sharedOwnerDisposeMs), reportEncodingValidationMs: duration(input.reportEncodingValidationMs) };
 }
 
-function verifyExpected(checkpoints: readonly CheckpointRecord[], request: SessionRequest): void {
-  const final = prepareEdits(request.case.source, request.case.edits, numericLimits()).source, themes = normalizedThemes(request.case);
+function expectedCase(input: SessionCase) {
+  const prepared = prepareEdits(input.source, input.edits, numericLimits());
+  return { initial: sourceIdentity(input.source), final: sourceIdentity(prepared.source), prepared, themes: normalizedThemes(input) };
+}
+type ExpectedCase = ReturnType<typeof expectedCase>;
+function verifyExpected(checkpoints: readonly CheckpointRecord[], expected: ExpectedCase): void {
   for (const item of checkpoints) {
-    const source = sourceIdentity(item.checkpoint === 'initial-a' ? request.case.source : final), theme = themes[item.checkpoint === 'edited-b' ? 1 : 0];
+    const source = item.checkpoint === 'initial-a' ? expected.initial : expected.final, theme = expected.themes[item.checkpoint === 'edited-b' ? 1 : 0];
     if (item.sourceUtf16leSha256 !== source.utf16leSha256 || item.sourceWtf8Sha256 !== source.wtf8Sha256 || item.sourceLength !== source.length ||
         item.theme.contentRevision !== theme.contentRevision || item.theme.acquisitionRevision !== theme.acquisitionRevision || item.theme.normalizedPacketDigest !== theme.normalizedPacketDigest || item.theme.targetIdentity !== theme.targetIdentity) throw new Error('Worker case/source/theme identity mismatch');
+  }
+}
+function requireOwner(actual: OwnerKey | null, expected: OwnerKey | null): void {
+  if (actual === null || expected === null) {
+    if (actual !== expected) throw new Error('Measured owner lifetime mismatch');
+    return;
+  }
+  if (!sameOwner(actual, expected)) throw new Error('Measured owner identity mismatch');
+}
+function initialOwner(item: CheckpointRecord): void {
+  const key = item.scope.owner;
+  if (!key.epoch || key.revision !== 0 || key.syntax !== 0 || !item.scope.generation || !item.scope.work.request) throw new Error('Invalid initial owner/scope identity');
+}
+function verifyThemeIdentity(a: CheckpointRecord, b: CheckpointRecord): void {
+  const before = a.presentation.key.view, after = b.presentation.key.view;
+  if (!sameOwner(a.scope.owner, b.scope.owner) || !sameWork(a.scope.work, b.scope.work) || a.scope.generation !== b.scope.generation ||
+      before.view !== after.view || before.interest !== after.interest || before.theme + 1 !== after.theme ||
+      JSON.stringify(before.change) !== JSON.stringify(after.change)) throw new Error('Theme-only scope/presentation identity mismatch');
+}
+function verifySampleIdentity(sample: SessionSample, lane: SessionRequest['lane'], expected: ExpectedCase): void {
+  const first = sample.checkpoints[0], last = sample.checkpoints[sample.checkpoints.length - 1];
+  const opening = sample.steps[0], disposal = sample.steps[sample.steps.length - 1];
+  initialOwner(first);
+  requireOwner(opening.identity.before, lane === 'shared-tree' ? first.scope.owner : null);
+  requireOwner(opening.identity.after, first.scope.owner);
+  requireOwner(disposal.identity.before, last.scope.owner);
+  requireOwner(disposal.identity.after, lane === 'shared-tree' ? last.scope.owner : null);
+  if (lane !== 'end-to-end-adapter') return;
+  const a = sample.checkpoints[1], b = sample.checkpoints[2], editing = sample.steps[1], theming = sample.steps[2];
+  if (editing.step !== 'edit-to-output') throw new Error('Missing measured edit');
+  requireOwner(editing.identity.before, first.scope.owner); requireOwner(editing.identity.after, a.scope.owner);
+  requireOwner(theming.identity.before, a.scope.owner); requireOwner(theming.identity.after, b.scope.owner);
+  verifyThemeIdentity(a, b); verifyEditIdentity(first, a, editing, expected);
+}
+function verifyEditIdentity(first: CheckpointRecord, edited: CheckpointRecord, step: Extract<StepRecord, { step: 'edit-to-output' }>, expected: ExpectedCase): void {
+  const before = first.presentation.key.view, after = edited.presentation.key.view;
+  if (first.scope.generation + 1 !== edited.scope.generation || first.scope.work.request + 1 !== edited.scope.work.request ||
+      before.view !== after.view || before.interest + 1 !== after.interest || before.theme !== after.theme) throw new Error('Measured edit scope transition mismatch');
+  if (JSON.stringify(step.identity.edit.oldTextSpans) !== JSON.stringify(expected.prepared.oldTextSpans) ||
+      JSON.stringify(step.identity.edit.newTextSpans) !== JSON.stringify(expected.prepared.newTextSpans) ||
+      step.identity.invalidation.oldRange.from !== 0 || step.identity.invalidation.oldRange.to !== expected.initial.length ||
+      step.identity.invalidation.newRange.from !== 0 || step.identity.invalidation.newRange.to !== expected.final.length) throw new Error('Measured edit spans/ranges mismatch');
+  const change = after.change;
+  if (change.kind !== 'replace' || !sameOwner(change.old, first.scope.owner) || change.generation !== first.scope.generation ||
+      change.coverage.from !== first.coverage.from || change.coverage.to !== first.coverage.to) throw new Error('Measured edit publication mismatch');
+}
+function verifyFreshIdentity(fresh: readonly CheckpointRecord[]): void {
+  initialOwner(fresh[0]); initialOwner(fresh[1]); verifyThemeIdentity(fresh[1], fresh[2]);
+  if (fresh[0].scope.owner.epoch >= fresh[1].scope.owner.epoch) throw new Error('Fresh comparator owner schedule mismatch');
+}
+function verifyFreshEquality(actual: readonly CheckpointRecord[], fresh: readonly CheckpointRecord[]): void {
+  for (const item of actual) {
+    if (fresh.find(checkpoint => checkpoint.checkpoint === item.checkpoint)?.semanticSha256 !== item.semanticSha256) throw new Error('Fresh checkpoint equality failed');
+  }
+}
+function verifySampleOwners(samples: readonly SessionSample[], fresh: readonly CheckpointRecord[], lane: SessionRequest['lane']): void {
+  const epochs = new Set(samples.map(sample => sample.checkpoints[0].scope.owner.epoch));
+  if (fresh[0].scope.owner.epoch <= Math.max(...epochs) || fresh.some(item => epochs.has(item.scope.owner.epoch)) || epochs.size !== (lane === 'shared-tree' ? 1 : samples.length)) throw new Error('Measured/fresh owner lifetime mismatch');
+  if (lane !== 'shared-tree') return;
+  for (let index = 1; index < samples.length; index++) {
+    const previous = samples[index - 1].checkpoints[0], current = samples[index].checkpoints[0];
+    requireOwner(current.scope.owner, previous.scope.owner);
+    if (previous.scope.generation + 1 !== current.scope.generation || previous.scope.work.request + 1 !== current.scope.work.request ||
+        previous.presentation.key.view.view === current.presentation.key.view.view) throw new Error('Shared owner scope iteration mismatch');
   }
 }
