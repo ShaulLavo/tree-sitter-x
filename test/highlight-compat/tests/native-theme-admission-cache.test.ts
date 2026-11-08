@@ -40,9 +40,10 @@ async function checkMemos(cache: ThemeCache, scope: Parameters<ThemeCache['acqui
   for (const variant of variants) themes.push(value(await NativeTheme.compile(variant)))
   for (const [index, variant] of variants.entries()) {
     const spy = vi.spyOn(themes[index], 'resolve')
-    pairs.push(cache.acquire(scope, variant, themes[index], {}, {}))
-    pairs.push(cache.acquire(scope, variant, themes[index], {}, {}))
+    const first = cache.acquire(scope, variant, themes[index], {}, {}), second = cache.acquire(scope, variant, themes[index], {}, {})
+    pairs.push(first, second)
     expect(spy).toHaveBeenCalledTimes(1)
-    expect(value(pairs.at(-1) ?? { kind: 'error', code: 'runtime-failed', location: { kind: 'request' } }).runs).toHaveLength(1)
+    expect(value(first).runs).toBe(value(second).runs)
+    expect(value(first).runs.length).toBeGreaterThan(0)
   }
 }

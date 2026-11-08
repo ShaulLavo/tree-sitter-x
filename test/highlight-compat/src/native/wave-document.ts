@@ -19,7 +19,7 @@ import { ThemePresentation } from './theme-presentation.ts'
 import type { PresentationOutcome } from './theme-presentation.ts'
 import { normalizeTheme, snapshotInput } from './theme-input.ts'
 import type { NormalizedTheme } from './theme-input.ts'
-import type { Outcome, OutsideScore, Profile } from './theme-contract.ts'
+import type { Outcome, OutsideScore, Profile, Location } from './theme-contract.ts'
 import { decodedSnapshot } from './scope-output.ts'
 import { buildProduct, collectSourceFacts, planProduct } from './scope-framing.ts'
 import type { FramingPolicy, ScopeLease, ScopeSnapshot } from './scope-output.ts'
@@ -311,13 +311,18 @@ function validateEvidence(value: Record<string, unknown>): NativeWaveEvidence {
 }
 function parseThemeAttempt(value: unknown): ThemeAttempt {
   const row = object(value), theme = string(row.theme)
-  const warnings = list(row.warnings).map(value => {
-    const warning = object(value); need(warning.kind === 'outside-score', 'Invalid warning')
-    return { kind: 'outside-score' as const, resource: string(warning.resource), property: string(warning.property) }
-  })
+  const warnings = list(row.warnings).map(parseWarning)
   if (row.kind === 'failed') return { kind: 'failed', theme, warnings, outcome: parseFailure(row.outcome) }
   need(row.kind === 'complete', 'Invalid theme attempt')
   return { kind: 'complete', theme, warnings, contentRevision: digestString(row.contentRevision), acquisitionRevision: digestString(row.acquisitionRevision), targetIdentity: digestString(row.targetIdentity), normalizedPacketDigest: digestString(row.normalizedPacketDigest), resourceDigest: digestString(row.resourceDigest), assetDigest: digestString(row.assetDigest) }
+}
+function parseWarning(value: unknown): OutsideScore {
+  const warning = object(value); need(warning.kind === 'outside-score', 'Invalid warning')
+  const result = { kind: 'outside-score' as const, resource: string(warning.resource), property: string(warning.property) }
+  if (!('location' in warning)) return result
+  const location = parseLocation(warning.location)
+  if ('resource' in location) need(location.resource === result.resource, 'Warning location resource mismatch')
+  return { ...result, location }
 }
 function parseFailure(value: unknown): Exclude<PresentationOutcome, { kind: 'complete' }> {
   const row = object(value)
@@ -333,17 +338,22 @@ function parseFailure(value: unknown): Exclude<PresentationOutcome, { kind: 'com
   const kind = string(row.kind), code = string(row.code)
   need(Object.hasOwn(codes, kind) && codes[kind].includes(code), 'Invalid native failure')
   if (kind === 'budget') nonnegative(row.limit)
-  validateLocation(row.location)
+  parseLocation(row.location)
   if (kind === 'error') need(object(row.location).kind === 'request', 'Invalid operational failure location')
   return row as unknown as Exclude<PresentationOutcome, { kind: 'complete' }>
 }
-function validateLocation(value: unknown): void {
+function parseLocation(value: unknown): Location {
   const row = object(value)
-  if (row.kind === 'request') return
-  if (row.kind === 'packet') { nonnegative(row.byteOffset); return }
-  string(row.resource)
-  if (row.kind === 'resource') { string(row.jsonPointer); if (row.byteOffset !== null) nonnegative(row.byteOffset); return }
-  need(row.kind === 'setting', 'Invalid failure location'); nonnegative(row.rule); if (row.alternative !== null) nonnegative(row.alternative); string(row.property)
+  if (row.kind === 'request') return { kind: 'request' }
+  if (row.kind === 'packet') return { kind: 'packet', byteOffset: nonnegative(row.byteOffset) }
+  const resource = string(row.resource)
+  if (row.kind === 'resource') {
+    const jsonPointer = string(row.jsonPointer)
+    need((jsonPointer === '' || jsonPointer.startsWith('/')) && !/~(?![01])/u.test(jsonPointer), 'Invalid location JSON pointer')
+    return { kind: 'resource', resource, jsonPointer, byteOffset: row.byteOffset === null ? null : nonnegative(row.byteOffset) }
+  }
+  need(row.kind === 'setting', 'Invalid failure location')
+  return { kind: 'setting', resource, rule: nonnegative(row.rule), alternative: row.alternative === null ? null : nonnegative(row.alternative), property: string(row.property) }
 }
 function validateNativeEngine(engine: Readonly<Record<string, string>>, language: string): void {
   for (const key of ['componentSha256', 'sourceDigest', 'runtimeSha256', 'querySha256', 'parserSha256']) digestString(engine[key])

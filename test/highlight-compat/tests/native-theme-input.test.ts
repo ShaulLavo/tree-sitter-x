@@ -67,7 +67,7 @@ describe('native theme acquisition and normalization', () => {
   it.each([
     [{foreground:'#12'},'invalid','color'],[{foreground:'red'},'unsupported','color-format'],
     [{foreground:null},'invalid','schema'],[{fontStyle:'   '},'invalid','font-style'],
-    [{fontStyle:'bold  italic'},'invalid','font-style'],[{fontStyle:'other'},'unsupported','font-style'],
+    [{fontStyle:'bold\titalic'},'invalid','font-style'],[{fontStyle:'other'},'unsupported','font-style'],
     [{fontStyle:1},'invalid','schema'],[{other:true},'unsupported','syntax-property'],
   ])('returns exact property diagnostics for %j', (settings,kind,code) => {
     expect(normalized({tokenColors:[{scope:'a',settings}]})).toMatchObject({kind,code,location:{kind:'setting',resource:'theme',rule:0}});

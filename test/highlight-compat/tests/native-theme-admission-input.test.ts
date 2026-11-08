@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { loadAdmissionSuite } from '../src/oracles/theme-admission/load.ts'
 import type { AdmissionFixture, Observation } from '../src/oracles/theme-admission/schema.ts'
 import { normalizeTheme, normalizedPacket, snapshotInput } from '../src/native/theme-input.ts'
@@ -7,6 +7,8 @@ import type { AcquiredInput, InputLimits, OperationalFailure, Outcome, Profile }
 import { NativeTheme } from '../src/native/theme.ts'
 import { Component } from '../src/native/component.ts'
 import { encodePathPacket } from '../src/native/theme-packet.ts'
+import * as rawAdapter from '../src/oracles/raw.ts'
+import * as productAdapter from '../src/oracles/product/theme.ts'
 import { appliedStyle, namedStyle } from '../src/native/theme-projection.ts'
 
 const suite = loadAdmissionSuite()
@@ -75,7 +77,7 @@ async function compareFixture(fixture: AdmissionFixture, profile: Profile, expec
 }
 
 function ruleWords(packet: Uint8Array): readonly number[][] {
-  const view = new DataView(packet.buffer, packet.byteOffset, packet.byteLength), offset = view.getUint32(16, true), count = view.getUint32(20, true)
+  const view = new DataView(packet.buffer, packet.byteOffset, packet.byteLength), offset = view.getUint32(16, true), count = view.getUint32(12, true)
   return Array.from({ length: count }, (_, index) => Array.from({ length: 9 }, (_, word) => view.getUint32(offset + index * 36 + word * 4, true)))
 }
 it.each(profiles)('keeps selected property-only alternatives, normalized ordinals and budgets in %s', profile => {
@@ -178,4 +180,15 @@ it.each(['foreground', 'background'])('keeps raw palette spelling accounting for
   const over = exact.concat([{ scope: 'unreached', settings: { [property]: '#00000000' } }])
   expect(normalize({ colors, tokenColors: over })).toMatchObject({ kind: 'unsupported', code: 'raw-palette' })
   expect(normalize({ colors, tokenColors: over }, 'product')).toMatchObject({ kind: 'ok' })
+})
+
+it.each(profiles)('forwards original admitted font/auxiliary strings and only the proved UI projection to %s', profile => {
+  const raw = vi.spyOn(rawAdapter, 'vscodeRawTheme'), product = vi.spyOn(productAdapter, 'workerThemeRegistration')
+  const settings = { content: 'synthetic', 'text-decoration': 'underline', '-webkit-font-smoothing': 'antialiased', fontStyle: ' normal  italic ', foreground: '#0000' }
+  try {
+    expect(normalize({ tokenColors: [{ scope: 'variable', settings }], colors: { nullable: null, list: ['red', ''], empty: [], string: 'var(--synthetic)' } }, profile)).toMatchObject({ kind: 'ok' })
+    const forwarded = profile === 'raw' ? raw.mock.calls.at(-1)?.[0] : product.mock.calls.at(-1)?.[0]
+    expect(forwarded?.settings).toEqual([{ scope: 'variable', settings }])
+    expect(forwarded?.colors).toEqual({ string: 'var(--synthetic)' })
+  } finally { raw.mockRestore(); product.mockRestore() }
 })
