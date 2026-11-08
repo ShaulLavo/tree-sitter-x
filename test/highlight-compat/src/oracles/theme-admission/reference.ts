@@ -32,7 +32,7 @@ function assertJson(value: unknown): asserts value is Json {
 }
 
 function get(value: unknown, property: string): unknown {
-  assert(value !== null && typeof value === 'object', `target object for ${property}`)
+  assert(value !== null && (typeof value === 'object' || typeof value === 'function'), `target object for ${property}`)
   return Reflect.get(value, property)
 }
 
@@ -43,8 +43,10 @@ function invoke(value: unknown, method: string, args: unknown[]): unknown {
 }
 
 function normalized(document: ObjectValue, profile: Attempt['profile']): ObjectValue {
-  const result: unknown = targetCall('profile-normalization', () => profile === 'raw' ? Reflect.apply(vscodeRawTheme, undefined, [structuredClone(document)])
-    : Reflect.apply(normalizeTheme, undefined, [Reflect.apply(workerThemeRegistration, undefined, [structuredClone(document)])]))
+  const copied = structuredClone(document), registrationArgs = [copied]
+  const registration = profile === 'raw' ? copied : targetCall('profile-normalization', () => Reflect.apply(workerThemeRegistration, undefined, registrationArgs))
+  const operation = profile === 'raw' ? vscodeRawTheme : normalizeTheme, args = [registration]
+  const result: unknown = targetCall('profile-normalization', () => Reflect.apply(operation, undefined, args))
   assert(result !== null && typeof result === 'object' && 'settings' in result && Array.isArray(result.settings), 'target normalized settings')
   const checked = json(result)
   assert(checked !== null && typeof checked === 'object' && !Array.isArray(checked))
@@ -52,7 +54,7 @@ function normalized(document: ObjectValue, profile: Attempt['profile']): ObjectV
 }
 
 function themeFrom(registration: ObjectValue): Theme {
-  const theme: unknown = targetCall('fork-theme-compilation', () => Reflect.apply(Theme.createFromRawTheme, Theme, [registration]))
+  const theme: unknown = targetMethod('fork-theme-compilation', Theme, 'createFromRawTheme', [registration])
   assert(theme instanceof Theme)
   return theme
 }
@@ -65,6 +67,11 @@ class TargetFailure extends Error {
 
 function targetCall<T>(stage: string, operation: () => T): T {
   try { return operation() } catch (error) { throw new TargetFailure(stage, error) }
+}
+function targetMethod(stage: string, owner: unknown, method: string, args: unknown[]): unknown {
+  const fn = get(owner, method)
+  assert(typeof fn === 'function', `target method ${method}`)
+  return targetCall(stage, () => Reflect.apply(fn, owner, args))
 }
 
 let loaded: Promise<void> | undefined
@@ -113,8 +120,8 @@ async function rawDirect(registration: ObjectValue, scopes: readonly string[]) {
   try {
     const a = await raw.loadGrammar(grammar.scopeName), b = fork.loadGrammar(grammar.scopeName)
     assert(a && b)
-    targetCall('raw-theme-compilation', () => invoke(raw, 'setTheme', [registration]))
-    targetCall('raw-fork-theme-compilation', () => invoke(fork, 'setTheme', [registration]))
+    targetMethod('raw-theme-compilation', raw, 'setTheme', [registration])
+    targetMethod('raw-fork-theme-compilation', fork, 'setTheme', [registration])
     const tokens = a.tokenizeLine(text, null), packed = a.tokenizeLine2(text, null), forkPacked = b.tokenizeLine2(text, null)
     assert(!tokens.stoppedEarly && !packed.stoppedEarly && !forkPacked.stoppedEarly)
     const direct = packedSpans(packed.tokens, raw.getColorMap(), text.length)
@@ -184,7 +191,7 @@ async function observe(registration: ObjectValue, input: AdmissionInput, profile
   const theme = themeFrom(registration)
   const defaultsRegistry = new upstream.Registry({ onigLib: Promise.resolve(await library()), loadGrammar: async () => null })
   try {
-    targetCall('upstream-theme-compilation', () => invoke(defaultsRegistry, 'setTheme', [registration]))
+    targetMethod('upstream-theme-compilation', defaultsRegistry, 'setTheme', [registration])
     const observations: Observation[] = []
     for (const stack of input.stacks) observations.push(await observeStack(registration, input, profile, theme, defaultsRegistry, stack))
     return observations
