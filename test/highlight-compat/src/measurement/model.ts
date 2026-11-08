@@ -40,16 +40,16 @@ export function distribution(values: readonly number[]) {
 }
 
 export const LIMITS = {
-  incrementalEdits: unsupported('PilotDocument is immutable; no native incremental implementation or edit replay is measured.'),
+  incrementalEdits: unsupported('This full-pass/reference adapter performs no edits; the delivered owner supports edits.'),
   nativeThemeResolution: unsupported('The adapter uses the pinned development reference matcher.'),
   bytesScanned: unsupported('Source coverage is known, but native scanning bytes are not instrumented.'),
-  invalidationExtent: unsupported('Full-pass prototype has no invalidation API.'),
+  invalidationExtent: unsupported('This full-pass/reference adapter performs no edits or invalidation observation.'),
   sourceSuffixMovement: unsupported('No source edit is performed.'),
   ownedCacheBytes: unsupported('Source/tree/scope/style cache ownership sizes are not exposed.'),
   downstreamDelivery: unsupported('JSON encoding is measured; worker transport, rendering, overlays and LSP are absent.'),
   currentIncrementalShiki: unsupported('Current same-host consumer controls are an external release-evaluation prerequisite.'),
   nativePeakBytes: unsupported('Allocator observation covers routed requests, not all runtime internals or allocator overhead.'),
-  themeSwitch: unsupported('No native theme cache or theme-switch lifecycle exists in this command.'),
+  themeSwitch: unsupported('This full-pass/reference adapter performs no native theme selection.'),
   multipleDocuments: unsupported('One document at a time; no simultaneous-document scenario.'),
   viewport: unsupported('All lanes request full-document output; first-viewport latency is not measured.'),
   maximumUiStall: unsupported('No event-loop delay or UI sampling; maximum reported latency is an operation duration.'),
