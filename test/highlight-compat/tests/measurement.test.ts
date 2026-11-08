@@ -96,11 +96,11 @@ async function closedWithin(result: Promise<number | null>): Promise<number | nu
 }
 
 describe('internal measurement command', () => {
-  it.each(['cold-open', 'shared-tree', 'end-to-end-adapter'])(
-    'rejects an inactive allocation observer in the actual %s context before source work', lane => {
+  it.each(['cold-open', 'shared-tree', 'end-to-end-adapter'].flatMap(lane => ['full-pass-reference', 'session-native'].map(adapter => [lane, adapter])))(
+    'rejects an inactive allocation observer in the actual %s %s context before source work', (lane, adapter) => {
       const control = fixture('observer');
       try {
-        const result = command(['--lane', lane, '--repetitions', '1', '--warmups', '0'], control.env);
+        const result = command(['--adapter', adapter, '--lane', lane, '--repetitions', '1', '--warmups', '0'].concat(adapter === 'session-native' ? ['--case', 'builtin:json-lifecycle-v1'] : []), control.env);
         expect(result.status, result.stderr).toBe(1);
         expect(result.stdout).toBe('');
         expect(result.stderr).toContain('Measured context allocation observer did not arm');
@@ -109,10 +109,10 @@ describe('internal measurement command', () => {
     },
   );
 
-  it.skipIf(process.platform === 'win32')('reaps an active worker before exiting on controller SIGTERM', async () => {
+  it.skipIf(process.platform === 'win32').each(['full-pass-reference', 'session-native'])('reaps an active %s worker before exiting on controller SIGTERM', async adapter => {
     const control = fixture('pause');
     const controller = spawn(process.execPath, [fileURLToPath(new URL('../src/cli/measure.ts', import.meta.url)),
-      '--lane', 'cold-open', '--repetitions', '1', '--warmups', '0'], { env: control.env, stdio: 'pipe' });
+      '--adapter', adapter, '--lane', 'cold-open', '--repetitions', '1', '--warmups', '0'].concat(adapter === 'session-native' ? ['--case', 'builtin:json-lifecycle-v1'] : []), { env: control.env, stdio: 'pipe' });
     controller.stdin.end(); controller.stdout.resume(); controller.stderr.resume();
     const closed = new Promise<number | null>((resolve, reject) => {
       controller.once('close', resolve); controller.once('error', reject);

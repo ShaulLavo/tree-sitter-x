@@ -31,6 +31,7 @@ export function allocationLedger() {
 
 export function observeAllocations() {
   const original = WebAssembly.instantiate;
+  const descriptor = Object.getOwnPropertyDescriptor(WebAssembly, 'instantiate');
   const ledger = allocationLedger();
   function wrap(instance: WebAssembly.Instance): WebAssembly.Instance {
     const exports = { ...instance.exports };
@@ -51,17 +52,32 @@ export function observeAllocations() {
     return { module: result.module, instance: wrap(result.instance) };
   }
   Object.defineProperty(WebAssembly, 'instantiate', { configurable: true, writable: true, value: instantiate });
-  return { snapshot: ledger.snapshot, restore: () => Object.defineProperty(WebAssembly, 'instantiate', { configurable: true, writable: true, value: original }) };
+  let installed = true;
+  return { snapshot: ledger.snapshot, restore: () => {
+    if (!installed) return; installed = false;
+    if (descriptor) Object.defineProperty(WebAssembly, 'instantiate', descriptor);
+    else Reflect.deleteProperty(WebAssembly, 'instantiate');
+  } };
 }
 
 export function observeParses(binding: Foreign) {
   const prototype = foreign(foreign(binding.Parser).prototype);
-  const original = prototype.parse;
-  if (typeof original !== 'function') throw new Error('Parser observer unavailable');
   let calls = 0;
-  Object.defineProperty(prototype, 'parse', { configurable: true, writable: true, value: function(this: Foreign, ...args: unknown[]) {
+  const restore = replaceMethod(prototype, 'parse', original => function(this: unknown, ...args: unknown[]) {
     ++calls;
     return Reflect.apply(original, this, args);
-  } });
-  return { count: () => calls, restore: () => Object.defineProperty(prototype, 'parse', { configurable: true, writable: true, value: original }) };
+  });
+  return { count: () => calls, restore };
+}
+
+export function replaceMethod(target: object, key: PropertyKey, make: (original: Function) => Function): () => void {
+  const descriptor = Object.getOwnPropertyDescriptor(target, key), original: unknown = Reflect.get(target, key);
+  if (typeof original !== 'function') throw new Error(`Measurement method unavailable: ${String(key)}`);
+  Object.defineProperty(target, key, { ...(descriptor ?? { configurable: true, writable: true, enumerable: false }), value: make(original) });
+  let installed = true;
+  return () => {
+    if (!installed) return; installed = false;
+    if (descriptor) Object.defineProperty(target, key, descriptor);
+    else Reflect.deleteProperty(target, key);
+  };
 }

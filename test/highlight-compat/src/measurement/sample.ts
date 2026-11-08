@@ -1,46 +1,29 @@
 import { readFile } from 'node:fs/promises';
 import { performance } from 'node:perf_hooks';
-import { Runtime, invoke, release } from '../native/runtime.ts';
-import { Component } from '../native/component.ts';
-import { loadLanguagePack } from '../native/packs.ts';
+import { release } from '../native/runtime.ts';
 import { PilotDocument } from '../native/owner.ts';
 import { nativeScopes } from '../native/adapter.ts';
 import { paintScopes } from '../baselines/theme.ts';
 import { digest, manifestPath, repositoryRoot } from '../native/component-inputs.ts';
 import { resolve } from 'node:path';
-import { observeAllocations, observeParses } from './observer.ts';
+import { observeParses } from './observer.ts';
 import { observed, record, unsupported } from './model.ts';
 import type { Request } from './model.ts';
-import type { Foreign } from '../native/runtime.ts';
-import type { NativePack } from '../native/component.ts';
+import { openMeasurementContext } from './context.ts';
+import type { MeasurementContext } from './context.ts';
 
-function restoreObservers(undo: () => void, restore: () => void): void {
-  try { undo(); } finally { restore(); }
-}
-function disposeContext(pack: NativePack, undo: () => void, restore: () => void): void {
-  try { pack.dispose(); } finally { restoreObservers(undo, restore); }
-}
-function resetCoreObserver(observer: Foreign, restoreParses: () => void): void {
-  try { invoke(observer, 'scope_test_reset'); } finally { restoreParses(); }
-}
-
-async function context(language: string) {
-  const allocations = observeAllocations();
-  let undo = () => {};
+type Context = MeasurementContext & { readonly parses: ReturnType<typeof observeParses> };
+async function context(language: string): Promise<Context> {
+  const ctx = await openMeasurementContext(language);
   try {
-    const runtime = await Runtime.load();
-    const bytes = await readFile(new URL('../../../../lib/scope-compat/build/scope-test-observer.wasm', import.meta.url));
-    const observer = await runtime.extension(new WebAssembly.Module(bytes));
-    invoke(observer, 'scope_test_install');
-    const parses = observeParses(runtime.binding);
-    undo = () => resetCoreObserver(observer, parses.restore);
-    const component = await Component.load();
-    const pack = await loadLanguagePack(language);
-    return { runtime, component, pack, allocations, parses, observerSha256: digest(bytes),
-      dispose: () => disposeContext(pack, undo, allocations.restore) };
-  } catch (error) { try { undo(); } finally { allocations.restore(); } throw error; }
+    const parses = observeParses(ctx.runtime.binding);
+    return { ...ctx, parses, dispose: () => disposeContext(ctx, parses.restore) };
+  } catch (error) { ctx.dispose(); throw error; }
 }
-type Context = Awaited<ReturnType<typeof context>>;
+
+function disposeContext(ctx: MeasurementContext, restore: () => void): void {
+  try { restore(); } finally { ctx.dispose(); }
+}
 
 async function coreAllocationControl(ctx: Context, language: string) {
   const started = performance.now();

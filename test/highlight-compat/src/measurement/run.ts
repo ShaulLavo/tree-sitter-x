@@ -38,9 +38,9 @@ async function lane(options: Options, lane: Lane) {
   const durations = observations.map(sample => duration(cold ? sample.firstOutputFromWorkerStartMs : sample.durationMs));
   const expectedParses = lane === 'shared-tree' ? 0 : 1;
   if (observations.some(sample => sample.parseCalls !== expectedParses)) throw new Error(`Unexpected parse work in ${lane}`);
-  return { lane, workContract: {
+  return { adapter: 'full-pass-reference', lane, workContract: {
     language: options.language, range: 'full-document', initialization: cold ? 'fresh process per repetition, OS caches uncontrolled' : 'outside timed iterations',
-    sourceAndTree: lane === 'shared-tree' ? 'retained before iterations' : 'new immutable owner per iteration',
+    sourceAndTree: lane === 'shared-tree' ? 'retained before iterations' : 'new owner per iteration, no edits',
     classification: 'native full pass plus decode', theming: 'four pinned product reference themes',
     delivery: 'canonical JSON encoding in process', diagnostics: 'explanations disabled; allocator and parse instrumentation enabled',
     edits: 'unsupported', comparison: 'No reference timing or current consumer comparison is supplied.' },
@@ -63,7 +63,7 @@ export async function runMeasurement(options: Options) {
   if (hashes.size !== 1) throw new Error('Lanes did not produce equivalent full-document output');
   const after = await sourceIdentity();
   if (identity.contentSha256 !== after.contentSha256 || identity.head !== after.head) throw new Error('Source changed during measurement');
-  return { schema: 'scope-compat/measurement@1', purpose: 'internal partial-prototype diagnostics',
+  return { schema: 'scope-compat/measurement@1', adapter: 'full-pass-reference', purpose: 'internal partial-prototype diagnostics',
     acceptance: 'No performance benefit, budget acceptance, promotion or cutover claim.',
     source: identity, input: { label: options.sourceLabel, utf16Units: options.source.length,
       utf16leSha256: digest(Buffer.from(options.source, 'utf16le')), utf8Sha256: digest(Buffer.from(options.source)), utf8Bytes: Buffer.byteLength(options.source),

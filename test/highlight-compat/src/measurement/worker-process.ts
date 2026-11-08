@@ -4,6 +4,9 @@ import { performance } from 'node:perf_hooks';
 import { fileURLToPath } from 'node:url';
 import { record } from './model.ts';
 import type { Request } from './model.ts';
+import type { SessionRequest } from './session-case.ts';
+import { serializeSessionRequest } from './session-case.ts';
+type WorkerRequest = Request | SessionRequest;
 
 interface WorkerResult {
   readonly data: Record<string, unknown>;
@@ -31,19 +34,22 @@ class WorkerJob {
   readonly #deadline: NodeJS.Timeout;
   #killer: NodeJS.Timeout | undefined;
   #bytes = 0;
+  #stdoutBytes = 0;
+  readonly #stdoutCeiling: number;
   #failure: Error | undefined;
   #state: 'running' | 'stopping' | 'closed' = 'running';
   readonly #interrupt = () => this.interrupt('SIGINT');
   readonly #terminate = () => this.interrupt('SIGTERM');
 
-  constructor(worker: ChildProcessWithoutNullStreams, request: Request, started: number) {
+  constructor(worker: ChildProcessWithoutNullStreams, request: string, started: number, stdoutCeiling: number) {
     this.#worker = worker;
+    this.#stdoutCeiling = stdoutCeiling;
     this.#started = started;
     this.#deadline = setTimeout(() => this.stop(new Error('Measurement worker timed out')), 120_000);
     this.result = new Promise((resolve, reject) => this.listen(request, resolve, reject));
   }
 
-  private listen(request: Request, resolve: (value: WorkerResult) => void, reject: (error: Error) => void): void {
+  private listen(request: string, resolve: (value: WorkerResult) => void, reject: (error: Error) => void): void {
     process.on('SIGINT', this.#interrupt);
     process.on('SIGTERM', this.#terminate);
     this.#worker.stdout.on('data', (chunk: Buffer) => this.capture(chunk, true));
@@ -51,7 +57,7 @@ class WorkerJob {
     this.#worker.once('error', error => this.stop(error));
     this.#worker.stdin.on('error', error => this.stop(error));
     this.#worker.once('close', (code, signal) => this.finish(code, signal, resolve, reject));
-    this.#worker.stdin.end(JSON.stringify(request));
+    this.#worker.stdin.end(request);
   }
 
   private capture(chunk: Buffer, stdout: boolean): void {
@@ -59,6 +65,10 @@ class WorkerJob {
       this.stop(new Error('Measurement worker output limit exceeded'));
       return;
     }
+    if (stdout && chunk.length > this.#stdoutCeiling - this.#stdoutBytes) {
+      this.stop(new Error('Measurement worker report budget exceeded')); return;
+    }
+    if (stdout) this.#stdoutBytes += chunk.length;
     this.#bytes += chunk.length;
     (stdout ? this.#stdout : this.#stderr).push(chunk);
   }
@@ -102,9 +112,10 @@ class WorkerJob {
   }
 }
 
-export function runWorker(request: Request, controls = false): Promise<WorkerResult> {
-  const args = [fileURLToPath(new URL('worker.ts', import.meta.url))].concat(controls ? ['--controls'] : []);
+export function runWorker(request: WorkerRequest, controls = false): Promise<WorkerResult> {
+  const encoded = 'adapter' in request ? serializeSessionRequest(request) : JSON.stringify(request);
+  const args = [fileURLToPath(new URL('worker.ts', import.meta.url))].concat(controls ? ['--controls'] : [], 'adapter' in request ? ['--session-native'] : []);
   const started = performance.now();
   const worker = spawn(process.execPath, args, { stdio: 'pipe', detached: process.platform !== 'win32', windowsHide: true });
-  return new WorkerJob(worker, request, started).result;
+  return new WorkerJob(worker, encoded, started, 'adapter' in request ? request.reportBudget : 32 * 1024 * 1024).result;
 }
