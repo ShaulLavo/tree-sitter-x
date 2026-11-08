@@ -25,7 +25,9 @@
     "fixtures:check": "node scripts/fixtures.ts --check",
     "fixtures:update": "node scripts/fixtures.ts --update",
     "fixtures:report": "node scripts/fixtures.ts --report",
-    "collect:wave": "node src/cli/collect-wave.ts"
+    "collect:wave": "node src/cli/collect-wave.ts",
+    "oracle:theme-admission:check": "node src/cli/native-theme-admission.ts --check",
+    "oracle:theme-admission:update": "node src/cli/native-theme-admission.ts --update"
   },
   "dependencies": {
     "@shikijs/engine-oniguruma": "4.4.3",
