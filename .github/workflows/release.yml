@@ -1,0 +1,101 @@
+name: Release web-tree-sitter-x
+
+on:
+  push:
+    tags:
+      - 'web-tree-sitter-x-v*'
+  workflow_dispatch:
+
+concurrency:
+  group: release-web-tree-sitter-x
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    name: Build, verify, and publish web-tree-sitter-x
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: lib/binding_web
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v2
+        with:
+          toolchain: stable
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: lib/binding_web/package-lock.json
+
+      - name: Check package name and tag version
+        id: meta
+        run: |
+          set -euo pipefail
+          name=$(node -p 'JSON.parse(require("node:fs").readFileSync("package.json", "utf8")).name')
+          version=$(node -p 'JSON.parse(require("node:fs").readFileSync("package.json", "utf8")).version')
+          test "$name" = "web-tree-sitter-x"
+          tag="web-tree-sitter-x-v$version"
+          if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
+            test "${GITHUB_REF_NAME}" = "$tag"
+          fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and verify package artifacts
+        run: |
+          set -euo pipefail
+          npm run build:debug
+          CJS=1 node script/build.ts --debug
+          npm run build
+          CJS=1 node script/build.ts
+          npm run build:dts
+          node script/check-artifacts-fresh.ts
+          work=$(mktemp -d "$RUNNER_TEMP/web-tree-sitter-x-XXXXXX")
+          trap 'rm -rf "$work"' EXIT
+          npm pack --pack-destination "$work"
+          tar xzf "$work"/*.tgz -C "$work"
+          node script/check-package-types.ts "$work/package" --runtime
+
+      - name: Publish to npm
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          PKG_NAME: ${{ steps.meta.outputs.name }}
+          PKG_VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          if npm view "${PKG_NAME}@${PKG_VERSION}" version >/dev/null 2>&1; then
+            echo "${PKG_NAME}@${PKG_VERSION} is already published on npm; skipping publish."
+            exit 0
+          fi
+          if [ -n "${NPM_TOKEN:-}" ]; then
+            npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
+          fi
+          npm publish --provenance --access public
+
+      - name: Ensure GitHub release notes exist
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --verify-tag --title "$TAG" --generate-notes
+          fi

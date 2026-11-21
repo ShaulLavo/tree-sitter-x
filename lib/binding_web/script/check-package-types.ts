@@ -132,7 +132,7 @@ try {
     throw new Error('Expected a package name');
   }
   const { name } = manifest;
-  const names = new Set([name, '@singapore-editor/tree-sitter-x', 'web-tree-sitter']);
+  const names = new Set([name, 'web-tree-sitter-x', 'web-tree-sitter']);
   for (const packageName of names) checkPackage(packageName);
 } finally {
   cleanup();
