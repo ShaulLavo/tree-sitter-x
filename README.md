@@ -26,17 +26,17 @@ same as upstream.
 Install the WASI JavaScript runtime from npm:
 
 ```sh
-npm install @singapore-editor/tree-sitter-x
+npm install web-tree-sitter-x
 ```
 
 ```js
-import { Parser, Language, TextBuffer } from '@singapore-editor/tree-sitter-x'
+import { Parser, Language, TextBuffer } from 'web-tree-sitter-x'
 ```
 
 Projects that import `web-tree-sitter` can install the runtime under that dependency name:
 
 ```json
-"web-tree-sitter": "npm:@singapore-editor/tree-sitter-x@0.28.3"
+"web-tree-sitter": "npm:web-tree-sitter-x@0.28.6"
 ```
 
 CI also publishes built artifacts on the `web-tree-sitter` Git branch after source checks pass.
