@@ -46,7 +46,7 @@ jobs:
           set -euo pipefail
           name=$(node -p 'JSON.parse(require("node:fs").readFileSync("package.json", "utf8")).name')
           version=$(node -p 'JSON.parse(require("node:fs").readFileSync("package.json", "utf8")).version')
-          test "$name" = "web-tree-sitter-x"
+          test "$name" = "@shaulavo/web-tree-sitter-x"
           tag="web-tree-sitter-x-v$version"
           if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
             test "${GITHUB_REF_NAME}" = "$tag"
