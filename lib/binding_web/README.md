@@ -9,18 +9,18 @@ See [memory and heap views](https://github.com/ShaulLavo/tree-sitter-x/blob/mast
 ## Setup
 
 ```sh
-npm install web-tree-sitter-x
+npm install @shaulavo/web-tree-sitter-x
 ```
 
 ```js
-import { Parser, Language } from 'web-tree-sitter-x';
+import { Parser, Language } from '@shaulavo/web-tree-sitter-x';
 await Parser.init();
 ```
 
 CommonJS is also supported:
 
 ```js
-const { Parser, Language } = require('web-tree-sitter-x');
+const { Parser, Language } = require('@shaulavo/web-tree-sitter-x');
 Parser.init().then(() => {
   const parser = new Parser();
 });
@@ -28,7 +28,7 @@ Parser.init().then(() => {
 
 The package includes `web-tree-sitter.wasm`. Browser bundles must serve that asset alongside the runtime or pass its bytes to `Parser.init({ wasmBinary })`.
 
-Import `web-tree-sitter-x/debug` for the build with debug symbols and assertions.
+Import `@shaulavo/web-tree-sitter-x/debug` for the build with debug symbols and assertions.
 
 ### Basic Usage
 
@@ -41,7 +41,7 @@ const parser = new Parser();
 Then assign a language to the parser. Tree-sitter languages are packaged as individual `.wasm` files (more on this below):
 
 ```js
-const { Language } = require('web-tree-sitter-x');
+const { Language } = require('@shaulavo/web-tree-sitter-x');
 const JavaScript = await Language.load('/path/to/tree-sitter-javascript.wasm');
 parser.setLanguage(JavaScript);
 ```
@@ -81,7 +81,7 @@ console.log(callExpression);
 Use `Query.captureRanges(node, options)` when you need capture names and text ranges for highlighting. Each `QueryCaptureRange` has `patternIndex`, `name`, `startIndex`, `endIndex` and the pattern's query properties. Indices count UTF-16 code units, as JavaScript string indices do.
 
 ```js
-import { Query } from 'web-tree-sitter-x';
+import { Query } from '@shaulavo/web-tree-sitter-x';
 
 const query = new Query(JavaScript, '(identifier) @variable');
 for (const capture of query.captureRanges(tree.rootNode)) {
@@ -193,7 +193,7 @@ Notice that executing `.wasm` files in Node.js is considerably slower than runni
 However, this could be useful for testing purposes:
 
 ```javascript
-const Parser = require('web-tree-sitter-x');
+const Parser = require('@shaulavo/web-tree-sitter-x');
 
 (async () => {
   await Parser.init();
@@ -266,5 +266,5 @@ following to your webpack config:
 [gh release]: https://github.com/tree-sitter/tree-sitter/releases/latest
 [gh release js]: https://github.com/tree-sitter/tree-sitter-javascript/releases/latest
 [node bindings]: https://github.com/tree-sitter/node-tree-sitter
-[npm module]: https://www.npmjs.com/package/web-tree-sitter-x
+[npm module]: https://www.npmjs.com/package/@shaulavo/web-tree-sitter-x
 [wasi-sdk]: https://github.com/WebAssembly/wasi-sdk

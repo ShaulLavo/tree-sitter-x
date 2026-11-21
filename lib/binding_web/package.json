@@ -1,5 +1,5 @@
 {
-  "name": "web-tree-sitter-x",
+  "name": "@shaulavo/web-tree-sitter-x",
   "version": "0.28.6",
   "description": "Tree-sitter-x WASI runtime for JavaScript, with shared text buffers and C extensions",
   "repository": {
