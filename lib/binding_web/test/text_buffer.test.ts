@@ -162,6 +162,17 @@ describe('TextBuffer', () => {
     buffer.delete();
   });
 
+  it('returns an empty string from read when endIndex <= index', () => {
+    const buffer = new TextBuffer('x'.repeat(4096) + 'abc');
+    try {
+      expect(buffer.read(4096, undefined, 4095)).toBe('');
+      expect(buffer.read(4096, undefined, 4096)).toBe('');
+      expect(buffer.read(4096, undefined, 4098)).toBe('ab');
+    } finally {
+      buffer.delete();
+    }
+  });
+
   it('parses in place with the same trees as a string, before and after edits', () => {
     const source = readFileSync(path.join(process.cwd(), 'src/parser.ts'), 'utf8');
     for (const [language, input] of [[JavaScript, source], [Rust, 'fn main() { let x = 1; }\n'.repeat(200)]] as const) {

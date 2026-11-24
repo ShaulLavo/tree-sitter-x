@@ -385,7 +385,7 @@ fn runtime_exports() -> Result<Vec<String>> {
 
 fn build_wasm(clang: &Path, wasm_opt: Option<&Path>, args: &BuildWasm) -> Result<()> {
     let output = "lib/binding_web/lib/web-tree-sitter.wasm";
-    let optimization = if args.debug { "-O0" } else { "-O3" };
+    let optimization = if args.debug { "-O0" } else { "-Oz" };
     let mut command = Command::new(clang);
     command.args([
         "--target=wasm32-wasip1",
@@ -394,6 +394,7 @@ fn build_wasm(clang: &Path, wasm_opt: Option<&Path>, args: &BuildWasm) -> Result
         "-std=c11",
         "-fno-exceptions",
         "-D_POSIX_C_SOURCE=200809L",
+        "-DTREE_SITTER_NO_DOT_GRAPHS",
         "-Ilib/src",
         "-Ilib/include",
         "lib/binding_web/lib/tree-sitter.c",
@@ -413,7 +414,14 @@ fn build_wasm(clang: &Path, wasm_opt: Option<&Path>, args: &BuildWasm) -> Result
     if args.debug {
         command.arg("-g");
     } else {
-        command.args(["-flto", "-DNDEBUG", "-Wl,--strip-debug"]);
+        command.args([
+            "-flto",
+            "-DNDEBUG",
+            "-ffunction-sections",
+            "-fdata-sections",
+            "-Wl,--gc-sections",
+            "-Wl,--strip-debug",
+        ]);
     }
     if args.verbose {
         command.arg("-v");
@@ -429,7 +437,10 @@ fn build_wasm(clang: &Path, wasm_opt: Option<&Path>, args: &BuildWasm) -> Result
     if let Some(wasm_opt) = wasm_opt {
         let mut command = Command::new(wasm_opt);
         command.args([
-            "-O3",
+            "-Oz",
+            "--converge",
+            "--strip-producers",
+            "--low-memory-unused",
             "--enable-bulk-memory",
             "--enable-mutable-globals",
             "--enable-sign-ext",

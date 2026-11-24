@@ -1,8 +1,6 @@
-import { INTERNAL, Point, Range, SIZE_OF_INT, SIZE_OF_NODE, SIZE_OF_POINT, C } from "./constants";
+import { INTERNAL, Point, Range, SIZE_OF_NODE, C } from "./constants";
 import { Node } from "./node";
 import { Tree } from "./tree";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Query, QueryCapture, type QueryMatch } from "./query";
 import { TreeCursor } from "./tree_cursor";
 import { TRANSFER_BUFFER } from "./parser";
 import { LanguageMetadata } from "./language";
@@ -11,41 +9,16 @@ import { Edit } from "./edit";
 /**
  * @internal
  *
- * Unmarshals a {@link QueryMatch} to the transfer buffer.
- */
-export function unmarshalCaptures(
-  query: Query,
-  tree: Tree,
-  address: number,
-  patternIndex: number,
-  result: QueryCapture[]
-) {
-  for (let i = 0, n = result.length; i < n; i++) {
-    const captureIndex = C.getValue(address, 'i32');
-    address += SIZE_OF_INT;
-    const node = unmarshalNode(tree, address)!;
-    address += SIZE_OF_NODE;
-    result[i] = {patternIndex, name: query.captureNames[captureIndex], node};
-  }
-  return address;
-}
-
-/**
- * @internal
- *
  * Marshals a {@link Node} to the transfer buffer.
  */
 export function marshalNode(node: Node, index = 0) {
-  let address = TRANSFER_BUFFER + index * SIZE_OF_NODE;
-  C.setValue(address, node.id, 'i32');
-  address += SIZE_OF_INT;
-  C.setValue(address, node.startIndex, 'i32');
-  address += SIZE_OF_INT;
-  C.setValue(address, node.startPosition.row, 'i32');
-  address += SIZE_OF_INT;
-  C.setValue(address, node.startPosition.column, 'i32');
-  address += SIZE_OF_INT;
-  C.setValue(address, node[0], 'i32');
+  const heap32 = C.HEAP32;
+  const word = (TRANSFER_BUFFER + index * SIZE_OF_NODE) >>> 2;
+  heap32[word] = node.id;
+  heap32[word + 1] = node.startIndex;
+  heap32[word + 2] = node.startPosition.row;
+  heap32[word + 3] = node.startPosition.column;
+  heap32[word + 4] = node[0];
 }
 
 /**
@@ -54,27 +27,18 @@ export function marshalNode(node: Node, index = 0) {
  * Unmarshals a {@link Node} from the transfer buffer.
  */
 export function unmarshalNode(tree: Tree, address = TRANSFER_BUFFER): Node | null {
-  const id = C.getValue(address, 'i32');
-  address += SIZE_OF_INT;
+  const heap32 = C.HEAP32;
+  const word = address >>> 2;
+  const id = heap32[word];
   if (id === 0) return null;
 
-  const index = C.getValue(address, 'i32');
-  address += SIZE_OF_INT;
-  const row = C.getValue(address, 'i32');
-  address += SIZE_OF_INT;
-  const column = C.getValue(address, 'i32');
-  address += SIZE_OF_INT;
-  const other = C.getValue(address, 'i32');
-
-  const result = new Node(INTERNAL, {
+  return new Node(INTERNAL, {
     id,
     tree,
-    startIndex: index,
-    startPosition: {row, column},
-    other,
+    startIndex: heap32[word + 1],
+    startPosition: { row: heap32[word + 2], column: heap32[word + 3] },
+    other: heap32[word + 4],
   });
-
-  return result;
 }
 
 /**
@@ -83,10 +47,12 @@ export function unmarshalNode(tree: Tree, address = TRANSFER_BUFFER): Node | nul
  * Marshals a {@link TreeCursor} to the transfer buffer.
  */
 export function marshalTreeCursor({ handles }: Pick<TreeCursor, 'handles'>, address = TRANSFER_BUFFER) {
-  C.setValue(address + 0 * SIZE_OF_INT, handles[0], 'i32');
-  C.setValue(address + 1 * SIZE_OF_INT, handles[1], 'i32');
-  C.setValue(address + 2 * SIZE_OF_INT, handles[2], 'i32');
-  C.setValue(address + 3 * SIZE_OF_INT, handles[3], 'i32');
+  const heap32 = C.HEAP32;
+  const word = address >>> 2;
+  heap32[word] = handles[0];
+  heap32[word + 1] = handles[1];
+  heap32[word + 2] = handles[2];
+  heap32[word + 3] = handles[3];
 }
 
 /**
@@ -95,10 +61,12 @@ export function marshalTreeCursor({ handles }: Pick<TreeCursor, 'handles'>, addr
  * Unmarshals a {@link TreeCursor} from the transfer buffer.
  */
 export function unmarshalTreeCursor({ handles }: TreeCursor) {
-  handles[0] = C.getValue(TRANSFER_BUFFER + 0 * SIZE_OF_INT, 'i32');
-  handles[1] = C.getValue(TRANSFER_BUFFER + 1 * SIZE_OF_INT, 'i32');
-  handles[2] = C.getValue(TRANSFER_BUFFER + 2 * SIZE_OF_INT, 'i32');
-  handles[3] = C.getValue(TRANSFER_BUFFER + 3 * SIZE_OF_INT, 'i32');
+  const heap32 = C.HEAP32;
+  const word = TRANSFER_BUFFER >>> 2;
+  handles[0] = heap32[word];
+  handles[1] = heap32[word + 1];
+  handles[2] = heap32[word + 2];
+  handles[3] = heap32[word + 3];
 }
 
 /**
@@ -107,8 +75,10 @@ export function unmarshalTreeCursor({ handles }: TreeCursor) {
  * Marshals a {@link Point} to the transfer buffer.
  */
 export function marshalPoint(address: number, point: Point): void {
-  C.setValue(address, point.row, 'i32');
-  C.setValue(address + SIZE_OF_INT, point.column, 'i32');
+  const heap32 = C.HEAP32;
+  const word = address >>> 2;
+  heap32[word] = point.row;
+  heap32[word + 1] = point.column;
 }
 
 /**
@@ -117,11 +87,12 @@ export function marshalPoint(address: number, point: Point): void {
  * Unmarshals a {@link Point} from the transfer buffer.
  */
 export function unmarshalPoint(address: number): Point {
-  const result = {
-    row: C.getValue(address, 'i32') >>> 0,
-    column: C.getValue(address + SIZE_OF_INT, 'i32') >>> 0,
+  const heapU32 = C.HEAPU32;
+  const word = address >>> 2;
+  return {
+    row: heapU32[word],
+    column: heapU32[word + 1],
   };
-  return result;
 }
 
 /**
@@ -130,10 +101,14 @@ export function unmarshalPoint(address: number): Point {
  * Marshals a {@link Range} to the transfer buffer.
  */
 export function marshalRange(address: number, range: Range): void {
-  marshalPoint(address, range.startPosition); address += SIZE_OF_POINT;
-  marshalPoint(address, range.endPosition); address += SIZE_OF_POINT;
-  C.setValue(address, range.startIndex, 'i32'); address += SIZE_OF_INT;
-  C.setValue(address, range.endIndex, 'i32'); address += SIZE_OF_INT;
+  const heap32 = C.HEAP32;
+  const word = address >>> 2;
+  heap32[word] = range.startPosition.row;
+  heap32[word + 1] = range.startPosition.column;
+  heap32[word + 2] = range.endPosition.row;
+  heap32[word + 3] = range.endPosition.column;
+  heap32[word + 4] = range.startIndex;
+  heap32[word + 5] = range.endIndex;
 }
 
 /**
@@ -142,12 +117,14 @@ export function marshalRange(address: number, range: Range): void {
  * Unmarshals a {@link Range} from the transfer buffer.
  */
 export function unmarshalRange(address: number): Range {
-  const result = {} as Range;
-  result.startPosition = unmarshalPoint(address); address += SIZE_OF_POINT;
-  result.endPosition = unmarshalPoint(address); address += SIZE_OF_POINT;
-  result.startIndex = C.getValue(address, 'i32') >>> 0; address += SIZE_OF_INT;
-  result.endIndex = C.getValue(address, 'i32') >>> 0;
-  return result;
+  const heapU32 = C.HEAPU32;
+  const word = address >>> 2;
+  return {
+    startPosition: { row: heapU32[word], column: heapU32[word + 1] },
+    endPosition: { row: heapU32[word + 2], column: heapU32[word + 3] },
+    startIndex: heapU32[word + 4],
+    endIndex: heapU32[word + 5],
+  };
 }
 
 /**
@@ -156,12 +133,17 @@ export function unmarshalRange(address: number): Range {
  * Marshals an {@link Edit} to the transfer buffer.
  */
 export function marshalEdit(edit: Edit, address = TRANSFER_BUFFER) {
-  marshalPoint(address, edit.startPosition); address += SIZE_OF_POINT;
-  marshalPoint(address, edit.oldEndPosition); address += SIZE_OF_POINT;
-  marshalPoint(address, edit.newEndPosition); address += SIZE_OF_POINT;
-  C.setValue(address, edit.startIndex, 'i32'); address += SIZE_OF_INT;
-  C.setValue(address, edit.oldEndIndex, 'i32'); address += SIZE_OF_INT;
-  C.setValue(address, edit.newEndIndex, 'i32'); address += SIZE_OF_INT;
+  const heap32 = C.HEAP32;
+  const word = address >>> 2;
+  heap32[word] = edit.startPosition.row;
+  heap32[word + 1] = edit.startPosition.column;
+  heap32[word + 2] = edit.oldEndPosition.row;
+  heap32[word + 3] = edit.oldEndPosition.column;
+  heap32[word + 4] = edit.newEndPosition.row;
+  heap32[word + 5] = edit.newEndPosition.column;
+  heap32[word + 6] = edit.startIndex;
+  heap32[word + 7] = edit.oldEndIndex;
+  heap32[word + 8] = edit.newEndIndex;
 }
 
 /**
@@ -169,9 +151,12 @@ export function marshalEdit(edit: Edit, address = TRANSFER_BUFFER) {
  *
  * Unmarshals a {@link LanguageMetadata} from the transfer buffer.
  */
-export function unmarshalLanguageMetadata(address: number): LanguageMetadata {  
-  const major_version = C.getValue(address, 'i32');
-  const minor_version = C.getValue(address += SIZE_OF_INT, 'i32');
-  const patch_version = C.getValue(address += SIZE_OF_INT, 'i32');
-  return { major_version, minor_version, patch_version };
+export function unmarshalLanguageMetadata(address: number): LanguageMetadata {
+  const heap32 = C.HEAP32;
+  const word = address >>> 2;
+  return {
+    major_version: heap32[word],
+    minor_version: heap32[word + 1],
+    patch_version: heap32[word + 2],
+  };
 }

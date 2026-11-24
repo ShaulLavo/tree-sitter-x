@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { Language, Parser, Query, type QueryOptions } from '../src';
+import { Language, Parser, Query, type Point, type QueryOptions } from '../src';
 import helper from './helper';
 
 let JavaScript: Language;
@@ -172,4 +172,65 @@ it.each([
   const { tree, query } = fixture();
   expect(() => query.captureRanges(tree.rootNode, options)).toThrow();
   expect(query.captureRanges(tree.rootNode)).toEqual(expected(query, tree, {}));
+});
+
+it('reads progressCallback once without clobbering the marshaled subtree node', () => {
+  const parser = new Parser();
+  parser.setLanguage(JavaScript);
+  dispose.push(() => { parser.delete(); });
+  const tree = parser.parse('let a = 1; let b = 2;')!;
+  dispose.push(() => { tree.delete(); });
+  const query = new Query(JavaScript, '(identifier) @id');
+  dispose.push(() => { query.delete(); });
+  let reads = 0;
+  const options: QueryOptions = {
+    get progressCallback() {
+      reads++;
+      expect(tree.rootNode.id).not.toBe(0);
+      return undefined;
+    },
+  };
+  const firstDecl = tree.rootNode.child(0)!;
+  expect(query.captureRanges(firstDecl, options).map(r => r.startIndex)).toEqual([4]);
+  expect(reads).toBe(1);
+});
+
+it('passes a fresh Point to parser text callbacks during captureRanges predicates', () => {
+  const source = 'let alpha = beta;\nlet gamma = delta;';
+  const points: Point[] = [];
+  const parser = new Parser();
+  parser.setLanguage(JavaScript);
+  dispose.push(() => { parser.delete(); });
+  const tree = parser.parse((index, position, endIndex) => {
+    if (endIndex !== undefined) points.push(position);
+    return source.slice(index, endIndex);
+  })!;
+  dispose.push(() => { tree.delete(); });
+  const query = new Query(JavaScript, '((identifier) @id (#match? @id "^[a-z]+$"))');
+  dispose.push(() => { query.delete(); });
+  expect(query.captureRanges(tree.rootNode)).toHaveLength(4);
+  expect(points).toEqual([
+    { row: 0, column: 4 },
+    { row: 0, column: 12 },
+    { row: 1, column: 4 },
+    { row: 1, column: 12 },
+  ]);
+});
+
+it('skips left-hand text reads when capture-to-capture equality has no right-hand capture', () => {
+  const source = '[alpha]';
+  let predicateReads = 0;
+  const parser = new Parser();
+  parser.setLanguage(JavaScript);
+  dispose.push(() => { parser.delete(); });
+  const tree = parser.parse((index, _position, endIndex) => {
+    if (endIndex !== undefined) predicateReads++;
+    return source.slice(index, endIndex);
+  })!;
+  dispose.push(() => { tree.delete(); });
+  const query = new Query(JavaScript, '((array (identifier) @lhs (identifier)? @rhs) (#eq? @lhs @rhs))');
+  dispose.push(() => { query.delete(); });
+  expect(query.matches(tree.rootNode)).toEqual([]);
+  expect(query.captureRanges(tree.rootNode)).toEqual([]);
+  expect(predicateReads).toBe(0);
 });

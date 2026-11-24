@@ -1,6 +1,7 @@
-import { Point, ZERO_POINT, SIZE_OF_INT, SIZE_OF_NODE, C } from './constants';
+import { INTERNAL, Point, ZERO_POINT, SIZE_OF_INT, C } from './constants';
 import { Node } from './node';
-import { marshalNode, unmarshalCaptures } from './marshal';
+import { getText } from './tree';
+import { marshalNode } from './marshal';
 import { TRANSFER_BUFFER } from './parser';
 import { Language } from './language';
 import { newFinalizer } from './finalization_registry';
@@ -206,6 +207,62 @@ const isStringStep = (step: PredicateStep): step is Extract<PredicateStep, { typ
  */
 export type TextPredicate = (captures: QueryCapture[], readText: (node: Node) => string) => boolean;
 
+interface RangeNode {
+  id: number;
+  startIndex: number;
+  endIndex: number;
+  startPosition: Point;
+}
+
+interface RangeScratchEntry {
+  capture: QueryCapture;
+  rangeNode: RangeNode;
+}
+
+function ensureRangeScratchPool(pool: RangeScratchEntry[], count: number): void {
+  while (pool.length < count) {
+    const rangeNode: RangeNode = { id: 0, startIndex: 0, endIndex: 0, startPosition: { row: 0, column: 0 } };
+    pool.push({
+      capture: { patternIndex: 0, name: '', node: rangeNode as unknown as Node },
+      rangeNode,
+    });
+  }
+}
+
+function acceptsRangeMatch(
+  predicates: TextPredicate[],
+  heapU32: Uint32Array,
+  capturesWord: number,
+  captureCount: number,
+  patternIndex: number,
+  captureNames: string[],
+  scratchPool: RangeScratchEntry[],
+  scratch: QueryCapture[],
+  readRangeText: (node: Node) => string,
+): boolean {
+  ensureRangeScratchPool(scratchPool, captureCount);
+  scratch.length = captureCount;
+  let pWord = capturesWord;
+  for (let j = 0; j < captureCount; j++) {
+    const entry = scratchPool[j];
+    const rangeNode = entry.rangeNode;
+    rangeNode.id = heapU32[pWord + 1];
+    rangeNode.startIndex = heapU32[pWord + 2];
+    rangeNode.endIndex = heapU32[pWord + 3];
+    rangeNode.startPosition.row = heapU32[pWord + 4];
+    rangeNode.startPosition.column = heapU32[pWord + 5];
+    const capture = entry.capture;
+    capture.patternIndex = patternIndex;
+    capture.name = captureNames[heapU32[pWord]];
+    scratch[j] = capture;
+    pWord += 6;
+  }
+  for (const predicate of predicates) {
+    if (!predicate(scratch, readRangeText)) return false;
+  }
+  return true;
+}
+
 function createQueryTextReader(): (node: Node) => string {
   const texts = new Map<number, string>();
   return (node) => {
@@ -267,6 +324,93 @@ export class QueryError extends Error {
   }
 }
 
+function matchesCapturePair(
+  text1: string,
+  nodes2: Node[],
+  isPositive: boolean,
+  readText: (node: Node) => string,
+): boolean {
+  for (const n2 of nodes2) {
+    if ((text1 === readText(n2)) === isPositive) return true;
+  }
+  return false;
+}
+
+function evalCaptureEquality(
+  captures: QueryCapture[],
+  captureName1: string,
+  captureName2: string,
+  isPositive: boolean,
+  matchAll: boolean,
+  readText: (node: Node) => string,
+): boolean {
+  const nodes1: Node[] = [];
+  const nodes2: Node[] = [];
+  for (const c of captures) {
+    if (c.name === captureName1) nodes1.push(c.node);
+    if (c.name === captureName2) nodes2.push(c.node);
+  }
+  if (!nodes2.length) return matchAll && nodes1.length === 0;
+  for (const n1 of nodes1) {
+    const matched = matchesCapturePair(readText(n1), nodes2, isPositive, readText);
+    if (matchAll && !matched) return false;
+    if (!matchAll && matched) return true;
+  }
+  return matchAll;
+}
+
+function evalLiteralEquality(
+  captures: QueryCapture[],
+  captureName: string,
+  stringValue: string,
+  isPositive: boolean,
+  matchAll: boolean,
+  readText: (node: Node) => string,
+): boolean {
+  for (const c of captures) {
+    if (c.name !== captureName) continue;
+    const matched = (readText(c.node) === stringValue) === isPositive;
+    if (matchAll && !matched) return false;
+    if (!matchAll && matched) return true;
+  }
+  return matchAll;
+}
+
+function evalRegexPredicate(
+  captures: QueryCapture[],
+  captureName: string,
+  regex: RegExp,
+  isPositive: boolean,
+  matchAll: boolean,
+  readText: (node: Node) => string,
+): boolean {
+  let sawCapture = false;
+  for (const c of captures) {
+    if (c.name !== captureName) continue;
+    sawCapture = true;
+    const matched = regex.test(readText(c.node)) === isPositive;
+    if (matchAll && !matched) return false;
+    if (!matchAll && matched) return true;
+  }
+  return sawCapture ? matchAll : !isPositive;
+}
+
+function evalAnyOfPredicate(
+  captures: QueryCapture[],
+  captureName: string,
+  values: Set<string>,
+  isPositive: boolean,
+  readText: (node: Node) => string,
+): boolean {
+  let sawCapture = false;
+  for (const c of captures) {
+    if (c.name !== captureName) continue;
+    sawCapture = true;
+    if (values.has(readText(c.node)) !== isPositive) return false;
+  }
+  return sawCapture || !isPositive;
+}
+
 /**
  * Parses the `eq?` and `not-eq?` predicates in a query, and updates the text predicates.
  */
@@ -294,33 +438,15 @@ function parseAnyPredicate(
   if (isCaptureStep(steps[2])) {
     const captureName1 = steps[1].name;
     const captureName2 = steps[2].name;
-    textPredicates[index].push((captures, readText) => {
-      const nodes1: Node[] = [];
-      const nodes2: Node[] = [];
-      for (const c of captures) {
-        if (c.name === captureName1) nodes1.push(c.node);
-        if (c.name === captureName2) nodes2.push(c.node);
-      }
-      const compare = (n1: Node, n2: Node, positive: boolean) => {
-        return positive ? readText(n1) === readText(n2) : readText(n1) !== readText(n2);
-      };
-      return matchAll
-        ? nodes1.every((n1) => nodes2.some((n2) => compare(n1, n2, isPositive)))
-        : nodes1.some((n1) => nodes2.some((n2) => compare(n1, n2, isPositive)));
-    });
+    textPredicates[index].push((captures, readText) =>
+      evalCaptureEquality(captures, captureName1, captureName2, isPositive, matchAll, readText)
+    );
   } else {
     const captureName = steps[1].name;
     const stringValue = steps[2].value;
-    textPredicates[index].push((captures, readText) => {
-      const matches = (n: Node) => readText(n) === stringValue;
-      const doesNotMatch = (n: Node) => readText(n) !== stringValue;
-      const nodes = [];
-      for (const c of captures) {
-        if (c.name === captureName) nodes.push(c.node);
-      }
-      const test = isPositive ? matches : doesNotMatch;
-      return matchAll ? nodes.every(test) : nodes.some(test);
-    });
+    textPredicates[index].push((captures, readText) =>
+      evalLiteralEquality(captures, captureName, stringValue, isPositive, matchAll, readText)
+    );
   }
 }
 
@@ -355,21 +481,9 @@ function parseMatchPredicate(
   const matchAll = !operator.startsWith('any-');
   const captureName = steps[1].name;
   const regex = new RegExp(steps[2].value);
-  textPredicates[index].push((captures, readText) => {
-    const nodes = [];
-    for (const c of captures) {
-      if (c.name === captureName) nodes.push(readText(c.node));
-    }
-    const test = (text: string, positive: boolean) => {
-      return positive ?
-        regex.test(text) :
-        !regex.test(text);
-    };
-    if (nodes.length === 0) return !isPositive;
-    return matchAll ?
-      nodes.every((text) => test(text, isPositive)) :
-      nodes.some((text) => test(text, isPositive));
-  });
+  textPredicates[index].push((captures, readText) =>
+    evalRegexPredicate(captures, captureName, regex, isPositive, matchAll, readText)
+  );
 }
 
 /**
@@ -404,14 +518,9 @@ function parseAnyOfPredicate(
   }
   const values = new Set(stringSteps.map((s) => s.value));
 
-  textPredicates[index].push((captures, readText) => {
-    const nodes = [];
-    for (const c of captures) {
-      if (c.name === captureName) nodes.push(readText(c.node));
-    }
-    if (nodes.length === 0) return !isPositive;
-    return nodes.every((text) => values.has(text) === isPositive);
-  });
+  textPredicates[index].push((captures, readText) =>
+    evalAnyOfPredicate(captures, captureName, values, isPositive, readText)
+  );
 }
 
 /**
@@ -774,26 +883,42 @@ export class Query {
   private readMatches(node: Node, rawCount: number, startAddress: number): QueryMatch[] {
     const result = new Array<QueryMatch>(rawCount);
     const readText = createQueryTextReader();
+    const captureNames = this.captureNames;
+    const tree = node.tree;
+    let heap32 = C.HEAP32;
     let filteredCount = 0;
-    let address = startAddress;
+    let word = startAddress >>> 2;
     for (let i = 0; i < rawCount; i++) {
-      const patternIndex = C.getValue(address, 'i32');
-      address += SIZE_OF_INT;
-      const captureCount = C.getValue(address, 'i32');
-      address += SIZE_OF_INT;
+      const patternIndex = heap32[word];
+      const captureCount = heap32[word + 1];
+      word += 2;
 
       const captures = new Array<QueryCapture>(captureCount);
-      address = unmarshalCaptures(this, node.tree, address, patternIndex, captures);
+      for (let j = 0; j < captureCount; j++) {
+        const captureIndex = heap32[word];
+        const capturedNode = new Node(INTERNAL, {
+          id: heap32[word + 1],
+          tree,
+          startIndex: heap32[word + 2],
+          startPosition: { row: heap32[word + 3], column: heap32[word + 4] },
+          other: heap32[word + 5],
+        });
+        word += 6;
+        captures[j] = { patternIndex, name: captureNames[captureIndex], node: capturedNode };
+      }
 
-      if (this.textPredicates[patternIndex].every((p) => p(captures, readText))) {
-        result[filteredCount] = { patternIndex, captures };
-        const setProperties = this.setProperties[patternIndex];
-        result[filteredCount].setProperties = setProperties;
-        const assertedProperties = this.assertedProperties[patternIndex];
-        result[filteredCount].assertedProperties = assertedProperties;
-        const refutedProperties = this.refutedProperties[patternIndex];
-        result[filteredCount].refutedProperties = refutedProperties;
-        filteredCount++;
+      const predicates = this.textPredicates[patternIndex];
+      if (predicates.length === 0 || predicates.every((p) => p(captures, readText))) {
+        if (predicates.length > 0) heap32 = C.HEAP32;
+        result[filteredCount++] = {
+          patternIndex,
+          captures,
+          setProperties: this.setProperties[patternIndex],
+          assertedProperties: this.assertedProperties[patternIndex],
+          refutedProperties: this.refutedProperties[patternIndex],
+        };
+      } else {
+        heap32 = C.HEAP32;
       }
     }
     result.length = filteredCount;
@@ -812,7 +937,7 @@ export class Query {
   }
 
   private captureRangesWithCursor(node: Node, options: QueryOptions): QueryCaptureRange[] {
-    const [rawCount, startAddress] = this.execute(node, options);
+    const [rawCount, startAddress] = this.execute(node, options, 'captureRanges');
     try {
       return this.readCaptureRanges(node, rawCount, startAddress);
     } finally {
@@ -823,47 +948,71 @@ export class Query {
   private readCaptureRanges(node: Node, rawCount: number, startAddress: number): QueryCaptureRange[] {
     const result: QueryCaptureRange[] = [];
     const scratch: QueryCapture[] = [];
-    const readText = createQueryTextReader();
-    let address = startAddress;
+    const scratchPool: RangeScratchEntry[] = [];
+    const captureNames = this.captureNames;
+    const tree = node.tree;
+    let texts: Map<number, string> | null = null;
+    const readRangeText = (n: Node) => {
+      const rangeNode = n as unknown as RangeNode;
+      texts ??= new Map();
+      const cached = texts.get(rangeNode.id);
+      if (cached !== undefined) return cached;
+      const point = { row: rangeNode.startPosition.row, column: rangeNode.startPosition.column };
+      const text = getText(tree, rangeNode.startIndex, rangeNode.endIndex, point);
+      texts.set(rangeNode.id, text);
+      return text;
+    };
+    let heapU32 = C.HEAPU32;
+    let word = startAddress >>> 2;
     for (let i = 0; i < rawCount; i++) {
-      const patternIndex = C.getValue(address, 'i32');
-      const captureCount = C.getValue(address + SIZE_OF_INT, 'i32');
-      address += 2 * SIZE_OF_INT;
-      const capturesAddress = address;
-      address += captureCount * (SIZE_OF_INT + SIZE_OF_NODE);
-      if (!this.acceptsRangeMatch(node, patternIndex, capturesAddress, captureCount, scratch, readText)) continue;
-      let captureAddress = capturesAddress;
+      const patternIndex = heapU32[word];
+      const captureCount = heapU32[word + 1];
+      word += 2;
+      const capturesWord = word;
+      word += captureCount * 6;
+
+      const predicates = this.textPredicates[patternIndex];
+      if (predicates.length > 0) {
+        const accepted = acceptsRangeMatch(
+          predicates,
+          heapU32,
+          capturesWord,
+          captureCount,
+          patternIndex,
+          captureNames,
+          scratchPool,
+          scratch,
+          readRangeText,
+        );
+        heapU32 = C.HEAPU32;
+        if (!accepted) continue;
+      }
+
+      const setProperties = this.setProperties[patternIndex];
+      const assertedProperties = this.assertedProperties[patternIndex];
+      const refutedProperties = this.refutedProperties[patternIndex];
+      let cWord = capturesWord;
       for (let j = 0; j < captureCount; j++) {
-        const captureIndex = C.getValue(captureAddress, 'i32');
-        const nodeAddress = (captureAddress + SIZE_OF_INT) >>> 0;
-        const startIndex = C.getValue(nodeAddress + SIZE_OF_INT, 'i32');
-        // Use the native node record directly; public Node and Point objects are unnecessary.
-        C.HEAPU8.copyWithin(TRANSFER_BUFFER, nodeAddress, nodeAddress + SIZE_OF_NODE);
-        const endIndex = C._ts_node_end_index_wasm(node.tree[0]);
         result.push({
           patternIndex,
-          name: this.captureNames[captureIndex],
-          startIndex,
-          endIndex,
-          setProperties: this.setProperties[patternIndex],
-          assertedProperties: this.assertedProperties[patternIndex],
-          refutedProperties: this.refutedProperties[patternIndex],
+          name: captureNames[heapU32[cWord]],
+          startIndex: heapU32[cWord + 2],
+          endIndex: heapU32[cWord + 3],
+          setProperties,
+          assertedProperties,
+          refutedProperties,
         });
-        captureAddress += SIZE_OF_INT + SIZE_OF_NODE;
+        cWord += 6;
       }
     }
     return result;
   }
 
-  private acceptsRangeMatch(node: Node, patternIndex: number, address: number, count: number, scratch: QueryCapture[], readText: ReturnType<typeof createQueryTextReader>): boolean {
-    const predicates = this.textPredicates[patternIndex];
-    if (!predicates.length) return true;
-    scratch.length = count;
-    unmarshalCaptures(this, node.tree, address, patternIndex, scratch);
-    return predicates.every(predicate => predicate(scratch, readText));
-  }
-
-  private execute(node: Node, options: QueryOptions, captures = false): [number, number] {
+  private execute(
+    node: Node,
+    options: QueryOptions,
+    mode: 'matches' | 'captures' | 'captureRanges' = 'matches',
+  ): [number, number] {
     const startPosition = options.startPosition ?? ZERO_POINT;
     const endPosition = options.endPosition ?? ZERO_POINT;
     const startIndex = options.startIndex ?? 0;
@@ -904,8 +1053,13 @@ export class Query {
     }
 
     marshalNode(node);
+    C.HEAP32[(TRANSFER_BUFFER >>> 2) + 5] = C.currentQueryProgressCallback ? 1 : 0;
 
-    C[captures ? '_ts_query_captures_wasm' : '_ts_query_matches_wasm'](
+    C[mode === 'captures'
+      ? '_ts_query_captures_wasm'
+      : mode === 'captureRanges'
+        ? '_ts_query_capture_ranges_wasm'
+        : '_ts_query_matches_wasm'](
       this[0],
       node.tree[0],
       startPosition.row,
@@ -923,9 +1077,11 @@ export class Query {
       matchLimit,
       maxStartDepth,
     );
-    const rawCount = C.getValue(TRANSFER_BUFFER, 'i32');
-    const startAddress = C.getValue(TRANSFER_BUFFER + SIZE_OF_INT, 'i32');
-    const didExceedMatchLimit = C.getValue(TRANSFER_BUFFER + 2 * SIZE_OF_INT, 'i32');
+    const heapU32 = C.HEAPU32;
+    const transferWord = TRANSFER_BUFFER >>> 2;
+    const rawCount = heapU32[transferWord];
+    const startAddress = heapU32[transferWord + 1];
+    const didExceedMatchLimit = heapU32[transferWord + 2];
     this.exceededMatchLimit = Boolean(didExceedMatchLimit);
     try {
       checkQueryProgress(C);
@@ -957,7 +1113,7 @@ export class Query {
   }
 
   private capturesWithCursor(node: Node, options: QueryOptions): QueryCapture[] {
-    const [count, startAddress] = this.execute(node, options, true);
+    const [count, startAddress] = this.execute(node, options, 'captures');
     try {
       return this.readCaptures(node, count, startAddress);
     } finally {
@@ -969,27 +1125,61 @@ export class Query {
     const result = new Array<QueryCapture>();
     const readText = createQueryTextReader();
     const captures = new Array<QueryCapture>();
+    const captureNames = this.captureNames;
+    const tree = node.tree;
+    let heap32 = C.HEAP32;
+    let word = address >>> 2;
     for (let i = 0; i < count; i++) {
-      const patternIndex = C.getValue(address, 'i32');
-      address += SIZE_OF_INT;
-      const captureCount = C.getValue(address, 'i32');
-      address += SIZE_OF_INT;
-      const captureIndex = C.getValue(address, 'i32');
-      address += SIZE_OF_INT;
+      const patternIndex = heap32[word];
+      const captureCount = heap32[word + 1];
+      const captureIndex = heap32[word + 2];
+      word += 3;
+      const capturesWord = word;
+      word += captureCount * 6;
+
+      const predicates = this.textPredicates[patternIndex];
+      if (predicates.length === 0) {
+        const cWord = capturesWord + captureIndex * 6;
+        const capturedNode = new Node(INTERNAL, {
+          id: heap32[cWord + 1],
+          tree,
+          startIndex: heap32[cWord + 2],
+          startPosition: { row: heap32[cWord + 3], column: heap32[cWord + 4] },
+          other: heap32[cWord + 5],
+        });
+        result.push({
+          patternIndex,
+          name: captureNames[heap32[cWord]],
+          node: capturedNode,
+          setProperties: this.setProperties[patternIndex],
+          assertedProperties: this.assertedProperties[patternIndex],
+          refutedProperties: this.refutedProperties[patternIndex],
+        });
+        continue;
+      }
 
       captures.length = captureCount;
-      address = unmarshalCaptures(this, node.tree, address, patternIndex, captures);
+      let cWord = capturesWord;
+      for (let j = 0; j < captureCount; j++) {
+        const capturedNode = new Node(INTERNAL, {
+          id: heap32[cWord + 1],
+          tree,
+          startIndex: heap32[cWord + 2],
+          startPosition: { row: heap32[cWord + 3], column: heap32[cWord + 4] },
+          other: heap32[cWord + 5],
+        });
+        captures[j] = { patternIndex, name: captureNames[heap32[cWord]], node: capturedNode };
+        cWord += 6;
+      }
 
-      if (this.textPredicates[patternIndex].every(p => p(captures, readText))) {
+      if (predicates.every(p => p(captures, readText))) {
         const capture = captures[captureIndex];
-        const setProperties = this.setProperties[patternIndex];
-        capture.setProperties = setProperties;
-        const assertedProperties = this.assertedProperties[patternIndex];
-        capture.assertedProperties = assertedProperties;
-        const refutedProperties = this.refutedProperties[patternIndex];
-        capture.refutedProperties = refutedProperties;
+        capture.setProperties = this.setProperties[patternIndex];
+        capture.assertedProperties = this.assertedProperties[patternIndex];
+        capture.refutedProperties = this.refutedProperties[patternIndex];
         result.push(capture);
       }
+      heap32 = C.HEAP32;
     }
 
     return result;

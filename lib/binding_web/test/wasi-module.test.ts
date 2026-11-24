@@ -305,11 +305,21 @@ describe.each(modes)('%s transactional linking', (mode) => {
 
   it('frees the original allocation when table growth fails', async () => {
     const { module, table, allocations, frees, live, thrown } = await observedRuntime();
-    vi.spyOn(table, 'grow').mockImplementationOnce(() => { throwFixtureValue(thrown); });
-    await expect(module.loadWebAssemblyModule(sideFixture({ memoryAlign: 8 }), { loadAsync: true })).rejects.toBe(thrown);
-    expect(allocations).toHaveLength(1);
-    expect(allocations[0] % 256).not.toBe(0);
-    expect(frees).toEqual(allocations);
+    // Ensure the next allocation is not already 256-byte aligned regardless of static data layout.
+    const probe = module._malloc(16) >>> 0;
+    const hold = probe % 256 === 0 ? probe : (module._free(probe), 0);
+    allocations.length = 0;
+    frees.length = 0;
+    try {
+      vi.spyOn(table, 'grow').mockImplementationOnce(() => { throwFixtureValue(thrown); });
+      await expect(module.loadWebAssemblyModule(sideFixture({ memoryAlign: 8 }), { loadAsync: true })).rejects.toBe(thrown);
+      expect(allocations).toHaveLength(1);
+      expect(allocations[0] % 256).not.toBe(0);
+      expect(frees).toEqual(allocations);
+      expect(live.size).toBe(hold ? 1 : 0);
+    } finally {
+      if (hold) module._free(hold);
+    }
     expect(live.size).toBe(0);
   });
 

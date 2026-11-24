@@ -317,6 +317,7 @@ export default async function createModule(options: ModuleOptions = {}): Promise
   let heapU8 = new Uint8Array(heapBuffer);
   let heap16 = new Int16Array(heapBuffer);
   let heap32 = new Int32Array(heapBuffer);
+  let heapU32 = new Uint32Array(heapBuffer);
 
   function refreshHeap() {
     if (resizable || heapBuffer === exports.memory.buffer) return;
@@ -326,6 +327,7 @@ export default async function createModule(options: ModuleOptions = {}): Promise
     heapU8 = new Uint8Array(heapBuffer);
     heap16 = new Int16Array(heapBuffer);
     heap32 = new Int32Array(heapBuffer);
+    heapU32 = new Uint32Array(heapBuffer);
   }
   exports._initialize();
 
@@ -455,10 +457,11 @@ export default async function createModule(options: ModuleOptions = {}): Promise
     stringToUTF16,
     loadWebAssemblyModule,
   });
-  Object.defineProperty(module, 'HEAPU8', { get() {
-    refreshHeap();
-    return heapU8;
-  } });
+  Object.defineProperties(module, {
+    HEAPU8: { get() { refreshHeap(); return heapU8; } },
+    HEAP32: { get() { refreshHeap(); return heap32; } },
+    HEAPU32: { get() { refreshHeap(); return heapU32; } },
+  });
   for (const [name, value] of Object.entries(exports)) {
     if (typeof value === 'function') (module as Record<string, unknown>)[`_${name}`] = value;
   }
