@@ -9,6 +9,7 @@
 // eliminates WASI fd_* imports while preserving full C99 snprintf/vsnprintf
 // semantics for ts_subtree_string and ts_parser_set_logger.
 #if defined(__wasi__)
+#include <limits.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -25,17 +26,37 @@ typedef struct {
   int length; // -2=hh, -1=h, 0=default, 1=l/z/t, 2=ll/j
 } TsFmtSpec;
 
-static void ts_fmt_putc(char *buf, size_t size, size_t *pos, char c) {
-  if (buf && size > 1 && *pos < size - 1) {
-    buf[*pos] = c;
+typedef struct {
+  char *buf;
+  size_t size;
+  size_t pos;
+  bool overflow;
+} TsFmtOut;
+
+static void ts_fmt_advance(TsFmtOut *out, size_t count) {
+  if (count > (size_t)INT_MAX - out->pos) {
+    out->overflow = true;
+    out->pos = (size_t)INT_MAX;
+    return;
   }
-  (*pos)++;
+  out->pos += count;
 }
 
-static void ts_fmt_pad(char *buf, size_t size, size_t *pos, char c, size_t count) {
-  for (size_t i = 0; i < count; i++) {
-    ts_fmt_putc(buf, size, pos, c);
+static void ts_fmt_putc(TsFmtOut *out, char c) {
+  if (out->buf && out->size > 1 && out->pos < out->size - 1) {
+    out->buf[out->pos] = c;
   }
+  ts_fmt_advance(out, 1);
+}
+
+static void ts_fmt_pad(TsFmtOut *out, char c, size_t count) {
+  if (count == 0) return;
+  if (out->buf && out->size > 1 && out->pos < out->size - 1) {
+    size_t avail = out->size - 1 - out->pos;
+    size_t write_len = count < avail ? count : avail;
+    memset(out->buf + out->pos, (unsigned char)c, write_len);
+  }
+  ts_fmt_advance(out, count);
 }
 
 static size_t ts_fmt_uint(uint64_t value, unsigned base, bool uppercase, char *out) {
@@ -58,7 +79,23 @@ static size_t ts_fmt_uint(uint64_t value, unsigned base, bool uppercase, char *o
   return len;
 }
 
-static const char *ts_fmt_parse_spec(const char *p, va_list *args, TsFmtSpec *spec) {
+static size_t ts_fmt_parse_decimal(const char **pp, bool *overflow) {
+  size_t value = 0;
+  const char *p = *pp;
+  while (*p >= '0' && *p <= '9') {
+    size_t digit = (size_t)(*p++ - '0');
+    if (value > ((size_t)INT_MAX - digit) / 10) {
+      *overflow = true;
+      value = (size_t)INT_MAX;
+    } else {
+      value = value * 10 + digit;
+    }
+  }
+  *pp = p;
+  return value;
+}
+
+static const char *ts_fmt_parse_spec(const char *p, va_list *args, TsFmtSpec *spec, bool *overflow) {
   *spec = (TsFmtSpec){.precision = -1};
   for (; *p; p++) {
     if (*p == '-') spec->left_justify = true;
@@ -73,11 +110,10 @@ static const char *ts_fmt_parse_spec(const char *p, va_list *args, TsFmtSpec *sp
     int w = va_arg(*args, int);
     spec->left_justify |= w < 0;
     spec->width = w < 0 ? (size_t)(-(unsigned)w) : (size_t)w;
+    if (spec->width > (size_t)INT_MAX) *overflow = true;
     p++;
   } else {
-    while (*p >= '0' && *p <= '9') {
-      spec->width = spec->width * 10 + (size_t)(*p++ - '0');
-    }
+    spec->width = ts_fmt_parse_decimal(&p, overflow);
   }
 
   if (*p == '.') {
@@ -87,10 +123,7 @@ static const char *ts_fmt_parse_spec(const char *p, va_list *args, TsFmtSpec *sp
       spec->precision = prec < 0 ? -1 : prec;
       p++;
     } else {
-      spec->precision = 0;
-      while (*p >= '0' && *p <= '9') {
-        spec->precision = spec->precision * 10 + (*p++ - '0');
-      }
+      spec->precision = (int)ts_fmt_parse_decimal(&p, overflow);
     }
   }
 
@@ -110,9 +143,7 @@ static const char *ts_fmt_parse_spec(const char *p, va_list *args, TsFmtSpec *sp
   return p;
 }
 
-static void ts_fmt_string(
-  char *buf, size_t size, size_t *pos, const TsFmtSpec *spec, const char *str
-) {
+static void ts_fmt_string(TsFmtOut *out, const TsFmtSpec *spec, const char *str) {
   if (!str) str = "(null)";
   size_t len = 0;
   if (spec->precision >= 0) {
@@ -121,9 +152,9 @@ static void ts_fmt_string(
     len = strlen(str);
   }
   size_t pad = spec->width > len ? spec->width - len : 0;
-  if (!spec->left_justify) ts_fmt_pad(buf, size, pos, ' ', pad);
-  for (size_t i = 0; i < len; i++) ts_fmt_putc(buf, size, pos, str[i]);
-  if (spec->left_justify) ts_fmt_pad(buf, size, pos, ' ', pad);
+  if (!spec->left_justify) ts_fmt_pad(out, ' ', pad);
+  for (size_t i = 0; i < len; i++) ts_fmt_putc(out, str[i]);
+  if (spec->left_justify) ts_fmt_pad(out, ' ', pad);
 }
 
 static int64_t ts_fmt_read_signed(va_list *args, int length) {
@@ -142,9 +173,7 @@ static uint64_t ts_fmt_read_unsigned(va_list *args, int length) {
   return va_arg(*args, unsigned int);
 }
 
-static void ts_fmt_integer(
-  char *buf, size_t size, size_t *pos, const TsFmtSpec *spec, char conv, va_list *args
-) {
+static void ts_fmt_integer(TsFmtOut *out, const TsFmtSpec *spec, char conv, va_list *args) {
   char prefix[2];
   size_t prefix_len = 0;
   uint64_t uval = 0;
@@ -170,9 +199,9 @@ static void ts_fmt_integer(
     if (conv == 'o') base = 8;
     else if (conv == 'x' || conv == 'X') base = 16;
     uval = ts_fmt_read_unsigned(args, spec->length);
-    if (spec->alt_form && uval != 0 && base != 10) {
+    if (spec->alt_form && uval != 0 && base == 16) {
       prefix[prefix_len++] = '0';
-      if (base == 16) prefix[prefix_len++] = uppercase ? 'X' : 'x';
+      prefix[prefix_len++] = uppercase ? 'X' : 'x';
     }
   }
 
@@ -183,62 +212,65 @@ static void ts_fmt_integer(
   size_t prec_zeros = (spec->precision > 0 && (size_t)spec->precision > digit_len)
     ? (size_t)spec->precision - digit_len
     : 0;
+  if (spec->alt_form && base == 8 && prec_zeros == 0 && (digit_len == 0 || digits[0] != '0')) {
+    prec_zeros = 1;
+  }
   size_t total_len = prefix_len + prec_zeros + digit_len;
   size_t pad = spec->width > total_len ? spec->width - total_len : 0;
   bool use_zero = spec->zero_pad && !spec->left_justify && spec->precision < 0;
 
-  if (!spec->left_justify && !use_zero) ts_fmt_pad(buf, size, pos, ' ', pad);
-  for (size_t i = 0; i < prefix_len; i++) ts_fmt_putc(buf, size, pos, prefix[i]);
-  if (use_zero) ts_fmt_pad(buf, size, pos, '0', pad);
-  ts_fmt_pad(buf, size, pos, '0', prec_zeros);
-  for (size_t i = 0; i < digit_len; i++) ts_fmt_putc(buf, size, pos, digits[i]);
-  if (spec->left_justify) ts_fmt_pad(buf, size, pos, ' ', pad);
+  if (!spec->left_justify && !use_zero) ts_fmt_pad(out, ' ', pad);
+  for (size_t i = 0; i < prefix_len; i++) ts_fmt_putc(out, prefix[i]);
+  if (use_zero) ts_fmt_pad(out, '0', pad);
+  ts_fmt_pad(out, '0', prec_zeros);
+  for (size_t i = 0; i < digit_len; i++) ts_fmt_putc(out, digits[i]);
+  if (spec->left_justify) ts_fmt_pad(out, ' ', pad);
 }
 
 int vsnprintf(char *restrict buffer, size_t buffsz, const char *restrict format, va_list args) {
   if (!format) return -1;
   va_list ap;
   va_copy(ap, args);
-  size_t pos = 0;
+  TsFmtOut out = { .buf = buffer, .size = buffsz, .pos = 0, .overflow = false };
   for (const char *p = format; *p; p++) {
     if (*p != '%') {
-      ts_fmt_putc(buffer, buffsz, &pos, *p);
+      ts_fmt_putc(&out, *p);
       continue;
     }
     p++;
     if (*p == '%') {
-      ts_fmt_putc(buffer, buffsz, &pos, '%');
+      ts_fmt_putc(&out, '%');
       continue;
     }
     if (!*p) break;
 
     TsFmtSpec spec;
-    p = ts_fmt_parse_spec(p, &ap, &spec);
+    p = ts_fmt_parse_spec(p, &ap, &spec, &out.overflow);
     if (!*p) break;
 
     if (*p == 's') {
-      ts_fmt_string(buffer, buffsz, &pos, &spec, va_arg(ap, const char *));
+      ts_fmt_string(&out, &spec, va_arg(ap, const char *));
     } else if (*p == 'c') {
       char ch = (char)va_arg(ap, int);
       size_t pad = spec.width > 1 ? spec.width - 1 : 0;
-      if (!spec.left_justify) ts_fmt_pad(buffer, buffsz, &pos, ' ', pad);
-      ts_fmt_putc(buffer, buffsz, &pos, ch);
-      if (spec.left_justify) ts_fmt_pad(buffer, buffsz, &pos, ' ', pad);
+      if (!spec.left_justify) ts_fmt_pad(&out, ' ', pad);
+      ts_fmt_putc(&out, ch);
+      if (spec.left_justify) ts_fmt_pad(&out, ' ', pad);
     } else if (
       *p == 'd' || *p == 'i' || *p == 'u' || *p == 'o' || *p == 'x' || *p == 'X' || *p == 'p'
     ) {
-      ts_fmt_integer(buffer, buffsz, &pos, &spec, *p, &ap);
+      ts_fmt_integer(&out, &spec, *p, &ap);
     } else {
-      ts_fmt_putc(buffer, buffsz, &pos, '%');
-      ts_fmt_putc(buffer, buffsz, &pos, *p);
+      ts_fmt_putc(&out, '%');
+      ts_fmt_putc(&out, *p);
     }
   }
   va_end(ap);
 
   if (buffer && buffsz > 0) {
-    buffer[pos < buffsz ? pos : buffsz - 1] = '\0';
+    buffer[out.pos < buffsz ? out.pos : buffsz - 1] = '\0';
   }
-  return (int)pos;
+  return out.overflow ? -1 : (int)out.pos;
 }
 
 int snprintf(char *restrict buffer, size_t buffsz, const char *restrict format, ...) {

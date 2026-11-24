@@ -246,12 +246,8 @@ export class Parser {
         throw new Error('Argument must be a string or a function');
       }
 
-      const hasProgress = Boolean(options?.progressCallback);
-      if (hasProgress) {
-        C.currentProgressCallback = options!.progressCallback!;
-      } else {
-        C.currentProgressCallback = null;
-      }
+      const progressCallback = options?.progressCallback ?? null;
+      C.currentProgressCallback = progressCallback;
 
       if (this.logCallback) {
         C.currentLogCallback = this.logCallback;
@@ -268,7 +264,7 @@ export class Parser {
         marshalRange(rangeAddress + i * SIZE_OF_RANGE, ranges[i]);
       }
 
-      C.HEAP32[TRANSFER_BUFFER >>> 2] = hasProgress ? 1 : 0;
+      C.HEAP32[TRANSFER_BUFFER >>> 2] = progressCallback ? 1 : 0;
 
       const treeAddress = callback instanceof TextBuffer
         ? C._ts_parser_parse_utf16_wasm(

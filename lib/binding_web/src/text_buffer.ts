@@ -77,6 +77,7 @@ export class TextBuffer {
 
   /** The text from `index` on, in chunks, for {@link Tree#textCallback}. */
   readonly read = (index: number, _position?: Point, endIndex?: number): string => {
+    if (endIndex !== undefined && endIndex <= index) return '';
     const start = index - (index % DECODE_CHUNK);
     if (start !== this.chunkStart) {
       this.chunk = this.slice(start, Math.min(this.length, start + DECODE_CHUNK));

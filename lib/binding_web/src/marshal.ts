@@ -1,42 +1,10 @@
-import { INTERNAL, Point, Range, SIZE_OF_INT, SIZE_OF_NODE, C } from "./constants";
+import { INTERNAL, Point, Range, SIZE_OF_NODE, C } from "./constants";
 import { Node } from "./node";
 import { Tree } from "./tree";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Query, QueryCapture, type QueryMatch } from "./query";
 import { TreeCursor } from "./tree_cursor";
 import { TRANSFER_BUFFER } from "./parser";
 import { LanguageMetadata } from "./language";
 import { Edit } from "./edit";
-
-/**
- * @internal
- *
- * Unmarshals a {@link QueryMatch} to the transfer buffer.
- */
-export function unmarshalCaptures(
-  query: Query,
-  tree: Tree,
-  address: number,
-  patternIndex: number,
-  result: QueryCapture[]
-) {
-  const heap32 = C.HEAP32;
-  const captureNames = query.captureNames;
-  let word = address >>> 2;
-  for (let i = 0, n = result.length; i < n; i++) {
-    const captureIndex = heap32[word];
-    const node = new Node(INTERNAL, {
-      id: heap32[word + 1],
-      tree,
-      startIndex: heap32[word + 2],
-      startPosition: { row: heap32[word + 3], column: heap32[word + 4] },
-      other: heap32[word + 5],
-    });
-    word += 6;
-    result[i] = { patternIndex, name: captureNames[captureIndex], node };
-  }
-  return word * SIZE_OF_INT;
-}
 
 /**
  * @internal
