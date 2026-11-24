@@ -2,13 +2,13 @@
 
 Limited experiment. This report is candidate evidence and never a golden. Phase 2 acceptance remains OPEN until safety/schema CI and every strict improvement cell pass. No performance benefit or consumer cutover is claimed.
 
-Stable report input identity: 32db8ecb025fb2f39c6130b61e02fa71845321b9d9c142ca3e1c2c2765704fde. Identity uses runtime/artifact/input content hashes and never moving Git HEAD.
+Stable report input identity: 3cff5eea3f1b348791aca3e1221bb90f30f966d61f9ddb96f38c11baf17c102d. Identity uses runtime/artifact/input content hashes and never moving Git HEAD.
 
 ## Identities
 
-- json: {"componentSha256":"94efc88752468b1f5246c449b10f05c61dd6e10b05d5c471f3f37d1350b407c8","sourceDigest":"48ca94e245c1a37192f738bfb3b4564431033529766fd6fcad9769bfece474cf","runtimeSha256":"7c616e42045dd562cf872fc37d2f143a59a934395cdbc66b8a21442d144d0be4","abi":"1","packId":"json","packVersion":"pilot-1","querySha256":"2a7d911634197084f96a7ebc6f149f8bc29012b45943268d0939d049d0fbaccf","languageId":"json","parserLanguageId":"json","parserSha256":"d2119fb98d5912719b13f9458574f8608d2d29dfbe45f6be1f860ea1fe2a2405","composition":"scope-compat-compose-1+contained-span-order-1","predicateDialect":"eq/any-of/make-range/priority;text-class-ascii-1;prefix-utf16-1;make-span-utf16-1;source-gap-utf16-max2-1","selectedOrderPolicy":"legacy-1"}
-- typescript: {"componentSha256":"94efc88752468b1f5246c449b10f05c61dd6e10b05d5c471f3f37d1350b407c8","sourceDigest":"48ca94e245c1a37192f738bfb3b4564431033529766fd6fcad9769bfece474cf","runtimeSha256":"7c616e42045dd562cf872fc37d2f143a59a934395cdbc66b8a21442d144d0be4","abi":"1","packId":"typescript","packVersion":"pilot-1","querySha256":"91b0277ec2e98b009a6af9c689b49e0f4b45ceccd92f5990088e19a257ba9031","languageId":"typescript","parserLanguageId":"typescript","parserSha256":"778025db5a8be0e70f8ccc3671e486dfeddd048c25d9e8a70c26de2e1bf6f97d","composition":"scope-compat-compose-1+contained-span-order-1","predicateDialect":"eq/any-of/make-range/priority;text-class-ascii-1;prefix-utf16-1;make-span-utf16-1;source-gap-utf16-max2-1","selectedOrderPolicy":"legacy-1"}
-- tsx: {"componentSha256":"94efc88752468b1f5246c449b10f05c61dd6e10b05d5c471f3f37d1350b407c8","sourceDigest":"48ca94e245c1a37192f738bfb3b4564431033529766fd6fcad9769bfece474cf","runtimeSha256":"7c616e42045dd562cf872fc37d2f143a59a934395cdbc66b8a21442d144d0be4","abi":"1","packId":"tsx","packVersion":"pilot-1","querySha256":"334bcebea8545b50a6df7babd4f5a57e42d4ff28c38d9ac74b8ab5e0f2bc732a","languageId":"tsx","parserLanguageId":"tsx","parserSha256":"79e5da75ea62855a0cd67177685f0164eac87d5f630b3cbe1e0a099751ad30f8","composition":"scope-compat-compose-1+contained-span-order-1","predicateDialect":"eq/any-of/make-range/priority;text-class-ascii-1;prefix-utf16-1;make-span-utf16-1;source-gap-utf16-max2-1","selectedOrderPolicy":"legacy-1"}
+- json: {"componentSha256":"94efc88752468b1f5246c449b10f05c61dd6e10b05d5c471f3f37d1350b407c8","sourceDigest":"afb1a43206fa59e6e66eba6e8024d68c58ccf025a0da6933e4ab190738cae697","runtimeSha256":"d8004fb67734fd8056b472ed26ba7c7b934587b7daf5e2c158ebfbc8e9ed2675","abi":"1","packId":"json","packVersion":"pilot-1","querySha256":"2a7d911634197084f96a7ebc6f149f8bc29012b45943268d0939d049d0fbaccf","languageId":"json","parserLanguageId":"json","parserSha256":"d2119fb98d5912719b13f9458574f8608d2d29dfbe45f6be1f860ea1fe2a2405","composition":"scope-compat-compose-1+contained-span-order-1","predicateDialect":"eq/any-of/make-range/priority;text-class-ascii-1;prefix-utf16-1;make-span-utf16-1;source-gap-utf16-max2-1","selectedOrderPolicy":"legacy-1"}
+- typescript: {"componentSha256":"94efc88752468b1f5246c449b10f05c61dd6e10b05d5c471f3f37d1350b407c8","sourceDigest":"afb1a43206fa59e6e66eba6e8024d68c58ccf025a0da6933e4ab190738cae697","runtimeSha256":"d8004fb67734fd8056b472ed26ba7c7b934587b7daf5e2c158ebfbc8e9ed2675","abi":"1","packId":"typescript","packVersion":"pilot-1","querySha256":"91b0277ec2e98b009a6af9c689b49e0f4b45ceccd92f5990088e19a257ba9031","languageId":"typescript","parserLanguageId":"typescript","parserSha256":"778025db5a8be0e70f8ccc3671e486dfeddd048c25d9e8a70c26de2e1bf6f97d","composition":"scope-compat-compose-1+contained-span-order-1","predicateDialect":"eq/any-of/make-range/priority;text-class-ascii-1;prefix-utf16-1;make-span-utf16-1;source-gap-utf16-max2-1","selectedOrderPolicy":"legacy-1"}
+- tsx: {"componentSha256":"94efc88752468b1f5246c449b10f05c61dd6e10b05d5c471f3f37d1350b407c8","sourceDigest":"afb1a43206fa59e6e66eba6e8024d68c58ccf025a0da6933e4ab190738cae697","runtimeSha256":"d8004fb67734fd8056b472ed26ba7c7b934587b7daf5e2c158ebfbc8e9ed2675","abi":"1","packId":"tsx","packVersion":"pilot-1","querySha256":"334bcebea8545b50a6df7babd4f5a57e42d4ff28c38d9ac74b8ab5e0f2bc732a","languageId":"tsx","parserLanguageId":"tsx","parserSha256":"79e5da75ea62855a0cd67177685f0164eac87d5f630b3cbe1e0a099751ad30f8","composition":"scope-compat-compose-1+contained-span-order-1","predicateDialect":"eq/any-of/make-range/priority;text-class-ascii-1;prefix-utf16-1;make-span-utf16-1;source-gap-utf16-max2-1","selectedOrderPolicy":"legacy-1"}
 - markdown: {"LICENSE":"1cf2a3936adda9351dc283c619665a77b48d094cb9c63f68ec7ca60dd7355f18","NOTICE.md":"fc739a000b9c57359150b65a90795c0e4f639349bc13ae06cfeca3a8d04f418a","tree-sitter-markdown.wasm":"27d067c772acc4adce2c79217aaec5168914338246ad5d8ecaf4bd9d0d0548d5","tree-sitter-md.wasm":"a62768930dddde0a5d9cf49cd35f583d83e9b4aedb34de0f047fcd7879df5159","licenses/cloudlibc.txt":"c8b789cf5a746611e6300a0cc7750dbf92b61912a709d04e639245f7290656d0","licenses/cmark-gfm.txt":"c22e885f33b821bddb24cf007145e5540655b6c0f403e49e6c76a93c28e6d9a9","licenses/cmark.txt":"c22e885f33b821bddb24cf007145e5540655b6c0f403e49e6c76a93c28e6d9a9","licenses/dlmalloc.txt":"0205ac38409bb02178268367a550adf1968b34ce8e21041259505e2038540379","licenses/icu.txt":"6a18c5fac70d7860b57f5b72b4e2c9a1ba6b3d2741eef7ff9767c5379364f10d","licenses/llvm.txt":"a6c48161a09acc75a0e25503bab66a731eb5fba5392ed4bb4743e4ba5085327a","licenses/markdown-cjk-friendly.txt":"2556e6c4c696ca913376e7937b5e4125226296aafa74106a3e9b097172cf6d99","licenses/micromark-extension-gfm-strikethrough.txt":"536804b3adbff17dbbb9ed0d2bf9655b78f07640278581e37e3d7475282d5e61","licenses/micromark.txt":"dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb","licenses/musl.txt":"b870108ec5e7790e9f9919064f1b9421d62d5f9b0e6c230c6adf7ea2da62e97b","licenses/tree-sitter-markdown.txt":"52ec8a1bf8256511e2a92613e0bb41ffefba3897f16fa958d7bb28c466dd4804","licenses/tree-sitter.txt":"c5cfb43042b6b72045f4ba997834d0a7786d2793d91680868b5815b39f14fc78","licenses/wasi-libc.txt":"23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"}
 - markdownCommit: f02e277a34375f326572b4ade2602f44ac769005
 - markdownManifest: 5ad738fbb9bd385bf2dfbb24b2ca12d348133a92a48601329130ff8d210f5c65
@@ -45,13 +45,13 @@ Scope tables use the unchanged raw, product and shiki-api reference scopes; shik
 | javascript | shiki-api | real | native | 0/7 | 0.00% | 0.00% | 0.00% | 0/7297 | 0/5601 |
 | javascript | shiki-api | real | baseline:captures | 7/7 | 5.21% | 0.00% | 6.19% | 380/7297 | 0/5601 |
 | javascript | shiki-api | real | baseline:vscode-ts | 0/7 | N/A | N/A | N/A | 0/0 | 0/0 |
-| typescript | raw | real | native | 7/7 | 15.83% | 8.11% | 16.14% | 941/5944 | 362/4465 |
+| typescript | raw | real | native | 7/7 | 15.66% | 8.02% | 16.09% | 931/5944 | 358/4465 |
 | typescript | raw | real | baseline:captures | 7/7 | 8.40% | 0.00% | 7.04% | 499/5944 | 0/4465 |
 | typescript | raw | real | baseline:vscode-ts | 7/7 | 8.87% | 0.63% | 7.20% | 527/5944 | 28/4465 |
-| typescript | product | real | native | 7/7 | 15.83% | 8.11% | 16.14% | 941/5944 | 362/4465 |
+| typescript | product | real | native | 7/7 | 15.66% | 8.02% | 16.09% | 931/5944 | 358/4465 |
 | typescript | product | real | baseline:captures | 7/7 | 8.40% | 0.00% | 7.04% | 499/5944 | 0/4465 |
 | typescript | product | real | baseline:vscode-ts | 7/7 | 8.87% | 0.63% | 7.20% | 527/5944 | 28/4465 |
-| typescript | shiki-api | real | native | 7/7 | 15.83% | 8.11% | 16.14% | 941/5944 | 362/4465 |
+| typescript | shiki-api | real | native | 7/7 | 15.66% | 8.02% | 16.09% | 931/5944 | 358/4465 |
 | typescript | shiki-api | real | baseline:captures | 7/7 | 8.40% | 0.00% | 7.04% | 499/5944 | 0/4465 |
 | typescript | shiki-api | real | baseline:vscode-ts | 7/7 | 8.87% | 0.63% | 7.20% | 527/5944 | 28/4465 |
 | tsx | raw | real | native | 1/1 | 44.29% | 39.47% | 44.29% | 62/140 | 45/114 |
@@ -140,30 +140,30 @@ Scope tables use the unchanged raw, product and shiki-api reference scopes; shik
 | javascript | product | real | native | vesper | 0.00% | 0.00% | 0.00% | 0/7297 | 0/5601 |
 | javascript | product | real | baseline:captures | vesper | 96.81% | 95.84% | 97.96% | 7064/7297 | 5368/5601 |
 | javascript | product | real | baseline:vscode-ts | vesper | N/A | N/A | N/A | 0/0 | 0/0 |
-| typescript | raw | real | native | dracula | 87.80% | 87.01% | 82.08% | 5219/5944 | 3885/4465 |
-| typescript | raw | real | baseline:captures | dracula | 88.19% | 85.06% | 83.19% | 5242/5944 | 3798/4465 |
-| typescript | raw | real | baseline:vscode-ts | dracula | 92.26% | 90.48% | 90.42% | 5484/5944 | 4040/4465 |
-| typescript | raw | real | native | github-dark | 84.67% | 82.84% | 81.28% | 5033/5944 | 3699/4465 |
-| typescript | raw | real | baseline:captures | github-dark | 87.74% | 84.46% | 88.09% | 5215/5944 | 3771/4465 |
-| typescript | raw | real | baseline:vscode-ts | github-dark | 88.44% | 85.40% | 87.00% | 5257/5944 | 3813/4465 |
-| typescript | raw | real | native | light-plus | 80.45% | 77.22% | 79.14% | 4782/5944 | 3448/4465 |
-| typescript | raw | real | baseline:captures | light-plus | 79.76% | 73.84% | 79.77% | 4741/5944 | 3297/4465 |
-| typescript | raw | real | baseline:vscode-ts | light-plus | 84.94% | 80.74% | 88.18% | 5049/5944 | 3605/4465 |
-| typescript | raw | real | native | vesper | 87.21% | 86.23% | 82.65% | 5184/5944 | 3850/4465 |
-| typescript | raw | real | baseline:captures | vesper | 91.05% | 88.87% | 90.00% | 5412/5944 | 3968/4465 |
-| typescript | raw | real | baseline:vscode-ts | vesper | 93.32% | 91.89% | 92.11% | 5547/5944 | 4103/4465 |
-| typescript | product | real | native | dracula | 87.80% | 87.01% | 82.08% | 5219/5944 | 3885/4465 |
-| typescript | product | real | baseline:captures | dracula | 88.19% | 85.06% | 83.19% | 5242/5944 | 3798/4465 |
-| typescript | product | real | baseline:vscode-ts | dracula | 92.26% | 90.48% | 90.42% | 5484/5944 | 4040/4465 |
-| typescript | product | real | native | github-dark | 84.67% | 82.84% | 81.28% | 5033/5944 | 3699/4465 |
-| typescript | product | real | baseline:captures | github-dark | 87.74% | 84.46% | 88.09% | 5215/5944 | 3771/4465 |
-| typescript | product | real | baseline:vscode-ts | github-dark | 88.44% | 85.40% | 87.00% | 5257/5944 | 3813/4465 |
-| typescript | product | real | native | light-plus | 80.45% | 77.22% | 79.14% | 4782/5944 | 3448/4465 |
-| typescript | product | real | baseline:captures | light-plus | 79.76% | 73.84% | 79.77% | 4741/5944 | 3297/4465 |
-| typescript | product | real | baseline:vscode-ts | light-plus | 84.94% | 80.74% | 88.18% | 5049/5944 | 3605/4465 |
-| typescript | product | real | native | vesper | 87.21% | 86.23% | 82.65% | 5184/5944 | 3850/4465 |
-| typescript | product | real | baseline:captures | vesper | 91.05% | 88.87% | 90.00% | 5412/5944 | 3968/4465 |
-| typescript | product | real | baseline:vscode-ts | vesper | 93.32% | 91.89% | 92.11% | 5547/5944 | 4103/4465 |
+| typescript | raw | real | native | dracula | 87.77% | 86.97% | 82.06% | 5217/5944 | 3883/4465 |
+| typescript | raw | real | baseline:captures | dracula | 88.17% | 85.04% | 83.18% | 5241/5944 | 3797/4465 |
+| typescript | raw | real | baseline:vscode-ts | dracula | 92.23% | 90.44% | 90.41% | 5482/5944 | 4038/4465 |
+| typescript | raw | real | native | github-dark | 84.64% | 82.80% | 81.27% | 5031/5944 | 3697/4465 |
+| typescript | raw | real | baseline:captures | github-dark | 87.72% | 84.43% | 88.09% | 5214/5944 | 3770/4465 |
+| typescript | raw | real | baseline:vscode-ts | github-dark | 88.43% | 85.38% | 86.99% | 5256/5944 | 3812/4465 |
+| typescript | raw | real | native | light-plus | 80.43% | 77.20% | 79.13% | 4781/5944 | 3447/4465 |
+| typescript | raw | real | baseline:captures | light-plus | 79.74% | 73.82% | 79.77% | 4740/5944 | 3296/4465 |
+| typescript | raw | real | baseline:vscode-ts | light-plus | 84.93% | 80.72% | 88.18% | 5048/5944 | 3604/4465 |
+| typescript | raw | real | native | vesper | 87.20% | 86.20% | 82.64% | 5183/5944 | 3849/4465 |
+| typescript | raw | real | baseline:captures | vesper | 91.03% | 88.85% | 90.00% | 5411/5944 | 3967/4465 |
+| typescript | raw | real | baseline:vscode-ts | vesper | 93.30% | 91.87% | 92.10% | 5546/5944 | 4102/4465 |
+| typescript | product | real | native | dracula | 87.77% | 86.97% | 82.06% | 5217/5944 | 3883/4465 |
+| typescript | product | real | baseline:captures | dracula | 88.17% | 85.04% | 83.18% | 5241/5944 | 3797/4465 |
+| typescript | product | real | baseline:vscode-ts | dracula | 92.23% | 90.44% | 90.41% | 5482/5944 | 4038/4465 |
+| typescript | product | real | native | github-dark | 84.64% | 82.80% | 81.27% | 5031/5944 | 3697/4465 |
+| typescript | product | real | baseline:captures | github-dark | 87.72% | 84.43% | 88.09% | 5214/5944 | 3770/4465 |
+| typescript | product | real | baseline:vscode-ts | github-dark | 88.43% | 85.38% | 86.99% | 5256/5944 | 3812/4465 |
+| typescript | product | real | native | light-plus | 80.43% | 77.20% | 79.13% | 4781/5944 | 3447/4465 |
+| typescript | product | real | baseline:captures | light-plus | 79.74% | 73.82% | 79.77% | 4740/5944 | 3296/4465 |
+| typescript | product | real | baseline:vscode-ts | light-plus | 84.93% | 80.72% | 88.18% | 5048/5944 | 3604/4465 |
+| typescript | product | real | native | vesper | 87.20% | 86.20% | 82.64% | 5183/5944 | 3849/4465 |
+| typescript | product | real | baseline:captures | vesper | 91.03% | 88.85% | 90.00% | 5411/5944 | 3967/4465 |
+| typescript | product | real | baseline:vscode-ts | vesper | 93.30% | 91.87% | 92.10% | 5546/5944 | 4102/4465 |
 | tsx | raw | real | native | dracula | 95.71% | 96.49% | 95.71% | 134/140 | 110/114 |
 | tsx | raw | real | baseline:captures | dracula | 91.43% | 89.47% | 91.43% | 128/140 | 102/114 |
 | tsx | raw | real | baseline:vscode-ts | dracula | 100.00% | 100.00% | 100.00% | 140/140 | 114/114 |
@@ -339,21 +339,21 @@ Scope tables use the unchanged raw, product and shiki-api reference scopes; shik
 
 | Language | Reference | Lane | Category | Runs | Units |
 | --- | --- | --- | --- | ---: | ---: |
-| typescript | raw | real | leaf | 175 | 1449 |
-| typescript | raw | real | missing-scope | 1042 | 1991 |
+| typescript | raw | real | leaf | 170 | 1429 |
+| typescript | raw | real | missing-scope | 1048 | 1997 |
 | typescript | raw | real | extra-scope | 68 | 90 |
-| typescript | raw | real | ancestor | 47 | 57 |
-| typescript | raw | real | other | 518 | 1416 |
-| typescript | product | real | leaf | 175 | 1449 |
-| typescript | product | real | missing-scope | 1042 | 1991 |
+| typescript | raw | real | ancestor | 48 | 59 |
+| typescript | raw | real | other | 525 | 1438 |
+| typescript | product | real | leaf | 170 | 1429 |
+| typescript | product | real | missing-scope | 1048 | 1997 |
 | typescript | product | real | extra-scope | 68 | 90 |
-| typescript | product | real | ancestor | 47 | 57 |
-| typescript | product | real | other | 518 | 1416 |
-| typescript | shiki-api | real | leaf | 175 | 1449 |
-| typescript | shiki-api | real | missing-scope | 1042 | 1991 |
+| typescript | product | real | ancestor | 48 | 59 |
+| typescript | product | real | other | 525 | 1438 |
+| typescript | shiki-api | real | leaf | 170 | 1429 |
+| typescript | shiki-api | real | missing-scope | 1048 | 1997 |
 | typescript | shiki-api | real | extra-scope | 68 | 90 |
-| typescript | shiki-api | real | ancestor | 47 | 57 |
-| typescript | shiki-api | real | other | 518 | 1416 |
+| typescript | shiki-api | real | ancestor | 48 | 59 |
+| typescript | shiki-api | real | other | 525 | 1438 |
 | tsx | raw | real | leaf | 5 | 46 |
 | tsx | raw | real | missing-scope | 9 | 24 |
 | tsx | raw | real | extra-scope | 1 | 2 |

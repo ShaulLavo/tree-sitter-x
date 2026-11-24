@@ -174,7 +174,7 @@ extern "C" {
 /// callback to determine the order.
 #define array_insert_sorted_with(self, compare, value) \
   do { \
-    unsigned _index, _exists; \
+    uint32_t _index, _exists; \
     array_search_sorted_with(self, compare, &(value), &_index, &_exists); \
     if (!_exists) array_insert(self, _index, value); \
   } while (0)
@@ -185,7 +185,7 @@ extern "C" {
 /// See also `array_search_sorted_by`.
 #define array_insert_sorted_by(self, field, value) \
   do { \
-    unsigned _index, _exists; \
+    uint32_t _index, _exists; \
     array_search_sorted_by(self, field, (value) field, &_index, &_exists); \
     if (!_exists) array_insert(self, _index, value); \
   } while (0)
@@ -229,8 +229,8 @@ static inline void *_array__assign(void* self_contents, uint32_t *self_size, uin
                                  const void *other_contents, uint32_t other_size, size_t element_size) {
   void *new_contents = _array__reserve(self_contents, self_capacity, element_size, other_size);
   *self_size = other_size;
-  if (*self_size) {
-    memcpy(new_contents, other_contents, *self_size * element_size);
+  if (other_size > 0) {
+    memcpy(new_contents, other_contents, other_size * element_size);
   }
   return new_contents;
 }
@@ -308,7 +308,7 @@ static inline void *_array__splice(void *self_contents, uint32_t *size, uint32_t
     *(_exists) = false; \
     uint32_t size = (self)->size - *(_index); \
     if (size == 0) break; \
-    int comparison; \
+    int32_t comparison; \
     while (size > 1) { \
       uint32_t half_size = size / 2; \
       uint32_t mid_index = *(_index) + half_size; \
@@ -323,7 +323,7 @@ static inline void *_array__splice(void *self_contents, uint32_t *size, uint32_t
 
 /// Helper macro for the `_sorted_by` routines below. This takes the left (existing)
 /// parameter by reference in order to work with the generic sorting function above.
-#define _compare_int(a, b) ((int)*(a) - (int)(b))
+#define _compare_int(a, b) (((int64_t)*(a) > (int64_t)(b)) - ((int64_t)*(a) < (int64_t)(b)))
 
 #ifdef _MSC_VER
 #pragma warning(pop)

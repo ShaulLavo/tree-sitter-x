@@ -151,7 +151,7 @@ describe('Tree', () => {
       tree = parser.parse('abcdefg + hij')!;
 
       expect(() => {
-        tree.getChangedRanges({} as Tree);
+        tree.getChangedRanges({} as unknown as Tree);
       }).toThrow(/Argument must be a Tree/);
     });
   });

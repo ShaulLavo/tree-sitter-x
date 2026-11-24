@@ -13,7 +13,7 @@ typedef struct {
   const TSSymbol *alias_sequence;
 } NodeChildIterator;
 
-static const unsigned TS_NODE_MAX_RECURSIVE_SEARCH_DEPTH = 64;
+static const uint32_t TS_NODE_MAX_RECURSIVE_SEARCH_DEPTH = 64;
 
 static inline bool ts_node__is_relevant(TSNode self, bool include_anonymous);
 
@@ -68,7 +68,7 @@ static inline NodeChildIterator ts_node_iterate_children(const TSNode *node) {
   return (NodeChildIterator) {
     .tree = node->tree,
     .parent = subtree,
-    .position = {ts_node_start_byte(*node), ts_node_start_point(*node)},
+    .position = {.extent = ts_node_start_point(*node), .bytes = ts_node_start_byte(*node)},
     .child_index = 0,
     .structural_child_index = 0,
     .alias_sequence = alias_sequence,
@@ -183,7 +183,7 @@ static bool ts_subtree_has_trailing_empty_descendant_iterative(
   Subtree subtree = self;
 
   while (true) {
-    for (unsigned i = ts_subtree_child_count(subtree); i > 0; i--) {
+    for (uint32_t i = ts_subtree_child_count(subtree); i > 0; i--) {
       const Subtree *child = &ts_subtree_children(subtree)[i - 1];
       if (ts_subtree_total_bytes(*child) > 0) break;
       // Distinct inline leaves can have identical contents; compare their slots.
@@ -205,10 +205,10 @@ static bool ts_subtree_has_trailing_empty_descendant_iterative(
 static bool ts_subtree_has_trailing_empty_descendant_bounded(
   Subtree self,
   const Subtree *other,
-  unsigned depth,
+  uint32_t depth,
   bool *too_deep
 ) {
-  for (unsigned i = ts_subtree_child_count(self); i > 0; i--) {
+  for (uint32_t i = ts_subtree_child_count(self); i > 0; i--) {
     const Subtree *child = &ts_subtree_children(self)[i - 1];
     if (ts_subtree_total_bytes(*child) > 0) break;
     if (child == other) return true;
@@ -388,7 +388,7 @@ static inline TSNode ts_node__first_child_for_byte(
           result = child;
           goto done;
         } else if (ts_node_child_count(child) > 0) {
-          if (iterator.child_index < ts_subtree_child_count(iterator.parent)) {
+          if (!ts_node_child_iterator_done(&iterator)) {
             array_push(&resume, iterator);
           }
           did_descend = true;
@@ -688,7 +688,7 @@ done:
 static TSNode ts_node_child_with_empty_descendant_bounded(
   TSNode self,
   TSNode descendant,
-  unsigned depth,
+  uint32_t depth,
   bool *too_deep
 ) {
   uint32_t target_byte = ts_node_start_byte(descendant);
@@ -727,9 +727,77 @@ static TSNode ts_node_child_with_empty_descendant_bounded(
   return self;
 }
 
+static TSNode ts_node_child_with_same_range_descendant(
+  TSNode self,
+  TSNode descendant
+) {
+  typedef struct {
+    TSNode child;
+    NodeChildIterator iterator;
+  } DescendantSearchFrame;
+
+  Array(DescendantSearchFrame) stack = array_new();
+  NodeChildIterator iterator = ts_node_iterate_children(&self);
+  TSNode result = ts_node__null();
+
+  for (;;) {
+    TSNode child;
+
+    if (!ts_node_child_iterator_next(&iterator, &child)) {
+      if (!stack.size) break;
+
+      DescendantSearchFrame frame = array_pop(&stack);
+      iterator = frame.iterator;
+      continue;
+    }
+
+    if (ts_node_eq(child, descendant)) {
+      result = child;
+
+      // Return the outermost visible node on the path. Hidden wrappers
+      // should not become the result when a visible descendant exists.
+      while (stack.size) {
+        DescendantSearchFrame frame = array_pop(&stack);
+        if (ts_node__is_relevant(frame.child, true)) {
+          result = frame.child;
+        }
+      }
+      break;
+    }
+
+    // A node containing a same-range descendant must itself have the same
+    // range. Descend only through those nodes.
+    if (
+      ts_node_start_byte(child) == ts_node_start_byte(self) &&
+      ts_node_end_byte(child) == ts_node_end_byte(self) &&
+      ts_node_child_count(child) > 0
+    ) {
+      array_push(&stack, ((DescendantSearchFrame) {
+        .child = child,
+        .iterator = iterator,
+      }));
+      iterator = ts_node_iterate_children(&child);
+    }
+  }
+
+  array_delete(&stack);
+  return result;
+}
+
 TSNode ts_node_child_with_descendant(TSNode self, TSNode descendant) {
+  if (ts_node_eq(self, descendant)) {
+    return ts_node__null();
+  }
   uint32_t start_byte = ts_node_start_byte(descendant);
   uint32_t end_byte = ts_node_end_byte(descendant);
+
+  if (
+    start_byte == ts_node_start_byte(self) &&
+    end_byte == ts_node_end_byte(self)
+  ) {
+    return ts_node_child_with_same_range_descendant(self, descendant);
+  }
+
   if (start_byte == end_byte) {
     bool too_deep = false;
     TSNode child = ts_node_child_with_empty_descendant_bounded(

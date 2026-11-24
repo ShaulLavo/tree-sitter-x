@@ -1,4 +1,4 @@
-use tree_sitter::{InputEdit, Parser, Point, Range, Tree};
+use tree_sitter::{InputEdit, Node, Parser, Point, Range, Tree};
 
 use super::helpers::fixtures::get_language;
 use crate::{
@@ -453,6 +453,48 @@ fn test_tree_cursor_previous_sibling() {
 }
 
 #[test]
+fn test_tree_cursor_previous_sibling_with_many_comments() {
+    let mut parser = Parser::new();
+    parser.set_language(&get_language("rust")).unwrap();
+    let text = "// comment\n".repeat(300);
+    let tree = parser.parse(&text, None).unwrap();
+    let root = tree.root_node();
+    assert!(!root.has_error());
+
+    let mut cursor = tree.walk();
+    let children: Vec<_> = root.children(&mut cursor).collect();
+    assert_eq!(children.len(), 300);
+    assert!(children.iter().all(Node::is_extra));
+
+    cursor.reset(root);
+    assert!(cursor.goto_last_child());
+    for index in (0..children.len()).rev() {
+        assert_eq!(cursor.node(), children[index]);
+        assert_eq!(cursor.goto_previous_sibling(), index > 0, "child {index}");
+    }
+}
+
+#[test]
+fn test_tree_cursor_previous_sibling_descendant_index() {
+    let mut parser = Parser::new();
+    parser.set_language(&get_language("json")).unwrap();
+    let tree = parser.parse("[1,2]", None).unwrap();
+
+    let mut cursor = tree.walk();
+    assert!(cursor.goto_first_child());
+    assert_eq!(cursor.node().kind(), "array");
+
+    assert!(cursor.goto_last_child());
+    assert_eq!(cursor.node().kind(), "]");
+    for expected in [5, 4, 3, 2] {
+        assert!(cursor.goto_previous_sibling());
+        assert_eq!(cursor.descendant_index(), expected);
+    }
+    assert!(!cursor.goto_previous_sibling());
+    assert_eq!(cursor.node().kind(), "[");
+}
+
+#[test]
 fn test_tree_cursor_fields() {
     let mut parser = Parser::new();
     parser.set_language(&get_language("javascript")).unwrap();
@@ -714,6 +756,48 @@ fn test_get_changed_ranges() {
         let ranges = get_changed_ranges(&mut parser, &mut tree, &mut source_code, &inverse_edit1);
         assert_eq!(ranges, vec![range_of(&source_code, "null")]);
     }
+}
+
+#[test]
+fn test_get_changed_ranges_inside_rebuilt_subtree_with_error() {
+    // Inserting `if g` at the start changes how error recovery reaches the `for` on the last line:
+    // it's lexed as the keyword in the old tree and falls back to an identifier in the new one,
+    // inside a rebuilt `binary_expression` whose summary matches.
+    let mut source_code =
+        b"=p+h(g{h(m{h(\"srp\"k && !mpty(_p_) {\n\tlock(&slock)\n\tvar m j\nfor;m&&f.".to_vec();
+
+    let mut parser = Parser::new();
+    parser.set_language(&get_language("go")).unwrap();
+    let mut tree = parser.parse(&source_code, None).unwrap();
+    let for_start = index_of(&source_code, "for");
+    let for_node = tree
+        .root_node()
+        .descendant_for_byte_range(for_start, for_start + 3);
+    assert_eq!(for_node.unwrap().kind(), "for");
+
+    let edit = Edit {
+        position: 0,
+        deleted_length: 0,
+        inserted_text: b"if g".to_vec(),
+    };
+    let ranges = get_changed_ranges(&mut parser, &mut tree, &mut source_code, &edit);
+    let for_start = index_of(&source_code, "for");
+    let for_node = tree
+        .root_node()
+        .descendant_for_byte_range(for_start, for_start + 3);
+    assert_eq!(for_node.unwrap().kind(), "identifier");
+    assert_eq!(
+        ranges,
+        vec![
+            range_of(&source_code, "if g="),
+            Range {
+                start_byte: for_start,
+                end_byte: for_start + 3,
+                start_point: Point::new(3, 0),
+                end_point: Point::new(3, 3),
+            },
+        ]
+    );
 }
 
 #[test]

@@ -202,9 +202,9 @@ bool ts_language_is_reserved_word(
 ) {
   TSLexerMode lex_mode = ts_language_lex_mode_for_state(self, state);
   if (lex_mode.reserved_word_set_id > 0) {
-    unsigned start = lex_mode.reserved_word_set_id * self->max_reserved_word_set_size;
-    unsigned end = start + self->max_reserved_word_set_size;
-    for (unsigned i = start; i < end; i++) {
+    uint32_t start = (uint32_t)lex_mode.reserved_word_set_id * self->max_reserved_word_set_size;
+    uint32_t end = start + self->max_reserved_word_set_size;
+    for (uint32_t i = start; i < end; i++) {
       if (self->reserved_words[i] == symbol) return true;
       if (self->reserved_words[i] == 0) break;
     }
@@ -331,7 +331,7 @@ TSFieldId ts_language_field_id_for_name(
   for (TSSymbol i = 1; i < count + 1; i++) {
     switch (strncmp(name, self->field_names[i], name_length)) {
       case 0:
-        if (self->field_names[i][name_length] == 0) return i;
+        if (strlen(self->field_names[i]) == name_length) return i;
         break;
       case -1:
         return 0;

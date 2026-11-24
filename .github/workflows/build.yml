@@ -110,20 +110,20 @@ jobs:
           # 1. Define a new platform alias above
           # 2. Add a new record to the matrix map in `crates/cli/npm/install.js`
           # 3. Consider adding the mapping at the end of 'crates/cli/Cargo.toml' for cargo-binstall support
-          - { platform: linux-arm64     , target: aarch64-unknown-linux-gnu     , os: ubuntu-24.04-arm }
-          - { platform: linux-arm       , target: armv7-unknown-linux-gnueabihf , os: ubuntu-24.04-arm }
-          - { platform: linux-x64       , target: x86_64-unknown-linux-gnu      , os: ubuntu-24.04     }
-          - { platform: linux-x86       , target: i686-unknown-linux-gnu        , os: ubuntu-24.04     }
-          - { platform: linux-powerpc64 , target: powerpc64-unknown-linux-gnu   , os: ubuntu-24.04     }
+          - { platform: linux-arm64     , target: aarch64-unknown-linux-gnu     , os: ubuntu-26.04-arm }
+          - { platform: linux-arm       , target: armv7-unknown-linux-gnueabihf , os: ubuntu-26.04-arm }
+          - { platform: linux-x64       , target: x86_64-unknown-linux-gnu      , os: ubuntu-26.04     }
+          - { platform: linux-x86       , target: i686-unknown-linux-gnu        , os: ubuntu-26.04     }
+          - { platform: linux-powerpc64 , target: powerpc64-unknown-linux-gnu   , os: ubuntu-26.04     }
           - { platform: windows-arm64   , target: aarch64-pc-windows-msvc       , os: windows-11-arm   }
           - { platform: windows-x64     , target: x86_64-pc-windows-msvc        , os: windows-2025     }
           - { platform: windows-x86     , target: i686-pc-windows-msvc          , os: windows-2025     }
           - { platform: macos-arm64     , target: aarch64-apple-darwin          , os: macos-15         }
           - { platform: macos-x64       , target: x86_64-apple-darwin           , os: macos-15-intel   }
-          - { platform: wasm32          , target: wasm32-unknown-unknown        , os: ubuntu-24.04     }
+          - { platform: wasm32          , target: wasm32-unknown-unknown        , os: ubuntu-26.04     }
 
           # illumos is not supported OOTB, it runs in a vm
-          - { platform: illumos-x64     , target: x86_64-unknown-illumos        , os: ubuntu-24.04     , vm: true , no-run: true }
+          - { platform: illumos-x64     , target: x86_64-unknown-illumos        , os: ubuntu-26.04     , vm: true , no-run: true }
 
           # Extra features
           - { platform: linux-arm64     , features: wasm }
@@ -374,7 +374,7 @@ jobs:
 
     - name: Build C library and Rust crate (illumos gmake)
       if: matrix.platform == 'illumos-x64'
-      uses: vmactions/omnios-vm@317e4f8069dad8a65e1520808f1a68ef3fd20565 # v1.3.6
+      uses: vmactions/omnios-vm@v1.3.8
       with:
         release: r151056-build
         copyback: false
@@ -459,7 +459,7 @@ jobs:
     # The runner's schema version must match wasm-bindgen in Cargo.lock.
     - name: Install wasm-bindgen test runner
       if: inputs.run-test && !matrix.no-run && contains(matrix.features, 'wasm') && matrix.run-wasm-test
-      run: bash scripts/with-build-cache.sh cargo install --locked --version 0.2.129 wasm-bindgen-cli
+      run: bash scripts/with-build-cache.sh cargo install --locked --version 0.2.130 wasm-bindgen-cli
 
     - name: Run Rust Wasm web test
       if: inputs.run-test && !matrix.no-run && contains(matrix.features, 'wasm') && matrix.run-wasm-test

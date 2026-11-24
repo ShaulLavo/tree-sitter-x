@@ -178,7 +178,7 @@ pub fn get_test_info(
     None
 }
 
-/// Writes `contents` to a temporary file that is removed when its owner is dropped.
+/// Writes `contents` to a private temporary file that is removed on drop.
 pub fn get_tmp_source_file(contents: &[u8]) -> Result<NamedTempFile> {
     let mut parse_file = NamedTempFile::new()?;
     parse_file.write_all(contents)?;
