@@ -1386,123 +1386,7 @@ impl Generator {
         add_line!(self, "}};");
         add_line!(self, "");
 
-        if self.large_state_count < self.parse_table.states.len() {
-            add_line!(self, "static const uint16_t ts_small_parse_table[] = {{");
-            indent!(self);
-
-            let mut next_table_index = 0;
-            let mut small_state_indices = Vec::with_capacity(
-                self.parse_table
-                    .states
-                    .len()
-                    .saturating_sub(self.large_state_count),
-            );
-            let mut small_state_rows =
-                FxHashMap::<Vec<((u32, SymbolType), Vec<Symbol>)>, usize>::default();
-            let mut symbols_by_value = FxHashMap::<(u32, SymbolType), Vec<Symbol>>::default();
-            for (offset, state) in self
-                .parse_table
-                .states
-                .iter()
-                .skip(self.large_state_count)
-                .enumerate()
-            {
-                let state_index = (self.large_state_count + offset) as u32;
-                symbols_by_value.clear();
-
-                terminal_entries.clear();
-                terminal_entries.extend(state.terminal_entries.iter());
-                terminal_entries.sort_unstable_by_key(|e| self.symbol_order.get(e.0));
-
-                // In a given parse state, many lookahead symbols have the same actions.
-                // So in the "small state" representation, group symbols by their action
-                // in order to avoid repeating the action.
-                for (symbol, entry) in &terminal_entries {
-                    let entry_id = Self::get_parse_action_list_id(
-                        **entry,
-                        &self.parse_table.action_lists,
-                        &mut parse_table_entries,
-                        &mut next_parse_action_list_index,
-                    );
-                    symbols_by_value
-                        .entry((entry_id, SymbolType::Terminal))
-                        .or_default()
-                        .push(**symbol);
-                }
-                for (symbol, action) in state.nonterminal_entries.iter() {
-                    let state_id = match action {
-                        GotoAction::Goto(i) => *i,
-                        GotoAction::ShiftExtra => state_index,
-                    };
-                    symbols_by_value
-                        .entry((state_id, SymbolType::NonTerminal))
-                        .or_default()
-                        .push(*symbol);
-                }
-
-                let mut values_with_symbols = symbols_by_value.drain().collect::<Vec<_>>();
-                for (_, symbols) in &mut values_with_symbols {
-                    symbols.sort_unstable();
-                }
-                values_with_symbols.sort_unstable_by_key(|((value, kind), symbols)| {
-                    (symbols.len(), *kind, *value, symbols[0])
-                });
-
-                if let Some(&existing_index) = small_state_rows.get(&values_with_symbols) {
-                    small_state_indices.push(existing_index);
-                    continue;
-                }
-
-                small_state_indices.push(next_table_index);
-                let row_index = next_table_index;
-
-                add_line!(
-                    self,
-                    "[{next_table_index}] = {},",
-                    values_with_symbols.len()
-                );
-                indent!(self);
-                next_table_index += 1;
-
-                for ((value, kind), symbols) in &values_with_symbols {
-                    next_table_index += 2 + symbols.len();
-                    if *kind == SymbolType::NonTerminal {
-                        add_line!(self, "STATE({value}), {},", symbols.len());
-                    } else {
-                        add_line!(self, "ACTIONS({value}), {},", symbols.len());
-                    }
-
-                    indent!(self);
-                    for symbol in symbols {
-                        add_line!(self, "{},", self.symbol_ids[symbol]);
-                    }
-                    dedent!(self);
-                }
-
-                dedent!(self);
-                small_state_rows.insert(values_with_symbols, row_index);
-            }
-
-            dedent!(self);
-            add_line!(self, "}};");
-            add_line!(self, "");
-
-            add_line!(
-                self,
-                "static const uint32_t ts_small_parse_table_map[] = {{"
-            );
-            indent!(self);
-            for i in self.large_state_count..self.parse_table.states.len() {
-                add_line!(
-                    self,
-                    "[SMALL_STATE({i})] = {},",
-                    small_state_indices[i - self.large_state_count]
-                );
-            }
-            dedent!(self);
-            add_line!(self, "}};");
-            add_line!(self, "");
-        }
+        self.add_small_parse_table(&mut parse_table_entries, &mut next_parse_action_list_index);
         if next_parse_action_list_index >= u32::from(u16::MAX) {
             Err(RenderError::ParseTable(
                 next_parse_action_list_index as usize,
@@ -1517,6 +1401,135 @@ impl Generator {
         self.add_parse_action_list(parse_table_entries);
 
         Ok(())
+    }
+
+    fn add_small_parse_table(
+        &mut self,
+        parse_table_entries: &mut FxHashMap<ActionListId, u32>,
+        next_parse_action_list_index: &mut u32,
+    ) {
+        if self.large_state_count >= self.parse_table.states.len() {
+            return;
+        }
+
+        add_line!(self, "static const uint16_t ts_small_parse_table[] = {{");
+        indent!(self);
+
+        let mut next_table_index = 0;
+        let mut small_state_indices = Vec::with_capacity(
+            self.parse_table
+                .states
+                .len()
+                .saturating_sub(self.large_state_count),
+        );
+        let mut small_state_rows =
+            FxHashMap::<Vec<((u32, SymbolType), Vec<Symbol>)>, usize>::default();
+        let mut symbols_by_value = FxHashMap::<(u32, SymbolType), Vec<Symbol>>::default();
+        let mut terminal_entries = Vec::<(Symbol, ActionListId)>::new();
+
+        for state_index in self.large_state_count..self.parse_table.states.len() {
+            let state = &self.parse_table.states[state_index];
+            symbols_by_value.clear();
+
+            terminal_entries.clear();
+            terminal_entries.extend(state.terminal_entries.iter().map(|(&s, &a)| (s, a)));
+            terminal_entries.sort_unstable_by_key(|(s, _)| self.symbol_order.get(s));
+
+            // In a given parse state, many lookahead symbols have the same actions.
+            // So in the "small state" representation, group symbols by their action
+            // in order to avoid repeating the action.
+            for &(symbol, entry) in &terminal_entries {
+                let entry_id = Self::get_parse_action_list_id(
+                    entry,
+                    &self.parse_table.action_lists,
+                    parse_table_entries,
+                    next_parse_action_list_index,
+                );
+                symbols_by_value
+                    .entry((entry_id, SymbolType::Terminal))
+                    .or_default()
+                    .push(symbol);
+            }
+            for (symbol, action) in state.nonterminal_entries.iter() {
+                let state_id = match action {
+                    GotoAction::Goto(i) => *i,
+                    GotoAction::ShiftExtra => state_index as u32,
+                };
+                symbols_by_value
+                    .entry((state_id, SymbolType::NonTerminal))
+                    .or_default()
+                    .push(*symbol);
+            }
+
+            let mut values_with_symbols = symbols_by_value.drain().collect::<Vec<_>>();
+            for (_, symbols) in &mut values_with_symbols {
+                symbols.sort_unstable();
+            }
+            values_with_symbols.sort_unstable_by_key(|((value, kind), symbols)| {
+                (symbols.len(), *kind, *value, symbols[0])
+            });
+
+            if let Some(&existing_index) = small_state_rows.get(&values_with_symbols) {
+                small_state_indices.push(existing_index);
+                continue;
+            }
+
+            let row_index = next_table_index;
+            small_state_indices.push(row_index);
+            self.add_small_parse_table_row(&mut next_table_index, &values_with_symbols);
+            small_state_rows.insert(values_with_symbols, row_index);
+        }
+
+        dedent!(self);
+        add_line!(self, "}};");
+        add_line!(self, "");
+
+        add_line!(
+            self,
+            "static const uint32_t ts_small_parse_table_map[] = {{"
+        );
+        indent!(self);
+        for i in self.large_state_count..self.parse_table.states.len() {
+            add_line!(
+                self,
+                "[SMALL_STATE({i})] = {},",
+                small_state_indices[i - self.large_state_count]
+            );
+        }
+        dedent!(self);
+        add_line!(self, "}};");
+        add_line!(self, "");
+    }
+
+    fn add_small_parse_table_row(
+        &mut self,
+        next_table_index: &mut usize,
+        values_with_symbols: &[((u32, SymbolType), Vec<Symbol>)],
+    ) {
+        add_line!(
+            self,
+            "[{next_table_index}] = {},",
+            values_with_symbols.len()
+        );
+        indent!(self);
+        *next_table_index += 1;
+
+        for ((value, kind), symbols) in values_with_symbols {
+            *next_table_index += 2 + symbols.len();
+            if *kind == SymbolType::NonTerminal {
+                add_line!(self, "STATE({value}), {},", symbols.len());
+            } else {
+                add_line!(self, "ACTIONS({value}), {},", symbols.len());
+            }
+
+            indent!(self);
+            for symbol in symbols {
+                add_line!(self, "{},", self.symbol_ids[symbol]);
+            }
+            dedent!(self);
+        }
+
+        dedent!(self);
     }
 
     fn add_parse_action_list(&mut self, parse_table_entries: Vec<(u32, ActionListId)>) {
@@ -2152,6 +2165,83 @@ mod tests {
         assert!(
             saw_multi_group,
             "expected at least one multi-group small-state row"
+        );
+    }
+
+    #[test]
+    fn test_small_state_threshold_between_64_and_96() {
+        // Build a grammar with > 192 symbols where a state after "prefix" has 72 valid
+        // lookahead symbols (between the old 64 cutoff and the new 96 cutoff).
+        let total_tokens = 200usize;
+        let active_tokens = 72usize;
+
+        let mut all_members = Vec::with_capacity(total_tokens);
+        for i in 0..total_tokens {
+            all_members.push(format!(r#"{{"type":"STRING","value":"t{i}"}}"#));
+        }
+        let mut active_members = Vec::with_capacity(active_tokens);
+        for i in 0..active_tokens {
+            active_members.push(format!(r#"{{"type":"STRING","value":"t{i}"}}"#));
+        }
+
+        let grammar_json = format!(
+            r#"{{
+                "name": "threshold_crossing_test",
+                "rules": {{
+                    "program": {{
+                        "type": "CHOICE",
+                        "members": [
+                            {{ "type": "SEQ", "members": [
+                                {{ "type": "STRING", "value": "prefix" }},
+                                {{ "type": "CHOICE", "members": [{}] }}
+                            ] }},
+                            {{ "type": "CHOICE", "members": [{}] }}
+                        ]
+                    }}
+                }}
+            }}"#,
+            active_members.join(","),
+            all_members.join(","),
+        );
+
+        let (_, c_code) =
+            generate_parser_for_grammar(&grammar_json, None, OptLevel::default(), &mut Vec::new())
+                .unwrap();
+
+        let large_state_count: usize = c_code
+            .lines()
+            .find_map(|line| line.strip_prefix("#define LARGE_STATE_COUNT "))
+            .unwrap()
+            .trim()
+            .parse()
+            .unwrap();
+        assert_eq!(
+            large_state_count, 2,
+            "state with {active_tokens} lookaheads should use small-state encoding under threshold 96"
+        );
+
+        let table_start = c_code
+            .find("static const uint16_t ts_small_parse_table[] = {")
+            .expect("expected small parse table");
+        let table_end = table_start + c_code[table_start..].find("};").unwrap();
+        let table_section = &c_code[table_start..table_end];
+
+        let mut max_row_symbols = 0usize;
+        let mut row_symbols = 0usize;
+        for line in table_section.lines() {
+            let trimmed = line.trim();
+            if trimmed.starts_with('[') {
+                max_row_symbols = max_row_symbols.max(row_symbols);
+                row_symbols = 0;
+            } else if trimmed.starts_with("ACTIONS(") || trimmed.starts_with("STATE(") {
+                let count_str = trimmed.split(", ").nth(1).unwrap().trim_end_matches(',');
+                row_symbols += count_str.parse::<usize>().unwrap();
+            }
+        }
+        max_row_symbols = max_row_symbols.max(row_symbols);
+        assert!(
+            max_row_symbols >= active_tokens,
+            "expected a small-state row covering all {active_tokens} lookaheads, got {max_row_symbols}"
         );
     }
 }
