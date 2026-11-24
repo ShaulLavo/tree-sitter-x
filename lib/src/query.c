@@ -3944,6 +3944,20 @@ void ts_query_cursor_set_match_limit(TSQueryCursor *self, uint32_t limit) {
 #define LOG(...)
 #endif
 
+static inline bool ts_node_within_unbounded_bounds(TSNode node) {
+  if (ts_node_is_null(node)) return true;
+  uint32_t start_byte = ts_node_start_byte(node);
+  uint32_t end_byte = ts_node_end_byte(node);
+  if (end_byte < start_byte || end_byte == UINT32_MAX) return false;
+  uint32_t span = end_byte - start_byte;
+  TSPoint start_point = ts_node_start_point(node);
+  TSPoint end_point = ts_node_end_point(node);
+  if (point_lt(end_point, start_point)) return false;
+  if (span >= UINT32_MAX - start_point.row) return false;
+  if (span >= UINT32_MAX - start_point.column) return false;
+  return end_point.row < UINT32_MAX && end_point.column < UINT32_MAX;
+}
+
 void ts_query_cursor_exec(
   TSQueryCursor *self,
   const TSQuery *query,
@@ -3981,12 +3995,7 @@ void ts_query_cursor_exec(
   ts_tree_cursor_reset(&self->cursor, node);
   capture_list_pool_reset(&self->capture_list_pool);
   self->on_visible_node = true;
-  self->root_within_unbounded_bounds =
-    ts_node_is_null(node) ||
-    (
-      ts_node_end_byte(node) < UINT32_MAX &&
-      point_lt(ts_node_end_point(node), POINT_MAX)
-    );
+  self->root_within_unbounded_bounds = ts_node_within_unbounded_bounds(node);
   self->next_state_id = 0;
   self->next_finished_state_id = 0;
   self->depth = 0;

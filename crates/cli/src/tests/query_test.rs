@@ -4832,6 +4832,29 @@ fn test_query_unbounded_range_excludes_max_offset_nodes() {
         assert_eq!(cursor.matches(&query, root_max_byte, source).count(), 0);
         assert_eq!(cursor.matches(&query, root_max_point, source).count(), 0);
         assert_eq!(cursor.matches(&query, root_zero, source).count(), 1);
+
+        // Wrapping offsets on a non-empty tree must also fall back to full range checks.
+        let num_query = Query::new(&language, "(number) @num").unwrap();
+        let arr_src = "[1,2]";
+        let arr_tree = parser.parse(arr_src, None).unwrap();
+        let mut cursor = QueryCursor::new();
+        let wrapped_byte_root =
+            arr_tree.root_node_with_offset((u32::MAX - 1) as usize, Point::new(0, 0));
+        let wrapped_byte_starts: Vec<usize> = cursor
+            .matches(&num_query, wrapped_byte_root, arr_src.as_bytes())
+            .map_deref(|m| m.captures()[0].node.start_byte())
+            .collect();
+        // `1` starts at (u32::MAX - 1) + 1 == u32::MAX (excluded); `2` wraps to 1.
+        assert_eq!(wrapped_byte_starts, vec![1]);
+
+        let wrapped_point_root = arr_tree
+            .root_node_with_offset(0, Point::new(u32::MAX as usize, (u32::MAX - 1) as usize));
+        let wrapped_point_cols: Vec<usize> = cursor
+            .matches(&num_query, wrapped_point_root, arr_src.as_bytes())
+            .map_deref(|m| m.captures()[0].node.start_position().column)
+            .collect();
+        // `1` starts at POINT_MAX (excluded); `2` wraps to column 1 on row u32::MAX.
+        assert_eq!(wrapped_point_cols, vec![1]);
     });
 }
 
