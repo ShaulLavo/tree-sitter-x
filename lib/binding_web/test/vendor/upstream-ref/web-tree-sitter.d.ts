@@ -1042,3 +1042,4 @@ declare module 'web-tree-sitter' {
 	export {};
 }
 
+//# sourceMappingURL=web-tree-sitter.d.ts.map

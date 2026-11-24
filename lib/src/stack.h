@@ -11,7 +11,7 @@ extern "C" {
 
 typedef struct Stack Stack;
 
-typedef unsigned StackVersion;
+typedef uint32_t StackVersion;
 #define STACK_VERSION_NONE ((StackVersion)-1)
 
 typedef struct {
@@ -22,7 +22,7 @@ typedef Array(StackSlice) StackSliceArray;
 
 typedef struct {
   Length position;
-  unsigned depth;
+  uint32_t depth;
   TSStateId state;
 } StackSummaryEntry;
 typedef Array(StackSummaryEntry) StackSummary;
@@ -63,8 +63,14 @@ void ts_stack_push(Stack *self, StackVersion version, Subtree subtree, bool pend
 // operation can increase the number of stack versions by revealing multiple
 // versions which had previously been merged. It returns an array that
 // specifies the index of each revealed version and the trees that were
-// removed from that version.
-StackSliceArray ts_stack_pop_count(Stack *self, StackVersion version, uint32_t count);
+// removed from that version. With `can_replace_version`, an unshared path is
+// popped in place, and its slice keeps the given version.
+StackSliceArray ts_stack_pop_count(
+  Stack *self,
+  StackVersion version,
+  uint32_t count,
+  bool can_replace_version
+);
 
 // Remove an error at the top of the given version of the stack.
 SubtreeArray ts_stack_pop_error(Stack *self, StackVersion version);
@@ -77,22 +83,22 @@ StackSliceArray ts_stack_pop_all(Stack *self, StackVersion version);
 
 // Get the maximum number of tree nodes reachable from this version of the stack
 // since the last error was detected.
-unsigned ts_stack_node_count_since_error(const Stack *self, StackVersion version);
+uint32_t ts_stack_node_count_since_error(const Stack *self, StackVersion version);
 
-int ts_stack_dynamic_precedence(Stack *self, StackVersion version);
+int32_t ts_stack_dynamic_precedence(Stack *self, StackVersion version);
 
 bool ts_stack_has_advanced_since_error(const Stack *self, StackVersion version);
 
 // Compute a summary of all the parse states near the top of the given
 // version of the stack and store the summary for later retrieval.
-void ts_stack_record_summary(Stack *self, StackVersion version, unsigned max_depth);
+void ts_stack_record_summary(Stack *self, StackVersion version, uint32_t max_depth);
 
 // Retrieve a summary of all the parse states near the top of the
 // given version of the stack.
 StackSummary *ts_stack_get_summary(Stack *self, StackVersion version);
 
 // Get the total cost of all errors on the given version of the stack.
-unsigned ts_stack_error_cost(const Stack *self, StackVersion version);
+uint32_t ts_stack_error_cost(const Stack *self, StackVersion version);
 
 // Merge the given two stack versions if possible, returning true
 // if they were successfully merged and false otherwise.

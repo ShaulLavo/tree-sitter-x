@@ -9,7 +9,7 @@
 
 TSTree *ts_tree_new(
   Subtree root, const TSLanguage *language,
-  const TSRange *included_ranges, unsigned included_range_count
+  const TSRange *included_ranges, uint32_t included_range_count
 ) {
   TSTree *result = ts_malloc(sizeof(TSTree));
   result->root = root;
@@ -61,7 +61,7 @@ TSNode ts_tree_root_node_with_offset(
   uint32_t offset_bytes,
   TSPoint offset_extent
 ) {
-  Length offset = {offset_bytes, offset_extent};
+  Length offset = {.extent = offset_extent, .bytes = offset_bytes};
   return ts_node_new(self, &self->root, length_add(offset, ts_subtree_padding(self->root)), 0);
 }
 
@@ -95,7 +95,7 @@ const TSLanguage *ts_tree_language(const TSTree *self) {
 }
 
 void ts_tree_edit(TSTree *self, const TSInputEdit *edit) {
-  for (unsigned i = 0; i < self->included_range_count; i++) {
+  for (uint32_t i = 0; i < self->included_range_count; i++) {
     ts_range_edit(&self->included_ranges[i], edit);
   }
 

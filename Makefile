@@ -105,12 +105,13 @@ uninstall:
 		'$(DESTDIR)$(LIBDIR)'/libtree-sitter.$(SOEXT) \
 		'$(DESTDIR)$(INCLUDEDIR)'/tree_sitter/api.h \
 		'$(DESTDIR)$(PCLIBDIR)'/tree-sitter.pc
-	rmdir '$(DESTDIR)$(INCLUDEDIR)'/tree_sitter
 
 .PHONY: all shared static install uninstall clean
 
 
 ##### Dev targets #####
+
+RUSTFMT_TOOLCHAIN ?= nightly
 
 test:
 	cargo xtask fetch-fixtures
@@ -123,8 +124,8 @@ test-wasm:
 
 lint:
 	cargo update --workspace --locked --quiet
-	cargo fmt --all --check
-	cargo clippy --workspace --all-targets -- -D warnings
+	cargo +$(RUSTFMT_TOOLCHAIN) fmt --all --check
+	cargo clippy --workspace --all-targets --all-features -- -D warnings
 
 lint-web:
 	npm --prefix lib/binding_web ci
@@ -135,7 +136,7 @@ lint-toml:
 	taplo format --check --diff
 
 format:
-	cargo fmt --all
+	cargo +$(RUSTFMT_TOOLCHAIN) fmt --all
 	taplo format
 
 changelog:

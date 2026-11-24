@@ -4,7 +4,7 @@ version.workspace = true
 description = "Rust bindings to the Tree-sitter parsing library"
 authors.workspace = true
 edition.workspace = true
-rust-version = "1.90"
+rust-version = "1.92"
 readme = "binding_rust/README.md"
 homepage.workspace = true
 repository.workspace = true
@@ -58,7 +58,7 @@ default-features = false
 features = [ "cranelift", "gc", "gc-null" ]
 optional = true
 package = "wasmtime-c-api-impl"
-version = "48.0.7"
+version = "48.0.10"
 
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
 js-sys = { optional = true, version = "0.3" }

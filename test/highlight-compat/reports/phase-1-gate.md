@@ -44,8 +44,8 @@ Regeneration creates the first reference tree, then runs these tests before hash
 
 Each run regenerates every registered reference profile, the fixture report, reference differences, historical expectations and both baseline comparisons. Hashes cover sorted relative paths and exact bytes of all regenerated goldens and reports, except this hash-bearing gate record. After writing the identical gate record into both trees, the checker also compares their complete artifact trees byte-for-byte.
 
-- Run 1 SHA-256: 0bf797ef71be00486bf7348d7ae8d105918ffd81a2d4d855107b249983239197
-- Run 2 SHA-256: 0bf797ef71be00486bf7348d7ae8d105918ffd81a2d4d855107b249983239197
+- Run 1 SHA-256: b3c521ff4b99d0c27442ce3e1ff2230be8bfb39f0e042219746b54c1d5a33fad
+- Run 2 SHA-256: b3c521ff4b99d0c27442ce3e1ff2230be8bfb39f0e042219746b54c1d5a33fad
 
 The checker then compares the entire regenerated tree with the committed tree. A changed, missing or extra report/golden fails. No timing, absolute path, runtime-dependent identity or timestamp enters this content hash.
 

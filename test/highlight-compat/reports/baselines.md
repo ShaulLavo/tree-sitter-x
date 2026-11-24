@@ -104,14 +104,14 @@ No excluded patterns.
 | baseline:captures | product | real | javascript | light-plus | 7 | 94.26% | 92.52% | 96.72% | 6878/7297 | 419 | 0 |
 | baseline:captures | product | real | javascript | dracula | 7 | 94.34% | 92.63% | 96.00% | 6884/7297 | 400 | 225 |
 | baseline:captures | product | real | javascript | vesper | 7 | 96.81% | 95.84% | 97.96% | 7064/7297 | 233 | 0 |
-| baseline:captures | raw | real | typescript | github-dark | 7 | 87.74% | 84.46% | 88.09% | 5215/5944 | 729 | 0 |
-| baseline:captures | raw | real | typescript | light-plus | 7 | 79.76% | 73.84% | 79.77% | 4741/5944 | 1203 | 0 |
-| baseline:captures | raw | real | typescript | dracula | 7 | 88.19% | 85.06% | 83.19% | 5242/5944 | 670 | 90 |
-| baseline:captures | raw | real | typescript | vesper | 7 | 91.05% | 88.87% | 90.00% | 5412/5944 | 532 | 0 |
-| baseline:captures | product | real | typescript | github-dark | 7 | 87.74% | 84.46% | 88.09% | 5215/5944 | 729 | 0 |
-| baseline:captures | product | real | typescript | light-plus | 7 | 79.76% | 73.84% | 79.77% | 4741/5944 | 1203 | 0 |
-| baseline:captures | product | real | typescript | dracula | 7 | 88.19% | 85.06% | 83.19% | 5242/5944 | 670 | 90 |
-| baseline:captures | product | real | typescript | vesper | 7 | 91.05% | 88.87% | 90.00% | 5412/5944 | 532 | 0 |
+| baseline:captures | raw | real | typescript | github-dark | 7 | 87.72% | 84.43% | 88.09% | 5214/5944 | 730 | 0 |
+| baseline:captures | raw | real | typescript | light-plus | 7 | 79.74% | 73.82% | 79.77% | 4740/5944 | 1204 | 0 |
+| baseline:captures | raw | real | typescript | dracula | 7 | 88.17% | 85.04% | 83.18% | 5241/5944 | 671 | 91 |
+| baseline:captures | raw | real | typescript | vesper | 7 | 91.03% | 88.85% | 90.00% | 5411/5944 | 533 | 0 |
+| baseline:captures | product | real | typescript | github-dark | 7 | 87.72% | 84.43% | 88.09% | 5214/5944 | 730 | 0 |
+| baseline:captures | product | real | typescript | light-plus | 7 | 79.74% | 73.82% | 79.77% | 4740/5944 | 1204 | 0 |
+| baseline:captures | product | real | typescript | dracula | 7 | 88.17% | 85.04% | 83.18% | 5241/5944 | 671 | 91 |
+| baseline:captures | product | real | typescript | vesper | 7 | 91.03% | 88.85% | 90.00% | 5411/5944 | 533 | 0 |
 | baseline:captures | raw | real | tsx | github-dark | 1 | 95.71% | 94.74% | 95.71% | 134/140 | 6 | 0 |
 | baseline:captures | raw | real | tsx | light-plus | 1 | 96.43% | 95.61% | 96.43% | 135/140 | 5 | 0 |
 | baseline:captures | raw | real | tsx | dracula | 1 | 91.43% | 89.47% | 91.43% | 128/140 | 12 | 5 |
@@ -168,14 +168,14 @@ No excluded patterns.
 | baseline:vscode-ts | product | real | javascript | light-plus | 0 | N/A | N/A | N/A | 0/0 | 0 | 0 |
 | baseline:vscode-ts | product | real | javascript | dracula | 0 | N/A | N/A | N/A | 0/0 | 0 | 0 |
 | baseline:vscode-ts | product | real | javascript | vesper | 0 | N/A | N/A | N/A | 0/0 | 0 | 0 |
-| baseline:vscode-ts | raw | real | typescript | github-dark | 7 | 88.44% | 85.40% | 87.00% | 5257/5944 | 687 | 0 |
-| baseline:vscode-ts | raw | real | typescript | light-plus | 7 | 84.94% | 80.74% | 88.18% | 5049/5944 | 895 | 0 |
-| baseline:vscode-ts | raw | real | typescript | dracula | 7 | 92.26% | 90.48% | 90.42% | 5484/5944 | 459 | 40 |
-| baseline:vscode-ts | raw | real | typescript | vesper | 7 | 93.32% | 91.89% | 92.11% | 5547/5944 | 397 | 0 |
-| baseline:vscode-ts | product | real | typescript | github-dark | 7 | 88.44% | 85.40% | 87.00% | 5257/5944 | 687 | 0 |
-| baseline:vscode-ts | product | real | typescript | light-plus | 7 | 84.94% | 80.74% | 88.18% | 5049/5944 | 895 | 0 |
-| baseline:vscode-ts | product | real | typescript | dracula | 7 | 92.26% | 90.48% | 90.42% | 5484/5944 | 459 | 40 |
-| baseline:vscode-ts | product | real | typescript | vesper | 7 | 93.32% | 91.89% | 92.11% | 5547/5944 | 397 | 0 |
+| baseline:vscode-ts | raw | real | typescript | github-dark | 7 | 88.43% | 85.38% | 86.99% | 5256/5944 | 688 | 0 |
+| baseline:vscode-ts | raw | real | typescript | light-plus | 7 | 84.93% | 80.72% | 88.18% | 5048/5944 | 896 | 0 |
+| baseline:vscode-ts | raw | real | typescript | dracula | 7 | 92.23% | 90.44% | 90.41% | 5482/5944 | 461 | 41 |
+| baseline:vscode-ts | raw | real | typescript | vesper | 7 | 93.30% | 91.87% | 92.10% | 5546/5944 | 398 | 0 |
+| baseline:vscode-ts | product | real | typescript | github-dark | 7 | 88.43% | 85.38% | 86.99% | 5256/5944 | 688 | 0 |
+| baseline:vscode-ts | product | real | typescript | light-plus | 7 | 84.93% | 80.72% | 88.18% | 5048/5944 | 896 | 0 |
+| baseline:vscode-ts | product | real | typescript | dracula | 7 | 92.23% | 90.44% | 90.41% | 5482/5944 | 461 | 41 |
+| baseline:vscode-ts | product | real | typescript | vesper | 7 | 93.30% | 91.87% | 92.10% | 5546/5944 | 398 | 0 |
 | baseline:vscode-ts | raw | real | tsx | github-dark | 1 | 98.57% | 98.25% | 98.57% | 138/140 | 2 | 0 |
 | baseline:vscode-ts | raw | real | tsx | light-plus | 1 | 100.00% | 100.00% | 100.00% | 140/140 | 0 | 0 |
 | baseline:vscode-ts | raw | real | tsx | dracula | 1 | 100.00% | 100.00% | 100.00% | 140/140 | 0 | 0 |
@@ -273,13 +273,13 @@ No excluded patterns.
 | baseline:vscode-ts | raw | real | typescript | leaf | 232 | 1343 |
 | baseline:vscode-ts | raw | real | typescript | missing-scope | 939 | 1792 |
 | baseline:vscode-ts | raw | real | typescript | extra-scope | 4 | 4 |
-| baseline:vscode-ts | raw | real | typescript | ancestor | 149 | 461 |
-| baseline:vscode-ts | raw | real | typescript | other | 817 | 1817 |
+| baseline:vscode-ts | raw | real | typescript | ancestor | 147 | 459 |
+| baseline:vscode-ts | raw | real | typescript | other | 819 | 1819 |
 | baseline:vscode-ts | product | real | typescript | leaf | 232 | 1343 |
 | baseline:vscode-ts | product | real | typescript | missing-scope | 939 | 1792 |
 | baseline:vscode-ts | product | real | typescript | extra-scope | 4 | 4 |
-| baseline:vscode-ts | product | real | typescript | ancestor | 149 | 461 |
-| baseline:vscode-ts | product | real | typescript | other | 817 | 1817 |
+| baseline:vscode-ts | product | real | typescript | ancestor | 147 | 459 |
+| baseline:vscode-ts | product | real | typescript | other | 819 | 1819 |
 | baseline:vscode-ts | raw | real | tsx | leaf | 3 | 20 |
 | baseline:vscode-ts | raw | real | tsx | missing-scope | 10 | 12 |
 | baseline:vscode-ts | raw | real | tsx | other | 26 | 100 |

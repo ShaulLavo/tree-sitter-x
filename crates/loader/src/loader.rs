@@ -15,7 +15,7 @@ use std::{
     path::{Path, PathBuf},
     process::Command,
     sync::Mutex,
-    time::{Duration, Instant, SystemTime},
+    time::SystemTime,
 };
 
 use etcetera::BaseStrategy as _;
@@ -84,10 +84,6 @@ pub enum LoaderError {
     Compiler(CompilerError),
     #[error("Parser compilation failed.\nStdout: {0}\nStderr: {1}")]
     Compilation(String, String),
-    #[error(
-        "Lock file '{0}' appears stale\nIf there isn't another concurrent tree-sitter instance, remove it"
-    )]
-    LockFileTimeout(PathBuf),
     #[error("Failed to execute curl for {0} -- {1}")]
     Curl(String, IoError),
     #[error("Failed to load language in current directory:\n{0}")]
@@ -100,6 +96,8 @@ pub enum LoaderError {
     FileNameLoad(String, Box<Self>),
     #[error("Failed to parse the language name from grammar.json at {0}")]
     GrammarJSON(String),
+    #[error("Invalid language name {0:?}, expected only ASCII letters, digits, `_`, or `-`")]
+    LanguageName(String),
     #[error(transparent)]
     HomeDir(#[from] etcetera::HomeDirError),
     #[error(transparent)]
@@ -741,59 +739,6 @@ fn temp_path(path: &Path) -> PathBuf {
     ))
 }
 
-/// RAII lock file guard. The lock file is created atomically via
-/// [`create_new`](`fs::OpenOptions::create_new`) and removed on drop.
-/// and removed on drop.
-struct LockFile {
-    path: PathBuf,
-}
-
-impl LockFile {
-    /// Attempt to atomically create the lock file.
-    ///
-    /// Returns `Ok(Some)` if we won the race, `Ok(None)` if we lost,
-    /// or the underlying IO error otherwise.
-    fn create(path: &Path) -> LoaderResult<Option<Self>> {
-        match fs::OpenOptions::new()
-            .create_new(true)
-            .write(true)
-            .open(path)
-        {
-            Ok(_) => Ok(Some(Self {
-                path: path.to_path_buf(),
-            })),
-            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => Ok(None),
-            Err(e) => Err(LoaderError::IO(IoError::new(e, Some(path)))),
-        }
-    }
-
-    /// Wait for an existing lock file to be removed by whoever created it.
-    /// If the lock file persists beyond `timeout`, return [`LoaderError::LockFileTimeout`]
-    fn wait_for_removal(path: &Path, timeout: Duration) -> LoaderResult<()> {
-        let mut sleep_ms = 100;
-        let deadline = Instant::now() + timeout;
-        while path.exists() {
-            if Instant::now() > deadline {
-                return Err(LoaderError::LockFileTimeout(path.to_path_buf()));
-            }
-            std::thread::sleep(Duration::from_millis(sleep_ms));
-            sleep_ms = (sleep_ms * 2).min(1000);
-        }
-
-        Ok(())
-    }
-}
-
-impl Drop for LockFile {
-    fn drop(&mut self) {
-        match fs::remove_file(&self.path) {
-            Ok(()) => {}
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-            Err(e) => warn!("Failed to remove lock file '{}': {e}.", self.path.display()),
-        }
-    }
-}
-
 impl Loader {
     pub fn new() -> LoaderResult<Self> {
         let parser_lib_path = if let Ok(path) = env::var("TREE_SITTER_LIBDIR") {
@@ -1098,6 +1043,7 @@ impl Loader {
         &self,
         mut config: CompileConfig,
     ) -> LoaderResult<Language> {
+        validate_language_name(&config.name)?;
         let mut lib_name = config.name.clone();
         let language_fn_name = format!("tree_sitter_{}", config.name.replace('-', "_"));
         if self.debug_build {
@@ -1165,57 +1111,72 @@ impl Loader {
             name = config.name
         ));
 
-        // Synchronize compilation across threads/processes using an atomic lock
-        // file. Exactly one caller wins the race to compile. Losers wait for the
-        // lock file to be removed, then skip compilation and proceed to loading.
+        // Synchronize compilation across threads/processes with an exclusive file
+        // lock. Exactly one caller wins the race to compile. Losers block until
+        // the winner releases the lock, then recompile only if the winner died or
+        // failed before producing an up-to-date library.
         //
         // Loading only (`recompile == false`) doesn't need a lock because
         // `compile_parser_to_dylib` writes to a temp file and atomically renames
         // into place, so loaders always see a complete shared library (either the
         // new or previous copy).
         //
-        // The `LockFile` ensures cleanup on drop, and stale locks from killed
-        // processes are detected via a timeout in `wait_for_removal`.
+        // The kernel releases the lock when its holder exits, so a killed process
+        // leaves no stale lock behind.
         if recompile {
             let parent_path = lock_path.parent().unwrap();
             fs::create_dir_all(parent_path)
                 .map_err(|e| LoaderError::IO(IoError::new(e, Some(parent_path))))?;
 
-            match LockFile::create(&lock_path)? {
-                Some(_lock) => {
-                    // We won the race, so compile with the lock.
-                    let compile_wasm;
-                    #[cfg(feature = "wasm")]
-                    {
-                        compile_wasm = self.wasm_store.lock().unwrap().is_some();
-                    }
-                    #[cfg(not(feature = "wasm"))]
-                    {
-                        compile_wasm = false;
-                    };
-                    #[cfg(feature = "wasm")]
-                    if compile_wasm {
-                        self.compile_parser_to_wasm(
-                            &config.name,
-                            config.src_path,
-                            config
-                                .scanner_path
-                                .as_ref()
-                                .and_then(|p| p.strip_prefix(config.src_path).ok()),
-                            &output_path,
-                        )?;
-                    }
-                    if !compile_wasm {
-                        self.compile_parser_to_dylib(&config)?;
-                        if config.scanner_path.is_some() {
-                            Self::check_external_scanner(&output_path);
-                        }
-                    }
-                    // _lock dropped here, removing the lock file.
+            let lock_error = |e| LoaderError::IO(IoError::new(e, Some(lock_path.as_path())));
+            let lock_file = fs::OpenOptions::new()
+                .create(true)
+                .truncate(false)
+                .write(true)
+                .open(&lock_path)
+                .map_err(lock_error)?;
+
+            let compile = match lock_file.try_lock() {
+                Ok(()) => true,
+                Err(fs::TryLockError::WouldBlock) => {
+                    lock_file.lock().map_err(lock_error)?;
+                    needs_recompile(&output_path, &paths_to_check)?
                 }
-                // Another thread/process is compiling (or a previous run
-                // crashed and left a stale lock). Wait for it to finish.
-                None => LockFile::wait_for_removal(&lock_path, Duration::from_secs(30))?,
+                // Some targets and filesystems have no file locking, so compile unsynchronized.
+                Err(fs::TryLockError::Error(e)) if e.kind() == std::io::ErrorKind::Unsupported => {
+                    true
+                }
+                Err(fs::TryLockError::Error(e)) => return Err(lock_error(e)),
+            };
+
+            if compile {
+                let compile_wasm;
+                #[cfg(feature = "wasm")]
+                {
+                    compile_wasm = self.wasm_store.lock().unwrap().is_some();
+                }
+                #[cfg(not(feature = "wasm"))]
+                {
+                    compile_wasm = false;
+                };
+                #[cfg(feature = "wasm")]
+                if compile_wasm {
+                    self.compile_parser_to_wasm(
+                        &config.name,
+                        config.src_path,
+                        config
+                            .scanner_path
+                            .as_ref()
+                            .and_then(|p| p.strip_prefix(config.src_path).ok()),
+                        &output_path,
+                    )?;
+                }
+                if !compile_wasm {
+                    self.compile_parser_to_dylib(&config)?;
+                    if config.scanner_path.is_some() {
+                        Self::check_external_scanner(&output_path);
+                    }
+                }
             }
         }
 
@@ -1433,6 +1394,7 @@ impl Loader {
         scanner_filename: Option<&Path>,
         output_path: &Path,
     ) -> LoaderResult<()> {
+        validate_language_name(language_name)?;
         let tool_lock = WASM_TOOL_LOCK.lock().expect("Wasm tool mutex poisoned");
         let clang_exe = Self::ensure_wasi_sdk_exists()?;
         let wasm_opt_exe = Self::ensure_binaryen_exists()?;
@@ -2278,8 +2240,8 @@ impl LanguageConfiguration<'_> {
             {
                 warn!(
                     concat!(
-                        "You should add a `{}` entry pointing to the {} path in the `tree-sitter` ",
-                        "object in the grammar's tree-sitter.json file. See more here: ",
+                        "You should add a `{}` entry pointing to the {} path in the appropriate ",
+                        "object in the `grammars` array in the grammar's tree-sitter.json file. See more here: ",
                         "https://tree-sitter.github.io/tree-sitter/3-syntax-highlighting#query-paths"
                     ),
                     default_path.replace(".scm", ""),
@@ -2297,6 +2259,20 @@ impl LanguageConfiguration<'_> {
 
         Ok((query, path_ranges))
     }
+}
+
+/// The name ends up in library paths, lock paths, and `-Wl,` linker flags, which clang splits on
+/// commas.
+fn validate_language_name(name: &str) -> LoaderResult<()> {
+    let valid = !name.is_empty()
+        && name
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-');
+    if !valid {
+        return Err(LoaderError::LanguageName(name.to_string()));
+    }
+
+    Ok(())
 }
 
 fn needs_recompile(lib_path: &Path, paths_to_check: &[PathBuf]) -> LoaderResult<bool> {

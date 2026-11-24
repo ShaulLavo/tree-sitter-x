@@ -24,7 +24,7 @@ typedef struct {
 
 // ExternalScannerState
 
-void ts_external_scanner_state_init(ExternalScannerState *self, const char *data, unsigned length) {
+void ts_external_scanner_state_init(ExternalScannerState *self, const char *data, uint32_t length) {
   self->length = length;
   if (length > sizeof(self->short_data)) {
     self->long_data = ts_malloc(length);
@@ -57,7 +57,7 @@ const char *ts_external_scanner_state_data(const ExternalScannerState *self) {
   }
 }
 
-bool ts_external_scanner_state_eq(const ExternalScannerState *self, const char *buffer, unsigned length) {
+bool ts_external_scanner_state_eq(const ExternalScannerState *self, const char *buffer, uint32_t length) {
   return
     self->length == length &&
     memcmp(ts_external_scanner_state_data(self), buffer, length) == 0;
@@ -109,7 +109,7 @@ void ts_subtree_array_remove_trailing_extras(
 
 void ts_subtree_array_reverse(SubtreeArray *self) {
   for (uint32_t i = 0, limit = self->size / 2; i < limit; i++) {
-    size_t reverse_index = self->size - 1 - i;
+    uint32_t reverse_index = self->size - 1 - i;
     Subtree swap = *array_get(self, i);
     *array_get(self, i) = *array_get(self, reverse_index);
     *array_get(self, reverse_index) = swap;
@@ -126,7 +126,7 @@ SubtreePool ts_subtree_pool_new(uint32_t capacity) {
 
 void ts_subtree_pool_delete(SubtreePool *self) {
   if (self->free_trees.contents) {
-    for (unsigned i = 0; i < self->free_trees.size; i++) {
+    for (uint32_t i = 0; i < self->free_trees.size; i++) {
       ts_free(array_get(&self->free_trees, i)->ptr);
     }
     array_delete(&self->free_trees);
@@ -167,7 +167,7 @@ Subtree ts_subtree_new_leaf(
   SubtreePool *pool, TSSymbol symbol, Length padding, Length size,
   uint32_t lookahead_bytes, TSStateId parse_state,
   bool has_external_tokens, bool depends_on_column,
-  bool is_keyword, const TSLanguage *language
+  bool is_keyword, bool is_missing, const TSLanguage *language
 ) {
   TSSymbolMetadata metadata = ts_language_symbol_metadata(language, symbol);
   bool extra = symbol == ts_builtin_sym_end;
@@ -175,6 +175,8 @@ Subtree ts_subtree_new_leaf(
   bool is_inline = (
     symbol <= UINT8_MAX &&
     !has_external_tokens &&
+    // A missing token is fragile, and inline subtrees can't be.
+    !is_missing &&
     ts_subtree_can_inline(padding, size, lookahead_bytes)
   );
 
@@ -210,13 +212,13 @@ Subtree ts_subtree_new_leaf(
       .visible = metadata.visible,
       .named = metadata.named,
       .extra = extra,
-      .fragile_left = false,
-      .fragile_right = false,
+      .fragile_left = is_missing,
+      .fragile_right = is_missing,
       .has_changes = false,
       .has_external_tokens = has_external_tokens,
       .has_external_scanner_state_change = false,
       .depends_on_column = depends_on_column,
-      .is_missing = false,
+      .is_missing = is_missing,
       .is_keyword = is_keyword,
       {{.first_leaf = {.symbol = 0, .parse_state = 0}}}
     };
@@ -248,7 +250,7 @@ Subtree ts_subtree_new_error(
 ) {
   Subtree result = ts_subtree_new_leaf(
     pool, ts_builtin_sym_error, padding, size, bytes_scanned,
-    parse_state, false, false, false, language
+    parse_state, false, false, false, false, language
   );
   SubtreeHeapData *data = (SubtreeHeapData *)result.ptr;
   data->fragile_left = true;
@@ -292,15 +294,15 @@ MutableSubtree ts_subtree_make_mut(SubtreePool *pool, Subtree self) {
 
 void ts_subtree_compress(
   MutableSubtree self,
-  unsigned count,
+  uint32_t count,
   const TSLanguage *language,
   MutableSubtreeArray *stack
 ) {
-  unsigned initial_stack_size = stack->size;
+  uint32_t initial_stack_size = stack->size;
 
   MutableSubtree tree = self;
   TSSymbol symbol = tree.ptr->symbol;
-  for (unsigned i = 0; i < count; i++) {
+  for (uint32_t i = 0; i < count; i++) {
     if (tree.ptr->ref_count > 1 || tree.ptr->child_count < 2) break;
 
     MutableSubtree child = ts_subtree_to_mut_unsafe(ts_subtree_children(tree)[0]);
@@ -316,7 +318,13 @@ void ts_subtree_compress(
       grandchild.data.is_inline ||
       grandchild.ptr->child_count < 2 ||
       grandchild.ptr->ref_count > 1 ||
-      grandchild.ptr->symbol != symbol
+      grandchild.ptr->symbol != symbol ||
+      // Don't split a node holding a repetition's content (e.g. `seq($.a, $.b)`). Content never
+      // starts with the repetition, and error repeats have no content.
+      (
+        symbol != ts_builtin_sym_error_repeat &&
+        ts_subtree_symbol(ts_subtree_children(grandchild)[0]) != symbol
+      )
     ) break;
 
     ts_subtree_children(tree)[0] = ts_subtree_from_mut(grandchild);
@@ -331,6 +339,11 @@ void ts_subtree_compress(
     MutableSubtree child = ts_subtree_to_mut_unsafe(ts_subtree_children(tree)[0]);
     MutableSubtree grandchild = ts_subtree_to_mut_unsafe(ts_subtree_children(child)[child.ptr->child_count - 1]);
     ts_subtree_summarize_children(grandchild, language);
+    // `grandchild` now starts at its new first child, so it takes that child's parse state,
+    // unless it has none.
+    if (grandchild.ptr->parse_state != TS_TREE_STATE_NONE) {
+      grandchild.ptr->parse_state = ts_subtree_parse_state(ts_subtree_children(grandchild)[0]);
+    }
     ts_subtree_summarize_children(child, language);
     ts_subtree_summarize_children(tree, language);
   }
@@ -409,7 +422,7 @@ void ts_subtree_summarize_children(
         self.ptr->symbol == ts_builtin_sym_error ||
         self.ptr->symbol == ts_builtin_sym_error_repeat
       ) {
-        if (!ts_subtree_extra(child) && !(ts_subtree_is_error(child) && grandchild_count == 0)) {
+        if (!ts_subtree_extra(child)) {
           if (ts_subtree_visible(child)) {
             self.ptr->error_cost += ERROR_COST_PER_SKIPPED_TREE;
           } else if (grandchild_count > 0) {
@@ -492,7 +505,7 @@ void ts_subtree_summarize_children(
 MutableSubtree ts_subtree_new_node(
   TSSymbol symbol,
   SubtreeArray *children,
-  unsigned production_id,
+  uint16_t production_id,
   const TSLanguage *language
 ) {
   TSSymbolMetadata metadata = ts_language_symbol_metadata(language, symbol);
@@ -556,16 +569,10 @@ Subtree ts_subtree_new_missing_leaf(
   uint32_t lookahead_bytes,
   const TSLanguage *language
 ) {
-  Subtree result = ts_subtree_new_leaf(
+  return ts_subtree_new_leaf(
     pool, symbol, padding, length_zero(), lookahead_bytes,
-    state, false, false, false, language
+    state, false, false, false,  true, language
   );
-  if (result.data.is_inline) {
-    result.data.is_missing = true;
-  } else {
-    ((SubtreeHeapData *)result.ptr)->is_missing = true;
-  }
-  return result;
 }
 
 void ts_subtree_retain(Subtree self) {
@@ -606,7 +613,7 @@ void ts_subtree_release(SubtreePool *pool, Subtree self) {
   }
 }
 
-int ts_subtree_compare(Subtree left, Subtree right, SubtreePool *pool) {
+int32_t ts_subtree_compare(Subtree left, Subtree right, SubtreePool *pool) {
   array_push(&pool->tree_stack, ts_subtree_to_mut_unsafe(left));
   array_push(&pool->tree_stack, ts_subtree_to_mut_unsafe(right));
 
@@ -614,7 +621,7 @@ int ts_subtree_compare(Subtree left, Subtree right, SubtreePool *pool) {
     right = ts_subtree_from_mut(array_pop(&pool->tree_stack));
     left = ts_subtree_from_mut(array_pop(&pool->tree_stack));
 
-    int result = 0;
+    int32_t result = 0;
     if (ts_subtree_symbol(left) < ts_subtree_symbol(right)) result = -1;
     else if (ts_subtree_symbol(right) < ts_subtree_symbol(left)) result = 1;
     else if (ts_subtree_child_count(left) < ts_subtree_child_count(right)) result = -1;
@@ -653,9 +660,9 @@ Subtree ts_subtree_edit(Subtree self, const TSInputEdit *input_edit, SubtreePool
   array_push(&stack, ((EditEntry) {
     .tree = &self,
     .edit = (Edit) {
-      .start = {input_edit->start_byte, input_edit->start_point},
-      .old_end = {input_edit->old_end_byte, input_edit->old_end_point},
-      .new_end = {input_edit->new_end_byte, input_edit->new_end_point},
+      .start = {.extent = input_edit->start_point, .bytes = input_edit->start_byte},
+      .old_end = {.extent = input_edit->old_end_point, .bytes = input_edit->old_end_byte},
+      .new_end = {.extent = input_edit->new_end_point, .bytes = input_edit->new_end_byte},
     },
   }));
 
@@ -801,7 +808,7 @@ Subtree ts_subtree_edit(Subtree self, const TSInputEdit *input_edit, SubtreePool
 Subtree ts_subtree_last_external_token(Subtree tree) {
   if (!ts_subtree_has_external_tokens(tree)) return NULL_SUBTREE;
   while (tree.ptr->child_count > 0) {
-    for (uint32_t i = tree.ptr->child_count - 1; i + 1 > 0; i--) {
+    for (int64_t i = (int64_t)tree.ptr->child_count - 1; i >= 0; i--) {
       Subtree child = ts_subtree_children(tree)[i];
       if (ts_subtree_has_external_tokens(child)) {
         tree = child;

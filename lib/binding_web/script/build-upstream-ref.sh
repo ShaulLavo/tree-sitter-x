@@ -17,7 +17,7 @@
 #   lib/binding_web/script/build-upstream-ref.sh [<commit-ish>]
 set -euo pipefail
 
-UPSTREAM_REF="${1:-64aaee668e32b184c73ce79f93376f4f7fc62e89}"
+UPSTREAM_REF="${1:-65e36c51acd7cce17f884f41380f275777e3fc19}"
 UPSTREAM_URL="https://github.com/tree-sitter/tree-sitter.git"
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"   # lib/binding_web

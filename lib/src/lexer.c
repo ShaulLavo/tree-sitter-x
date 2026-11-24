@@ -82,6 +82,23 @@ static void ts_lexer__clear_chunk(Lexer *self) {
   self->chunk = NULL;
   self->chunk_size = 0;
   self->chunk_start = 0;
+  self->fast_advance_limit = 0;
+}
+
+// The end of the bytes `ts_lexer__advance` can read straight from the chunk: the end of the chunk
+// or of the current included range, whichever comes first.
+static void ts_lexer__update_fast_advance_limit(Lexer *self) {
+  if (
+    self->chunk &&
+    self->input.encoding == TSInputEncodingUTF8 &&
+    self->current_included_range_index < self->included_range_count
+  ) {
+    uint32_t range_end = self->included_ranges[self->current_included_range_index].end_byte;
+    uint32_t chunk_end = self->chunk_start + self->chunk_size;
+    self->fast_advance_limit = range_end < chunk_end ? range_end : chunk_end;
+  } else {
+    self->fast_advance_limit = 0;
+  }
 }
 
 // Call the lexer's input callback to obtain a new chunk of source code
@@ -98,6 +115,7 @@ static void ts_lexer__get_chunk(Lexer *self) {
     self->current_included_range_index = self->included_range_count;
     self->chunk = NULL;
   }
+  ts_lexer__update_fast_advance_limit(self);
 }
 
 // Decode the next unicode character in the current chunk of source code.
@@ -151,7 +169,7 @@ static void ts_lexer_goto(Lexer *self, Length position) {
 
   // Move to the first valid position at or after the given position.
   bool found_included_range = false;
-  for (unsigned i = 0; i < self->included_range_count; i++) {
+  for (uint32_t i = 0; i < self->included_range_count; i++) {
     TSRange *included_range = &self->included_ranges[i];
     if (
       included_range->end_byte > self->current_position.bytes &&
@@ -159,8 +177,8 @@ static void ts_lexer_goto(Lexer *self, Length position) {
     ) {
       if (included_range->start_byte >= self->current_position.bytes) {
         self->current_position = (Length) {
-          .bytes = included_range->start_byte,
           .extent = included_range->start_point,
+          .bytes = included_range->start_byte,
         };
       }
 
@@ -190,13 +208,14 @@ static void ts_lexer_goto(Lexer *self, Length position) {
     self->current_included_range_index = self->included_range_count;
     TSRange *last_included_range = &self->included_ranges[self->included_range_count - 1];
     self->current_position = (Length) {
-      .bytes = last_included_range->end_byte,
       .extent = last_included_range->end_point,
+      .bytes = last_included_range->end_byte,
     };
     ts_lexer__clear_chunk(self);
     self->lookahead_size = 1;
     self->data.lookahead = '\0';
   }
+  ts_lexer__update_fast_advance_limit(self);
 }
 
 /**
@@ -230,8 +249,8 @@ static void ts_lexer__do_advance(Lexer *self, bool skip) {
     if (self->current_included_range_index < self->included_range_count) {
       current_range++;
       self->current_position = (Length) {
-        current_range->start_byte,
-        current_range->start_point,
+        .extent = current_range->start_point,
+        .bytes = current_range->start_byte,
       };
     } else {
       current_range = NULL;
@@ -254,6 +273,7 @@ static void ts_lexer__do_advance(Lexer *self, bool skip) {
     self->data.lookahead = '\0';
     self->lookahead_size = 1;
   }
+  ts_lexer__update_fast_advance_limit(self);
 }
 
 // Advance to the next character in the source code, retrieving a new
@@ -262,21 +282,19 @@ static void ts_lexer__advance(TSLexer *_self, bool skip) {
   Lexer *self = (Lexer *)_self;
   if (!self->chunk) return;
 
-  if (skip) {
-    LOG("skip", self->data.lookahead)
-  } else {
-    LOG("consume", self->data.lookahead)
+  if (self->logger.log) {
+    if (skip) {
+      LOG("skip", self->data.lookahead)
+    } else {
+      LOG("consume", self->data.lookahead)
+    }
   }
 
   const uint32_t next_position = self->current_position.bytes + 1;
-  const uint32_t current_range_end =
-    self->included_ranges[self->current_included_range_index].end_byte;
   if (
-    self->input.encoding == TSInputEncodingUTF8 &&
     self->lookahead_size == 1 &&
     self->data.lookahead != '\n' &&
-    next_position < current_range_end &&
-    next_position < self->chunk_start + self->chunk_size
+    next_position < self->fast_advance_limit
   ) {
     uint8_t next_byte = (uint8_t)self->chunk[next_position - self->chunk_start];
     if (next_byte < 0x80) {
@@ -309,8 +327,8 @@ static void ts_lexer__mark_end(TSLexer *_self) {
     ) {
       TSRange *previous_included_range = current_included_range - 1;
       self->token_end_position = (Length) {
-        previous_included_range->end_byte,
-        previous_included_range->end_point,
+        .extent = previous_included_range->end_point,
+        .bytes = previous_included_range->end_byte,
       };
       return;
     }
@@ -329,8 +347,8 @@ static uint32_t ts_lexer__get_column(TSLexer *_self) {
 
     // Back up to the beginning of the line
     Length start_of_col = {
-      self->current_position.bytes - self->current_position.extent.column,
-      {self->current_position.extent.row, 0},
+      .extent = {self->current_position.extent.row, 0},
+      .bytes = self->current_position.bytes - self->current_position.extent.column,
     };
     ts_lexer_goto(self, start_of_col);
     ts_lexer__set_column_data(self, 0);
@@ -392,7 +410,7 @@ void ts_lexer_init(Lexer *self) {
     .chunk = NULL,
     .chunk_size = 0,
     .chunk_start = 0,
-    .current_position = {0, {0, 0}},
+    .current_position = {.extent = {0, 0}, .bytes = 0},
     .logger = {
       .payload = NULL,
       .log = NULL
@@ -485,7 +503,7 @@ bool ts_lexer_set_included_ranges(
     count = 1;
   } else {
     uint32_t previous_byte = 0;
-    for (unsigned i = 0; i < count; i++) {
+    for (uint32_t i = 0; i < count; i++) {
       const TSRange *range = &ranges[i];
       if (
         range->start_byte < previous_byte ||

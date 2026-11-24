@@ -722,6 +722,266 @@ fn test_parsing_after_failed_external_scan_that_depends_on_column() {
 }
 
 #[test]
+fn test_parsing_after_editing_text_after_a_non_terminal_extra() {
+    let mut parser = Parser::new();
+    parser
+        .set_language(&get_test_fixture_language(
+            "reuse_before_extra_non_terminal",
+        ))
+        .unwrap();
+
+    // Applies the edits one at a time, reparsing after each. Every sequence below ends with a
+    // newline after the comment, which belongs to `statements`.
+    let mut assert_reparse = |code: &str, edits: &[(usize, usize, &str)]| {
+        let mut code = code.as_bytes().to_vec();
+        let mut tree = parser.parse(&code, None).unwrap();
+        for &(position, deleted_length, inserted_text) in edits {
+            perform_edit(
+                &mut tree,
+                &mut code,
+                &Edit {
+                    position,
+                    deleted_length,
+                    inserted_text: inserted_text.as_bytes().to_vec(),
+                },
+            )
+            .unwrap();
+            tree = parser.parse(&code, Some(&tree)).unwrap();
+        }
+
+        let fresh = parser.parse(&code, None).unwrap();
+        assert_eq!(
+            fresh.root_node().to_sexp(),
+            "(program (list (block (statements (statement) (comment) (newline)))))"
+        );
+        assert_eq!(
+            tree.root_node().to_sexp(),
+            fresh.root_node().to_sexp(),
+            "{:?}",
+            String::from_utf8_lossy(&code)
+        );
+    };
+
+    // Inside the block, `statements` is reduced on `)`, which turns out to be an error, and
+    // recovery inserts a `}`. Undoing the edit must not keep that `statements`.
+    assert_reparse("( { a /*c*/\n} )", &[(11, 4, " )"), (11, 2, "\n} )")]);
+    // The comment has changes.
+    assert_reparse("( { a /*c*/ } )", &[(11, 0, "\n")]);
+    // The comment is unchanged, but can't be reused after `statements`.
+    assert_reparse("( { a /*c*/  } )", &[(12, 0, "\n")]);
+}
+
+#[test]
+fn test_parsing_after_editing_text_before_a_missing_token() {
+    let mut parser = Parser::new();
+    parser
+        .set_language(&get_test_fixture_language("reuse_missing_first_leaf"))
+        .unwrap();
+
+    let mut code = b"! < b >".to_vec();
+    let mut tree = parser.parse(&code, None).unwrap();
+
+    // Recovery inserts a missing identifier after `;`, at the start of a `call`.
+    perform_edit(
+        &mut tree,
+        &mut code,
+        &Edit {
+            position: 0,
+            deleted_length: 1,
+            inserted_text: b";".to_vec(),
+        },
+    )
+    .unwrap();
+    tree = parser.parse(&code, Some(&tree)).unwrap();
+    assert_eq!(
+        tree.root_node().to_sexp(),
+        "(source_file (stop) (call (MISSING identifier) (identifier)))"
+    );
+
+    // Restoring `!` must not reuse that `call` and shift its missing identifier as a real token.
+    perform_edit(
+        &mut tree,
+        &mut code,
+        &Edit {
+            position: 0,
+            deleted_length: 1,
+            inserted_text: b"!".to_vec(),
+        },
+    )
+    .unwrap();
+    tree = parser.parse(&code, Some(&tree)).unwrap();
+    let fresh = parser.parse(&code, None).unwrap();
+    assert_eq!(
+        fresh.root_node().to_sexp(),
+        "(source_file (tagged (identifier)))"
+    );
+    assert_eq!(tree.root_node().to_sexp(), fresh.root_node().to_sexp());
+}
+
+#[test]
+fn test_parsing_after_editing_text_after_a_zero_width_token() {
+    let mut parser = Parser::new();
+    parser
+        .set_language(&get_test_fixture_language("reuse_zero_width_last_leaf"))
+        .unwrap();
+
+    // The zero-width token after `j` is an automatic semicolon from the scanner in the first text,
+    // and an empty `_semicolon` from the lexer in the second. In the third, the tab makes the
+    // scanner add a second zero-width token, which the `declaration` ends with.
+    for text in [
+        "for (let j\n    of k)",
+        "for (let j    of k)",
+        "for (let j\n\tof k)",
+    ] {
+        let mut code = text.as_bytes().to_vec();
+        let mut tree = parser.parse(&code, None).unwrap();
+        let position = text.find("of").unwrap();
+
+        // Without `of`, the split after `j` settles on a `for_declaration`.
+        perform_edit(
+            &mut tree,
+            &mut code,
+            &Edit {
+                position,
+                deleted_length: 3,
+                inserted_text: Vec::new(),
+            },
+        )
+        .unwrap();
+        tree = parser.parse(&code, Some(&tree)).unwrap();
+        assert_eq!(
+            tree.root_node().to_sexp(),
+            "(source_file (for_declaration (declaration (declarator (identifier))) (identifier)))"
+        );
+
+        // Putting `of` back must not reuse that `declaration`.
+        perform_edit(
+            &mut tree,
+            &mut code,
+            &Edit {
+                position,
+                deleted_length: 0,
+                inserted_text: b"of ".to_vec(),
+            },
+        )
+        .unwrap();
+        tree = parser.parse(&code, Some(&tree)).unwrap();
+        let fresh = parser.parse(&code, None).unwrap();
+        assert_eq!(
+            fresh.root_node().to_sexp(),
+            "(source_file (for_of (identifier) (identifier)))"
+        );
+        assert_eq!(tree.root_node().to_sexp(), fresh.root_node().to_sexp());
+    }
+}
+
+#[test]
+fn test_parsing_after_editing_text_before_a_reserved_word() {
+    let mut parser = Parser::new();
+    parser
+        .set_language(&get_test_fixture_language(
+            "reuse_word_token_where_reserved",
+        ))
+        .unwrap();
+
+    // An `alias` name can be any word, so `if` is an identifier here.
+    let mut code = b"alias = if ;".to_vec();
+    let mut tree = parser.parse(&code, None).unwrap();
+    assert_eq!(
+        tree.root_node().to_sexp(),
+        "(source_file (alias_statement (identifier)))"
+    );
+
+    // After `let =`, `if` is reserved, so that identifier must not be reused.
+    perform_edit(
+        &mut tree,
+        &mut code,
+        &Edit {
+            position: 0,
+            deleted_length: 5,
+            inserted_text: b"let".to_vec(),
+        },
+    )
+    .unwrap();
+    tree = parser.parse(&code, Some(&tree)).unwrap();
+    let fresh = parser.parse(&code, None).unwrap();
+    assert_eq!(fresh.root_node().to_sexp(), "(source_file (ERROR))");
+    assert_eq!(tree.root_node().to_sexp(), fresh.root_node().to_sexp());
+}
+
+#[test]
+fn test_parsing_after_editing_text_before_a_node_starting_with_a_keyword() {
+    let mut parser = Parser::new();
+    parser
+        .set_language(&get_test_fixture_language(
+            "reuse_node_starting_with_keyword",
+        ))
+        .unwrap();
+
+    // After `param x`, `_` is the `wildcard` keyword.
+    let mut code = b"param x _ ;".to_vec();
+    let mut tree = parser.parse(&code, None).unwrap();
+    assert_eq!(
+        tree.root_node().to_sexp(),
+        "(source_file (param (type (identifier)) (wildcard)))"
+    );
+
+    // After `component x`, `_` is an identifier, so the node that the `wildcard` starts can't be
+    // reused as it is.
+    perform_edit(
+        &mut tree,
+        &mut code,
+        &Edit {
+            position: 0,
+            deleted_length: 5,
+            inserted_text: b"component".to_vec(),
+        },
+    )
+    .unwrap();
+    tree = parser.parse(&code, Some(&tree)).unwrap();
+    let fresh = parser.parse(&code, None).unwrap();
+    assert_eq!(
+        fresh.root_node().to_sexp(),
+        "(source_file (component (type (identifier)) (identifier)))"
+    );
+    assert_eq!(tree.root_node().to_sexp(), fresh.root_node().to_sexp());
+}
+
+#[test]
+fn test_parsing_after_editing_text_before_a_trailing_comment() {
+    let mut parser = Parser::new();
+    parser.set_language(&get_language("javascript")).unwrap();
+
+    // `b` could still continue with `||` when the comment is lexed, so the automatic semicolon
+    // comes after the comment.
+    let mut code = b"var a = b // c\nd".to_vec();
+    let mut tree = parser.parse(&code, None).unwrap();
+    let expected = concat!(
+        "(program ",
+        "(variable_declaration (variable_declarator name: (identifier) value: (identifier)) (comment)) ",
+        "(expression_statement (identifier)))",
+    );
+    assert_eq!(tree.root_node().to_sexp(), expected);
+
+    // The initializer `= b` is reused, and it can't be followed by `||`, so lexing the comment
+    // again after it would put the automatic semicolon first.
+    perform_edit(
+        &mut tree,
+        &mut code,
+        &Edit {
+            position: 4,
+            deleted_length: 1,
+            inserted_text: b"aa".to_vec(),
+        },
+    )
+    .unwrap();
+    tree = parser.parse(&code, Some(&tree)).unwrap();
+    let fresh = parser.parse(&code, None).unwrap();
+    assert_eq!(fresh.root_node().to_sexp(), expected);
+    assert_eq!(tree.root_node().to_sexp(), expected);
+}
+
+#[test]
 fn test_parsing_after_detecting_error_in_the_middle_of_a_string_token() {
     let mut parser = Parser::new();
     parser.set_language(&get_language("python")).unwrap();
@@ -1651,6 +1911,35 @@ fn test_parsing_with_a_newly_included_range() {
     assert_eq!(
         tree3.changed_ranges(&tree2).collect::<Vec<_>>(),
         &[simple_range(range2_start + 1, range2_end - 1)]
+    );
+}
+
+#[test]
+fn test_changed_ranges_when_a_newly_included_range_nests_later_code() {
+    // Including `} else if (c) {` nests the final `else` one level deeper, while the outer
+    // `if_statement` around it keeps its extent.
+    let source_code =
+        "void f() { if (a) { x(); } else if (b) { y(); } else if (c) { z(); } else { w(); } }";
+    let excluded = "} else if (c) {";
+    let excluded_start = source_code.find(excluded).unwrap();
+    let excluded_end = excluded_start + excluded.len();
+    let final_else_end = source_code.find("else { w(); }").unwrap() + "else { w(); }".len();
+
+    let mut parser = Parser::new();
+    parser.set_language(&get_language("c")).unwrap();
+    parser
+        .set_included_ranges(&[
+            simple_range(0, excluded_start),
+            simple_range(excluded_end, source_code.len()),
+        ])
+        .unwrap();
+    let tree = parser.parse(source_code, None).unwrap();
+
+    parser.set_included_ranges(&[]).unwrap();
+    let tree2 = parser.parse(source_code, Some(&tree)).unwrap();
+    assert_eq!(
+        tree.changed_ranges(&tree2).collect::<Vec<_>>(),
+        &[simple_range(excluded_start, final_else_end)]
     );
 }
 
