@@ -4855,6 +4855,44 @@ fn test_query_unbounded_range_excludes_max_offset_nodes() {
             .collect();
         // `1` starts at POINT_MAX (excluded); `2` wraps to column 1 on row u32::MAX.
         assert_eq!(wrapped_point_cols, vec![1]);
+
+        // Trees parsed with custom included ranges can have non-monotonic points
+        // independent of byte span, so they must also fall back to full range checks.
+        let ranges = [
+            Range {
+                start_byte: 0,
+                end_byte: 1,
+                start_point: Point::new(0, 0),
+                end_point: Point::new(0, 1),
+            },
+            Range {
+                start_byte: 1,
+                end_byte: 3,
+                start_point: Point::new(0, (u32::MAX - 10) as usize),
+                end_point: Point::new(0, (u32::MAX - 8) as usize),
+            },
+            Range {
+                start_byte: 4,
+                end_byte: 6,
+                start_point: Point::new(1, 0),
+                end_point: Point::new(1, 2),
+            },
+        ];
+        parser.set_included_ranges(&ranges).unwrap();
+        let ranged_src = "[1,\n2]";
+        let ranged_tree = parser.parse(ranged_src, None).unwrap();
+        let shifted_root = ranged_tree.root_node_with_offset(0, Point::new(0, 10));
+        let ranged_texts: Vec<&str> = cursor
+            .matches(&num_query, shifted_root, ranged_src.as_bytes())
+            .map_deref(|m| {
+                m.captures()[0]
+                    .node
+                    .utf8_text(ranged_src.as_bytes())
+                    .unwrap()
+            })
+            .collect();
+        // `1` wraps its end column to (0, 0) and is excluded; only `2` matches.
+        assert_eq!(ranged_texts, vec!["2"]);
     });
 }
 

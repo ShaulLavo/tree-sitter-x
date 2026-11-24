@@ -12,6 +12,7 @@
 #include "./array.h"
 #include "./language.h"
 #include "./point.h"
+#include "./tree.h"
 #include "./tree_cursor.h"
 #include "./unicode.h"
 #include <wctype.h>
@@ -3944,8 +3945,26 @@ void ts_query_cursor_set_match_limit(TSQueryCursor *self, uint32_t limit) {
 #define LOG(...)
 #endif
 
+static inline bool ts_range_is_unbounded(const TSRange *range) {
+  return (
+    range->start_byte == 0 &&
+    range->end_byte == UINT32_MAX &&
+    range->start_point.row == 0 &&
+    range->start_point.column == 0 &&
+    range->end_point.row == UINT32_MAX &&
+    range->end_point.column == UINT32_MAX
+  );
+}
+
 static inline bool ts_node_within_unbounded_bounds(TSNode node) {
   if (ts_node_is_null(node)) return true;
+  if (!node.tree || ts_subtree_has_changes(node.tree->root)) return false;
+  if (
+    node.tree->included_range_count != 1 ||
+    !ts_range_is_unbounded(&node.tree->included_ranges[0])
+  ) {
+    return false;
+  }
   uint32_t start_byte = ts_node_start_byte(node);
   uint32_t end_byte = ts_node_end_byte(node);
   if (end_byte < start_byte || end_byte == UINT32_MAX) return false;
@@ -4021,17 +4040,6 @@ void ts_query_cursor_exec_with_options(
       .payload = query_options->payload
     };
   }
-}
-
-static inline bool ts_range_is_unbounded(const TSRange *range) {
-  return (
-    range->start_byte == 0 &&
-    range->end_byte == UINT32_MAX &&
-    range->start_point.row == 0 &&
-    range->start_point.column == 0 &&
-    range->end_point.row == UINT32_MAX &&
-    range->end_point.column == UINT32_MAX
-  );
 }
 
 bool ts_query_cursor_set_byte_range(
