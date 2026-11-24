@@ -4893,6 +4893,22 @@ fn test_query_unbounded_range_excludes_max_offset_nodes() {
             .collect();
         // `1` wraps its end column to (0, 0) and is excluded; only `2` matches.
         assert_eq!(ranged_texts, vec!["2"]);
+
+        // An incremental reparse with default ranges can still reuse subtrees with
+        // wrapped coordinates from the old custom-range tree.
+        parser.set_included_ranges(&[]).unwrap();
+        let reparsed_tree = parser.parse(ranged_src, Some(&ranged_tree)).unwrap();
+        let reparsed_shifted_root = reparsed_tree.root_node_with_offset(0, Point::new(0, 10));
+        let reparsed_texts: Vec<&str> = cursor
+            .matches(&num_query, reparsed_shifted_root, ranged_src.as_bytes())
+            .map_deref(|m| {
+                m.captures()[0]
+                    .node
+                    .utf8_text(ranged_src.as_bytes())
+                    .unwrap()
+            })
+            .collect();
+        assert_eq!(reparsed_texts, vec!["2"]);
     });
 }
 

@@ -12,7 +12,6 @@
 #include "./array.h"
 #include "./language.h"
 #include "./point.h"
-#include "./tree.h"
 #include "./tree_cursor.h"
 #include "./unicode.h"
 #include <wctype.h>
@@ -375,10 +374,11 @@ struct TSQueryCursor {
   uint32_t next_finished_state_id;
   const TSQueryCursorOptions *query_options;
   TSQueryCursorState query_state;
+  uint64_t visible_intersects_mask;
   uint32_t work_count;
   bool has_included_range;
   bool has_containing_range;
-  bool root_within_unbounded_bounds;
+  bool visible_intersects_valid;
   bool on_visible_node;
   bool ascending;
   bool halted;
@@ -3956,27 +3956,6 @@ static inline bool ts_range_is_unbounded(const TSRange *range) {
   );
 }
 
-static inline bool ts_node_within_unbounded_bounds(TSNode node) {
-  if (ts_node_is_null(node)) return true;
-  if (!node.tree || ts_subtree_has_changes(node.tree->root)) return false;
-  if (
-    node.tree->included_range_count != 1 ||
-    !ts_range_is_unbounded(&node.tree->included_ranges[0])
-  ) {
-    return false;
-  }
-  uint32_t start_byte = ts_node_start_byte(node);
-  uint32_t end_byte = ts_node_end_byte(node);
-  if (end_byte < start_byte || end_byte == UINT32_MAX) return false;
-  uint32_t span = end_byte - start_byte;
-  TSPoint start_point = ts_node_start_point(node);
-  TSPoint end_point = ts_node_end_point(node);
-  if (point_lt(end_point, start_point)) return false;
-  if (span >= UINT32_MAX - start_point.row) return false;
-  if (span >= UINT32_MAX - start_point.column) return false;
-  return end_point.row < UINT32_MAX && end_point.column < UINT32_MAX;
-}
-
 void ts_query_cursor_exec(
   TSQueryCursor *self,
   const TSQuery *query,
@@ -4014,7 +3993,8 @@ void ts_query_cursor_exec(
   ts_tree_cursor_reset(&self->cursor, node);
   capture_list_pool_reset(&self->capture_list_pool);
   self->on_visible_node = true;
-  self->root_within_unbounded_bounds = ts_node_within_unbounded_bounds(node);
+  self->visible_intersects_mask = 0;
+  self->visible_intersects_valid = !self->has_included_range;
   self->next_state_id = 0;
   self->next_finished_state_id = 0;
   self->depth = 0;
@@ -4056,6 +4036,7 @@ bool ts_query_cursor_set_byte_range(
   self->included_range.start_byte = start_byte;
   self->included_range.end_byte = end_byte;
   self->has_included_range = !ts_range_is_unbounded(&self->included_range);
+  if (self->has_included_range) self->visible_intersects_valid = false;
   return true;
 }
 
@@ -4073,6 +4054,7 @@ bool ts_query_cursor_set_point_range(
   self->included_range.start_point = start_point;
   self->included_range.end_point = end_point;
   self->has_included_range = !ts_range_is_unbounded(&self->included_range);
+  if (self->has_included_range) self->visible_intersects_valid = false;
   return true;
 }
 
@@ -4539,6 +4521,43 @@ typedef struct {
   bool node_within_containing_range;
 } QueryCursorRangeCheck;
 
+static inline bool ts_node_intersects_unbounded(TSNode node) {
+  uint32_t start_byte = ts_node_start_byte(node);
+  uint32_t end_byte = ts_node_end_byte(node);
+  if (start_byte >= UINT32_MAX) return false;
+  if (end_byte == 0 && start_byte != 0) return false;
+  TSPoint start_point = ts_node_start_point(node);
+  if (!point_lt(start_point, POINT_MAX)) return false;
+  TSPoint end_point = ts_node_end_point(node);
+  if (end_point.row == 0 && end_point.column == 0 && start_byte != end_byte) return false;
+  return true;
+}
+
+static inline bool ts_query_cursor__unbounded_parent_intersects(
+  TSQueryCursor *self,
+  QueryCursorRangeCheck *check
+) {
+  if (self->on_visible_node && self->depth == 0) return true;
+  uint32_t parent_depth = self->on_visible_node ? self->depth - 1 : self->depth;
+  if (self->visible_intersects_valid && parent_depth < 64) {
+    return (self->visible_intersects_mask >> parent_depth) & 1ULL;
+  }
+  check->parent_node = ts_tree_cursor_parent_node(&self->cursor);
+  check->has_parent_node = true;
+  return ts_node_is_null(check->parent_node) || ts_node_intersects_unbounded(check->parent_node);
+}
+
+static inline void ts_query_cursor__record_unbounded_intersects(
+  TSQueryCursor *self,
+  bool self_intersects
+) {
+  if (!self->visible_intersects_valid || !self->on_visible_node || self->depth >= 64) return;
+  uint64_t bit = 1ULL << self->depth;
+  self->visible_intersects_mask = self_intersects
+    ? (self->visible_intersects_mask | bit)
+    : (self->visible_intersects_mask & ~bit);
+}
+
 static inline QueryCursorRangeCheck ts_query_cursor__check_ranges(
   TSQueryCursor *self,
   TSNode node
@@ -4551,9 +4570,12 @@ static inline QueryCursorRangeCheck ts_query_cursor__check_ranges(
     .node_intersects_containing_range = true,
     .node_within_containing_range = true,
   };
-  bool check_included = self->has_included_range || !self->root_within_unbounded_bounds;
-  bool check_containing = self->has_containing_range || !self->root_within_unbounded_bounds;
-  if (!check_included && !check_containing) {
+  if (!self->has_included_range && !self->has_containing_range) {
+    bool self_intersects = ts_node_intersects_unbounded(node);
+    check.parent_intersects_range = ts_query_cursor__unbounded_parent_intersects(self, &check);
+    ts_query_cursor__record_unbounded_intersects(self, self_intersects);
+    check.node_intersects_range = check.parent_intersects_range && self_intersects;
+    check.node_intersects_containing_range = self_intersects;
     return check;
   }
 
@@ -4563,7 +4585,7 @@ static inline QueryCursorRangeCheck ts_query_cursor__check_ranges(
     .start_byte = ts_node_start_byte(node),
     .end_byte = ts_node_end_byte(node),
   };
-  if (check_included) {
+  if (self->has_included_range) {
     check.parent_node = ts_tree_cursor_parent_node(&self->cursor);
     check.has_parent_node = true;
     check.parent_intersects_range =
@@ -4576,12 +4598,19 @@ static inline QueryCursorRangeCheck ts_query_cursor__check_ranges(
       }, &self->included_range);
     check.node_intersects_range =
       check.parent_intersects_range && range_intersects(&node_range, &self->included_range);
+  } else {
+    bool self_intersects = ts_node_intersects_unbounded(node);
+    check.parent_intersects_range = ts_query_cursor__unbounded_parent_intersects(self, &check);
+    ts_query_cursor__record_unbounded_intersects(self, self_intersects);
+    check.node_intersects_range = check.parent_intersects_range && self_intersects;
   }
-  if (check_containing) {
+  if (self->has_containing_range) {
     check.node_intersects_containing_range =
       range_intersects(&node_range, &self->containing_range);
     check.node_within_containing_range =
       range_within(&node_range, &self->containing_range);
+  } else {
+    check.node_intersects_containing_range = ts_node_intersects_unbounded(node);
   }
   return check;
 }
