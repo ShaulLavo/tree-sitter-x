@@ -4770,6 +4770,149 @@ fn test_query_disable_pattern() {
 }
 
 #[test]
+fn test_query_disable_wildcard_pattern() {
+    allocations::record(|| {
+        let language = get_language("javascript");
+        let mut query = Query::new(
+            &language,
+            "
+                (_) @wild
+                (identifier) @id
+                (ERROR) @err
+            ",
+        )
+        .unwrap();
+
+        query.disable_pattern(0);
+
+        let source = "let x = 1; @@@";
+        let mut parser = Parser::new();
+        parser.set_language(&language).unwrap();
+        let tree = parser.parse(source, None).unwrap();
+        let mut cursor = QueryCursor::new();
+        let matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+        assert_eq!(
+            collect_matches(matches, &query, source),
+            &[(1, vec![("id", "x")]), (2, vec![("err", "@@@")])],
+        );
+    });
+}
+
+#[test]
+fn test_query_field_qualified_error_pattern_compiles() {
+    allocations::record(|| {
+        let language = get_language("javascript");
+        let query = Query::new(&language, "(binary_expression left: (ERROR) @err)").unwrap();
+        assert_eq!(query.pattern_count(), 1);
+    });
+}
+
+#[test]
+fn test_query_unbounded_range_excludes_max_offset_nodes() {
+    allocations::record(|| {
+        let language = get_language("json");
+        let query = Query::new(&language, "(document) @root").unwrap();
+        let mut parser = Parser::new();
+        parser.set_language(&language).unwrap();
+        let tree = parser.parse("", None).unwrap();
+
+        let mut cursor = QueryCursor::new();
+        let source = "".as_bytes();
+        let root_zero = tree.root_node_with_offset(0, Point::new(0, 0));
+        assert_eq!(cursor.matches(&query, root_zero, source).count(), 1);
+
+        let root_max_byte = tree.root_node_with_offset(u32::MAX as usize, Point::new(0, 0));
+        assert_eq!(cursor.matches(&query, root_max_byte, source).count(), 0);
+
+        let root_max_point =
+            tree.root_node_with_offset(0, Point::new(u32::MAX as usize, u32::MAX as usize));
+        assert_eq!(cursor.matches(&query, root_max_point, source).count(), 0);
+
+        cursor.set_byte_range(0..u32::MAX as usize);
+        assert_eq!(cursor.matches(&query, root_max_byte, source).count(), 0);
+        assert_eq!(cursor.matches(&query, root_max_point, source).count(), 0);
+        assert_eq!(cursor.matches(&query, root_zero, source).count(), 1);
+
+        // Wrapping offsets on a non-empty tree must also fall back to full range checks.
+        let num_query = Query::new(&language, "(number) @num").unwrap();
+        let arr_src = "[1,2]";
+        let arr_tree = parser.parse(arr_src, None).unwrap();
+        let mut cursor = QueryCursor::new();
+        let wrapped_byte_root =
+            arr_tree.root_node_with_offset((u32::MAX - 1) as usize, Point::new(0, 0));
+        let wrapped_byte_starts: Vec<usize> = cursor
+            .matches(&num_query, wrapped_byte_root, arr_src.as_bytes())
+            .map_deref(|m| m.captures()[0].node.start_byte())
+            .collect();
+        // `1` starts at (u32::MAX - 1) + 1 == u32::MAX (excluded); `2` wraps to 1.
+        assert_eq!(wrapped_byte_starts, vec![1]);
+
+        let wrapped_point_root = arr_tree
+            .root_node_with_offset(0, Point::new(u32::MAX as usize, (u32::MAX - 1) as usize));
+        let wrapped_point_cols: Vec<usize> = cursor
+            .matches(&num_query, wrapped_point_root, arr_src.as_bytes())
+            .map_deref(|m| m.captures()[0].node.start_position().column)
+            .collect();
+        // `1` starts at POINT_MAX (excluded); `2` wraps to column 1 on row u32::MAX.
+        assert_eq!(wrapped_point_cols, vec![1]);
+
+        // Trees parsed with custom included ranges can have non-monotonic points
+        // independent of byte span, so they must also fall back to full range checks.
+        let ranges = [
+            Range {
+                start_byte: 0,
+                end_byte: 1,
+                start_point: Point::new(0, 0),
+                end_point: Point::new(0, 1),
+            },
+            Range {
+                start_byte: 1,
+                end_byte: 3,
+                start_point: Point::new(0, (u32::MAX - 10) as usize),
+                end_point: Point::new(0, (u32::MAX - 8) as usize),
+            },
+            Range {
+                start_byte: 4,
+                end_byte: 6,
+                start_point: Point::new(1, 0),
+                end_point: Point::new(1, 2),
+            },
+        ];
+        parser.set_included_ranges(&ranges).unwrap();
+        let ranged_src = "[1,\n2]";
+        let ranged_tree = parser.parse(ranged_src, None).unwrap();
+        let shifted_root = ranged_tree.root_node_with_offset(0, Point::new(0, 10));
+        let ranged_texts: Vec<&str> = cursor
+            .matches(&num_query, shifted_root, ranged_src.as_bytes())
+            .map_deref(|m| {
+                m.captures()[0]
+                    .node
+                    .utf8_text(ranged_src.as_bytes())
+                    .unwrap()
+            })
+            .collect();
+        // `1` wraps its end column to (0, 0) and is excluded; only `2` matches.
+        assert_eq!(ranged_texts, vec!["2"]);
+
+        // An incremental reparse with default ranges can still reuse subtrees with
+        // wrapped coordinates from the old custom-range tree.
+        parser.set_included_ranges(&[]).unwrap();
+        let reparsed_tree = parser.parse(ranged_src, Some(&ranged_tree)).unwrap();
+        let reparsed_shifted_root = reparsed_tree.root_node_with_offset(0, Point::new(0, 10));
+        let reparsed_texts: Vec<&str> = cursor
+            .matches(&num_query, reparsed_shifted_root, ranged_src.as_bytes())
+            .map_deref(|m| {
+                m.captures()[0]
+                    .node
+                    .utf8_text(ranged_src.as_bytes())
+                    .unwrap()
+            })
+            .collect();
+        assert_eq!(reparsed_texts, vec!["2"]);
+    });
+}
+
+#[test]
 fn test_query_deep_clone() {
     allocations::record(|| {
         let language = get_language("javascript");
