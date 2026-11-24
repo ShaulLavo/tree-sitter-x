@@ -3,6 +3,295 @@
 
 #include <tree_sitter/api.h>
 
+// Minimal stdio replacement for the WASI browser runtime. The runtime has no
+// filesystem or stdio streams (wasi-module.ts returns ERRNO_BADF for all fd_*
+// calls), so replacing musl's full printf/stdio saves ~25 KB of Wasm code and
+// eliminates WASI fd_* imports while preserving full C99 snprintf/vsnprintf
+// semantics for ts_subtree_string and ts_parser_set_logger.
+#if defined(__wasi__)
+#include <stdarg.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+
+typedef struct {
+  bool left_justify;
+  bool zero_pad;
+  bool show_sign;
+  bool space_sign;
+  bool alt_form;
+  size_t width;
+  int precision;
+  int length; // -2=hh, -1=h, 0=default, 1=l/z/t, 2=ll/j
+} TsFmtSpec;
+
+static void ts_fmt_putc(char *buf, size_t size, size_t *pos, char c) {
+  if (buf && size > 1 && *pos < size - 1) {
+    buf[*pos] = c;
+  }
+  (*pos)++;
+}
+
+static void ts_fmt_pad(char *buf, size_t size, size_t *pos, char c, size_t count) {
+  for (size_t i = 0; i < count; i++) {
+    ts_fmt_putc(buf, size, pos, c);
+  }
+}
+
+static size_t ts_fmt_uint(uint64_t value, unsigned base, bool uppercase, char *out) {
+  static const char lower[] = "0123456789abcdef";
+  static const char upper[] = "0123456789ABCDEF";
+  const char *digits = uppercase ? upper : lower;
+  char rev[32];
+  size_t len = 0;
+  if (value == 0) {
+    out[0] = '0';
+    return 1;
+  }
+  while (value > 0) {
+    rev[len++] = digits[value % base];
+    value /= base;
+  }
+  for (size_t i = 0; i < len; i++) {
+    out[i] = rev[len - 1 - i];
+  }
+  return len;
+}
+
+static const char *ts_fmt_parse_spec(const char *p, va_list *args, TsFmtSpec *spec) {
+  *spec = (TsFmtSpec){.precision = -1};
+  for (; *p; p++) {
+    if (*p == '-') spec->left_justify = true;
+    else if (*p == '0') spec->zero_pad = true;
+    else if (*p == '+') spec->show_sign = true;
+    else if (*p == ' ') spec->space_sign = true;
+    else if (*p == '#') spec->alt_form = true;
+    else break;
+  }
+
+  if (*p == '*') {
+    int w = va_arg(*args, int);
+    spec->left_justify |= w < 0;
+    spec->width = w < 0 ? (size_t)(-(unsigned)w) : (size_t)w;
+    p++;
+  } else {
+    while (*p >= '0' && *p <= '9') {
+      spec->width = spec->width * 10 + (size_t)(*p++ - '0');
+    }
+  }
+
+  if (*p == '.') {
+    p++;
+    if (*p == '*') {
+      int prec = va_arg(*args, int);
+      spec->precision = prec < 0 ? -1 : prec;
+      p++;
+    } else {
+      spec->precision = 0;
+      while (*p >= '0' && *p <= '9') {
+        spec->precision = spec->precision * 10 + (*p++ - '0');
+      }
+    }
+  }
+
+  if (*p == 'h') {
+    p++;
+    spec->length = (*p == 'h') ? (p++, -2) : -1;
+  } else if (*p == 'l') {
+    p++;
+    spec->length = (*p == 'l') ? (p++, 2) : 1;
+  } else if (*p == 'z' || *p == 't') {
+    spec->length = 1;
+    p++;
+  } else if (*p == 'j') {
+    spec->length = 2;
+    p++;
+  }
+  return p;
+}
+
+static void ts_fmt_string(
+  char *buf, size_t size, size_t *pos, const TsFmtSpec *spec, const char *str
+) {
+  if (!str) str = "(null)";
+  size_t len = 0;
+  if (spec->precision >= 0) {
+    while (len < (size_t)spec->precision && str[len]) len++;
+  } else {
+    len = strlen(str);
+  }
+  size_t pad = spec->width > len ? spec->width - len : 0;
+  if (!spec->left_justify) ts_fmt_pad(buf, size, pos, ' ', pad);
+  for (size_t i = 0; i < len; i++) ts_fmt_putc(buf, size, pos, str[i]);
+  if (spec->left_justify) ts_fmt_pad(buf, size, pos, ' ', pad);
+}
+
+static int64_t ts_fmt_read_signed(va_list *args, int length) {
+  if (length == 2) return va_arg(*args, long long);
+  if (length == 1) return va_arg(*args, long);
+  if (length == -1) return (short)va_arg(*args, int);
+  if (length == -2) return (signed char)va_arg(*args, int);
+  return va_arg(*args, int);
+}
+
+static uint64_t ts_fmt_read_unsigned(va_list *args, int length) {
+  if (length == 2) return va_arg(*args, unsigned long long);
+  if (length == 1) return va_arg(*args, unsigned long);
+  if (length == -1) return (unsigned short)va_arg(*args, unsigned int);
+  if (length == -2) return (unsigned char)va_arg(*args, unsigned int);
+  return va_arg(*args, unsigned int);
+}
+
+static void ts_fmt_integer(
+  char *buf, size_t size, size_t *pos, const TsFmtSpec *spec, char conv, va_list *args
+) {
+  char prefix[2];
+  size_t prefix_len = 0;
+  uint64_t uval = 0;
+  unsigned base = 10;
+  bool uppercase = (conv == 'X');
+
+  if (conv == 'd' || conv == 'i') {
+    int64_t sval = ts_fmt_read_signed(args, spec->length);
+    if (sval < 0) {
+      prefix[prefix_len++] = '-';
+      uval = -(uint64_t)sval;
+    } else {
+      if (spec->show_sign) prefix[prefix_len++] = '+';
+      else if (spec->space_sign) prefix[prefix_len++] = ' ';
+      uval = (uint64_t)sval;
+    }
+  } else if (conv == 'p') {
+    uval = (uintptr_t)va_arg(*args, void *);
+    base = 16;
+    prefix[prefix_len++] = '0';
+    prefix[prefix_len++] = 'x';
+  } else {
+    if (conv == 'o') base = 8;
+    else if (conv == 'x' || conv == 'X') base = 16;
+    uval = ts_fmt_read_unsigned(args, spec->length);
+    if (spec->alt_form && uval != 0 && base != 10) {
+      prefix[prefix_len++] = '0';
+      if (base == 16) prefix[prefix_len++] = uppercase ? 'X' : 'x';
+    }
+  }
+
+  char digits[32];
+  size_t digit_len = (uval == 0 && spec->precision == 0)
+    ? 0
+    : ts_fmt_uint(uval, base, uppercase, digits);
+  size_t prec_zeros = (spec->precision > 0 && (size_t)spec->precision > digit_len)
+    ? (size_t)spec->precision - digit_len
+    : 0;
+  size_t total_len = prefix_len + prec_zeros + digit_len;
+  size_t pad = spec->width > total_len ? spec->width - total_len : 0;
+  bool use_zero = spec->zero_pad && !spec->left_justify && spec->precision < 0;
+
+  if (!spec->left_justify && !use_zero) ts_fmt_pad(buf, size, pos, ' ', pad);
+  for (size_t i = 0; i < prefix_len; i++) ts_fmt_putc(buf, size, pos, prefix[i]);
+  if (use_zero) ts_fmt_pad(buf, size, pos, '0', pad);
+  ts_fmt_pad(buf, size, pos, '0', prec_zeros);
+  for (size_t i = 0; i < digit_len; i++) ts_fmt_putc(buf, size, pos, digits[i]);
+  if (spec->left_justify) ts_fmt_pad(buf, size, pos, ' ', pad);
+}
+
+int vsnprintf(char *restrict buffer, size_t buffsz, const char *restrict format, va_list args) {
+  if (!format) return -1;
+  va_list ap;
+  va_copy(ap, args);
+  size_t pos = 0;
+  for (const char *p = format; *p; p++) {
+    if (*p != '%') {
+      ts_fmt_putc(buffer, buffsz, &pos, *p);
+      continue;
+    }
+    p++;
+    if (*p == '%') {
+      ts_fmt_putc(buffer, buffsz, &pos, '%');
+      continue;
+    }
+    if (!*p) break;
+
+    TsFmtSpec spec;
+    p = ts_fmt_parse_spec(p, &ap, &spec);
+    if (!*p) break;
+
+    if (*p == 's') {
+      ts_fmt_string(buffer, buffsz, &pos, &spec, va_arg(ap, const char *));
+    } else if (*p == 'c') {
+      char ch = (char)va_arg(ap, int);
+      size_t pad = spec.width > 1 ? spec.width - 1 : 0;
+      if (!spec.left_justify) ts_fmt_pad(buffer, buffsz, &pos, ' ', pad);
+      ts_fmt_putc(buffer, buffsz, &pos, ch);
+      if (spec.left_justify) ts_fmt_pad(buffer, buffsz, &pos, ' ', pad);
+    } else if (
+      *p == 'd' || *p == 'i' || *p == 'u' || *p == 'o' || *p == 'x' || *p == 'X' || *p == 'p'
+    ) {
+      ts_fmt_integer(buffer, buffsz, &pos, &spec, *p, &ap);
+    } else {
+      ts_fmt_putc(buffer, buffsz, &pos, '%');
+      ts_fmt_putc(buffer, buffsz, &pos, *p);
+    }
+  }
+  va_end(ap);
+
+  if (buffer && buffsz > 0) {
+    buffer[pos < buffsz ? pos : buffsz - 1] = '\0';
+  }
+  return (int)pos;
+}
+
+int snprintf(char *restrict buffer, size_t buffsz, const char *restrict format, ...) {
+  va_list args;
+  va_start(args, format);
+  int result = vsnprintf(buffer, buffsz, format, args);
+  va_end(args);
+  return result;
+}
+
+int vfprintf(FILE *restrict stream, const char *restrict format, va_list args) {
+  (void)stream;
+  (void)format;
+  (void)args;
+  return 0;
+}
+
+int fprintf(FILE *restrict stream, const char *restrict format, ...) {
+  (void)stream;
+  (void)format;
+  return 0;
+}
+
+FILE *fdopen(int fd, const char *mode) {
+  (void)fd;
+  (void)mode;
+  return NULL;
+}
+
+int fclose(FILE *stream) {
+  (void)stream;
+  return 0;
+}
+
+int fputc(int c, FILE *stream) {
+  (void)stream;
+  return c;
+}
+
+int fputs(const char *restrict str, FILE *restrict stream) {
+  (void)str;
+  (void)stream;
+  return 0;
+}
+
+size_t fwrite(const void *restrict buffer, size_t size, size_t nmemb, FILE *restrict stream) {
+  (void)buffer;
+  (void)size;
+  (void)stream;
+  return nmemb;
+}
+#endif
+
 // Callbacks into JS. Built with the WASI SDK, they are explicit imports from `env`.
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -228,6 +517,7 @@ intptr_t ts_parser_parse_wasm(
   TSRange *ranges,
   uint32_t range_count
 ) {
+  bool has_progress = TRANSFER_BUFFER[0] != NULL;
   TSInput input = {
     input_buffer,
     call_parse_callback,
@@ -236,7 +526,10 @@ intptr_t ts_parser_parse_wasm(
   };
   if (!set_included_ranges(self, ranges, range_count)) return -1;
 
-  TSParseOptions options = {.payload = NULL, .progress_callback = progress_callback};
+  TSParseOptions options = {
+    .payload = NULL,
+    .progress_callback = has_progress ? progress_callback : NULL,
+  };
 
   return (intptr_t)ts_parser_parse_with_options(self, old_tree, input, options);
 }
@@ -272,11 +565,15 @@ intptr_t ts_parser_parse_utf16_wasm(
   TSRange *ranges,
   uint32_t range_count
 ) {
+  bool has_progress = TRANSFER_BUFFER[0] != NULL;
   TextInput text_input = {text, length};
   TSInput input = {&text_input, read_text_input, TSInputEncodingUTF16LE, NULL};
   if (!set_included_ranges(self, ranges, range_count)) return -1;
 
-  TSParseOptions options = {.payload = NULL, .progress_callback = progress_callback};
+  TSParseOptions options = {
+    .payload = NULL,
+    .progress_callback = has_progress ? progress_callback : NULL,
+  };
 
   return (intptr_t)ts_parser_parse_with_options(self, old_tree, input, options);
 }
@@ -913,7 +1210,12 @@ uint16_t ts_node_next_parse_state_wasm(const TSTree *tree) {
 /* Section - Query */
 /******************/
 
-void ts_query_matches_wasm(
+static const TSQueryCursorOptions QUERY_CURSOR_PROGRESS_OPTIONS = {
+  .payload = NULL,
+  .progress_callback = query_progress_callback,
+};
+
+static void exec_query_cursor(
   const TSQuery *self,
   const TSTree *tree,
   uint32_t start_row,
@@ -934,13 +1236,9 @@ void ts_query_matches_wasm(
   if (!scratch_query_cursor) {
     scratch_query_cursor = ts_query_cursor_new();
   }
-  if (match_limit == 0) {
-    ts_query_cursor_set_match_limit(scratch_query_cursor, UINT32_MAX);
-  } else {
-    ts_query_cursor_set_match_limit(scratch_query_cursor, match_limit);
-  }
 
   TSNode node = unmarshal_node(tree);
+  bool has_progress = TRANSFER_BUFFER[SIZE_OF_NODE] != NULL;
   TSPoint start_point = {start_row, code_unit_to_byte(start_column)};
   TSPoint end_point = {end_row, code_unit_to_byte(end_column)};
   TSPoint start_containing_point = {start_containing_row, code_unit_to_byte(start_containing_column)};
@@ -964,9 +1262,38 @@ void ts_query_matches_wasm(
   ts_query_cursor_set_match_limit(scratch_query_cursor, match_limit);
   ts_query_cursor_set_max_start_depth(scratch_query_cursor, max_start_depth);
 
-  TSQueryCursorOptions options = {.payload = NULL, .progress_callback = query_progress_callback};
+  ts_query_cursor_exec_with_options(
+    scratch_query_cursor,
+    self,
+    node,
+    has_progress ? &QUERY_CURSOR_PROGRESS_OPTIONS : NULL
+  );
+}
 
-  ts_query_cursor_exec_with_options(scratch_query_cursor, self, node, &options);
+void ts_query_matches_wasm(
+  const TSQuery *self,
+  const TSTree *tree,
+  uint32_t start_row,
+  uint32_t start_column,
+  uint32_t end_row,
+  uint32_t end_column,
+  uint32_t start_index,
+  uint32_t end_index,
+  uint32_t start_containing_row,
+  uint32_t start_containing_column,
+  uint32_t end_containing_row,
+  uint32_t end_containing_column,
+  uint32_t start_containing_index,
+  uint32_t end_containing_index,
+  uint32_t match_limit,
+  uint32_t max_start_depth
+) {
+  exec_query_cursor(
+    self, tree,
+    start_row, start_column, end_row, end_column, start_index, end_index,
+    start_containing_row, start_containing_column, end_containing_row, end_containing_column,
+    start_containing_index, end_containing_index, match_limit, max_start_depth
+  );
 
   uint32_t index = 0;
   uint32_t match_count = 0;
@@ -983,6 +1310,63 @@ void ts_query_matches_wasm(
       result.contents[index++] = (const void *)capture->index;
       marshal_node(result.contents + index, capture->node);
       index += SIZE_OF_NODE;
+    }
+  }
+
+  bool did_exceed_match_limit =
+    ts_query_cursor_did_exceed_match_limit(scratch_query_cursor);
+  TRANSFER_BUFFER[0] = (const void *)(match_count);
+  TRANSFER_BUFFER[1] = (const void *)result.contents;
+  TRANSFER_BUFFER[2] = (const void *)(did_exceed_match_limit);
+}
+
+static const int SIZE_OF_CAPTURE_RANGE = 6;
+
+void ts_query_capture_ranges_wasm(
+  const TSQuery *self,
+  const TSTree *tree,
+  uint32_t start_row,
+  uint32_t start_column,
+  uint32_t end_row,
+  uint32_t end_column,
+  uint32_t start_index,
+  uint32_t end_index,
+  uint32_t start_containing_row,
+  uint32_t start_containing_column,
+  uint32_t end_containing_row,
+  uint32_t end_containing_column,
+  uint32_t start_containing_index,
+  uint32_t end_containing_index,
+  uint32_t match_limit,
+  uint32_t max_start_depth
+) {
+  exec_query_cursor(
+    self, tree,
+    start_row, start_column, end_row, end_column, start_index, end_index,
+    start_containing_row, start_containing_column, end_containing_row, end_containing_column,
+    start_containing_index, end_containing_index, match_limit, max_start_depth
+  );
+
+  uint32_t index = 0;
+  uint32_t match_count = 0;
+  Array(const void *) result = array_new();
+
+  TSQueryMatch match;
+  while (ts_query_cursor_next_match(scratch_query_cursor, &match)) {
+    match_count++;
+    array_grow_by(&result, 2 + (SIZE_OF_CAPTURE_RANGE * match.capture_count));
+    result.contents[index++] = (const void *)(uint32_t)match.pattern_index;
+    result.contents[index++] = (const void *)(uint32_t)match.capture_count;
+    for (unsigned i = 0; i < match.capture_count; i++) {
+      const TSQueryCapture *capture = &match.captures[i];
+      TSNode captured = capture->node;
+      TSPoint start_point = ts_node_start_point(captured);
+      result.contents[index++] = (const void *)capture->index;
+      result.contents[index++] = captured.id;
+      result.contents[index++] = (const void *)byte_to_code_unit(ts_node_start_byte(captured));
+      result.contents[index++] = (const void *)byte_to_code_unit(ts_node_end_byte(captured));
+      result.contents[index++] = (const void *)start_point.row;
+      result.contents[index++] = (const void *)byte_to_code_unit(start_point.column);
     }
   }
 
@@ -1011,37 +1395,12 @@ void ts_query_captures_wasm(
   uint32_t match_limit,
   uint32_t max_start_depth
 ) {
-  if (!scratch_query_cursor) {
-    scratch_query_cursor = ts_query_cursor_new();
-  }
-
-  ts_query_cursor_set_match_limit(scratch_query_cursor, match_limit);
-
-  TSNode node = unmarshal_node(tree);
-  TSPoint start_point = {start_row, code_unit_to_byte(start_column)};
-  TSPoint end_point = {end_row, code_unit_to_byte(end_column)};
-  TSPoint start_containing_point = {start_containing_row, code_unit_to_byte(start_containing_column)};
-  TSPoint end_containing_point = {end_containing_row, code_unit_to_byte(end_containing_column)};
-  ts_query_cursor_set_point_range(scratch_query_cursor, start_point, end_point);
-  ts_query_cursor_set_byte_range(
-    scratch_query_cursor,
-    code_unit_to_byte(start_index),
-    code_unit_to_byte(end_index)
+  exec_query_cursor(
+    self, tree,
+    start_row, start_column, end_row, end_column, start_index, end_index,
+    start_containing_row, start_containing_column, end_containing_row, end_containing_column,
+    start_containing_index, end_containing_index, match_limit, max_start_depth
   );
-  ts_query_cursor_set_containing_point_range(
-    scratch_query_cursor,
-    start_containing_point,
-    end_containing_point
-  );
-  ts_query_cursor_set_containing_byte_range(
-    scratch_query_cursor,
-    code_unit_to_byte(start_containing_index),
-    code_unit_to_byte(end_containing_index)
-  );
-  ts_query_cursor_set_match_limit(scratch_query_cursor, match_limit);
-  ts_query_cursor_set_max_start_depth(scratch_query_cursor, max_start_depth);
-  TSQueryCursorOptions options = {.payload = NULL, .progress_callback = query_progress_callback};
-  ts_query_cursor_exec_with_options(scratch_query_cursor, self, node, &options);
 
   unsigned index = 0;
   unsigned capture_count = 0;

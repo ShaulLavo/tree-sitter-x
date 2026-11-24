@@ -12,6 +12,7 @@ async function build() {
     platform: 'node',
     format,
     outfile,
+    minify: !debug,
     sourcemap: true,
     sourcesContent: true,
     keepNames: true,

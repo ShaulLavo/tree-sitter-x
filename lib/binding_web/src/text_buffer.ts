@@ -1,4 +1,4 @@
-import { C } from './constants';
+import { C, Point } from './constants';
 import { newFinalizer } from './finalization_registry';
 
 const finalizer = newFinalizer((address: number) => {
@@ -65,7 +65,7 @@ export class TextBuffer {
     const units = this.units(this.length);
     let result = '';
     for (let at = startIndex; at < end; at += DECODE_CHUNK) {
-      result += String.fromCharCode(...units.subarray(at, Math.min(end, at + DECODE_CHUNK)));
+      result += String.fromCharCode.apply(null, units.subarray(at, Math.min(end, at + DECODE_CHUNK)) as unknown as number[]);
     }
     return result;
   }
@@ -76,13 +76,18 @@ export class TextBuffer {
   private chunk = '';
 
   /** The text from `index` on, in chunks, for {@link Tree#textCallback}. */
-  readonly read = (index: number): string => {
+  readonly read = (index: number, _position?: Point, endIndex?: number): string => {
     const start = index - (index % DECODE_CHUNK);
     if (start !== this.chunkStart) {
       this.chunk = this.slice(start, Math.min(this.length, start + DECODE_CHUNK));
       this.chunkStart = start;
     }
-    return this.chunk.slice(index - start);
+    const localStart = index - start;
+    if (endIndex === undefined) return this.chunk.slice(localStart);
+    const localEnd = endIndex - start;
+    return localEnd < this.chunk.length
+      ? this.chunk.slice(localStart, localEnd)
+      : this.chunk.slice(localStart);
   };
 
   /** Free the buffer's memory. */

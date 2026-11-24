@@ -1,4 +1,4 @@
-import { C, INTERNAL, LogCallback, ParseCallback, Range, SIZE_OF_INT, SIZE_OF_RANGE, setModule } from './constants';
+import { C, INTERNAL, LogCallback, ParseCallback, Point, Range, SIZE_OF_INT, SIZE_OF_RANGE, setModule } from './constants';
 import { Language } from './language';
 import { marshalRange, unmarshalRange } from './marshal';
 import { checkModule, initializeBinding } from './bindings';
@@ -239,15 +239,16 @@ export class Parser {
       if (callback instanceof TextBuffer) {
         C.currentParseCallback = callback.read;
       } else if (typeof callback === 'string') {
-        C.currentParseCallback = (index: number) => callback.slice(index);
+        C.currentParseCallback = (index: number, _position?: Point, endIndex?: number) => callback.slice(index, endIndex);
       } else if (typeof callback === 'function') {
         C.currentParseCallback = callback;
       } else {
         throw new Error('Argument must be a string or a function');
       }
 
-      if (options?.progressCallback) {
-        C.currentProgressCallback = options.progressCallback;
+      const hasProgress = Boolean(options?.progressCallback);
+      if (hasProgress) {
+        C.currentProgressCallback = options!.progressCallback!;
       } else {
         C.currentProgressCallback = null;
       }
@@ -266,6 +267,8 @@ export class Parser {
       for (let i = 0; i < rangeCount; i++) {
         marshalRange(rangeAddress + i * SIZE_OF_RANGE, ranges[i]);
       }
+
+      C.HEAP32[TRANSFER_BUFFER >>> 2] = hasProgress ? 1 : 0;
 
       const treeAddress = callback instanceof TextBuffer
         ? C._ts_parser_parse_utf16_wasm(

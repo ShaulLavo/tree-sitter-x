@@ -18,14 +18,20 @@
 #include "./ts_assert.h"
 #include "./wasm_store.h"
 
+#ifdef TREE_SITTER_NO_DOT_GRAPHS
+#define LOG_ENABLED(self) ((self)->lexer.logger.log != NULL)
+#else
+#define LOG_ENABLED(self) ((self)->lexer.logger.log || (self)->dot_graph_file)
+#endif
+
 #define LOG(...)                                                                            \
-  if (self->lexer.logger.log || self->dot_graph_file) {                                     \
+  if (LOG_ENABLED(self)) {                                                                  \
     snprintf(self->lexer.debug_buffer, TREE_SITTER_SERIALIZATION_BUFFER_SIZE, __VA_ARGS__); \
     ts_parser__log(self);                                                                   \
   }
 
 #define LOG_LOOKAHEAD(symbol_name, size)                      \
-  if (self->lexer.logger.log || self->dot_graph_file) {       \
+  if (LOG_ENABLED(self)) {                                    \
     char *buf = self->lexer.debug_buffer;                     \
     const char *symbol = symbol_name;                         \
     int off = snprintf(                                       \
@@ -58,6 +64,10 @@
     ts_parser__log(self);                                     \
   }
 
+#ifdef TREE_SITTER_NO_DOT_GRAPHS
+#define LOG_STACK() ((void)0)
+#define LOG_TREE(tree) ((void)0)
+#else
 #define LOG_STACK()                                                              \
   if (self->dot_graph_file) {                                                    \
     ts_stack_print_dot_graph(self->stack, self->language, self->dot_graph_file); \
@@ -69,6 +79,7 @@
     ts_subtree_print_dot_graph(tree, self->language, self->dot_graph_file); \
     fputs("\n", self->dot_graph_file);                                      \
   }
+#endif
 
 #define SYM_NAME(symbol) ts_language_symbol_name(self->language, symbol)
 
@@ -171,6 +182,7 @@ static void ts_parser__log(TSParser *self) {
     );
   }
 
+#ifndef TREE_SITTER_NO_DOT_GRAPHS
   if (self->dot_graph_file) {
     fprintf(self->dot_graph_file, "graph {\nlabel=\"");
     for (char *chr = &self->lexer.debug_buffer[0]; *chr != 0; chr++) {
@@ -179,6 +191,7 @@ static void ts_parser__log(TSParser *self) {
     }
     fprintf(self->dot_graph_file, "\"\n}\n\n");
   }
+#endif
 }
 
 static bool ts_parser__breakdown_top_of_stack(
@@ -2132,6 +2145,10 @@ void ts_parser_set_logger(TSParser *self, TSLogger logger) {
 }
 
 void ts_parser_print_dot_graphs(TSParser *self, int fd) {
+#ifdef TREE_SITTER_NO_DOT_GRAPHS
+  (void)self;
+  (void)fd;
+#else
   if (self->dot_graph_file) {
     fclose(self->dot_graph_file);
   }
@@ -2145,6 +2162,7 @@ void ts_parser_print_dot_graphs(TSParser *self, int fd) {
   } else {
     self->dot_graph_file = NULL;
   }
+#endif
 }
 
 bool ts_parser_set_included_ranges(
