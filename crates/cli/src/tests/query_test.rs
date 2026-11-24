@@ -4770,6 +4770,35 @@ fn test_query_disable_pattern() {
 }
 
 #[test]
+fn test_query_disable_wildcard_pattern() {
+    allocations::record(|| {
+        let language = get_language("javascript");
+        let mut query = Query::new(
+            &language,
+            "
+                (_) @wild
+                (identifier) @id
+                (ERROR) @err
+            ",
+        )
+        .unwrap();
+
+        query.disable_pattern(0);
+
+        let source = "let x = 1; @@@";
+        let mut parser = Parser::new();
+        parser.set_language(&language).unwrap();
+        let tree = parser.parse(source, None).unwrap();
+        let mut cursor = QueryCursor::new();
+        let matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+        assert_eq!(
+            collect_matches(matches, &query, source),
+            &[(1, vec![("id", "x")]), (2, vec![("err", "@@@")])],
+        );
+    });
+}
+
+#[test]
 fn test_query_deep_clone() {
     allocations::record(|| {
         let language = get_language("javascript");
