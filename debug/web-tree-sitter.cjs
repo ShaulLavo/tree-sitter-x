@@ -1227,121 +1227,108 @@ var Node = class {
 };
 
 // src/marshal.ts
-function unmarshalCaptures(query, tree, address, patternIndex, result) {
-  for (let i = 0, n = result.length; i < n; i++) {
-    const captureIndex = C.getValue(address, "i32");
-    address += SIZE_OF_INT;
-    const node = unmarshalNode(tree, address);
-    address += SIZE_OF_NODE;
-    result[i] = { patternIndex, name: query.captureNames[captureIndex], node };
-  }
-  return address;
-}
-__name(unmarshalCaptures, "unmarshalCaptures");
 function marshalNode(node, index = 0) {
-  let address = TRANSFER_BUFFER + index * SIZE_OF_NODE;
-  C.setValue(address, node.id, "i32");
-  address += SIZE_OF_INT;
-  C.setValue(address, node.startIndex, "i32");
-  address += SIZE_OF_INT;
-  C.setValue(address, node.startPosition.row, "i32");
-  address += SIZE_OF_INT;
-  C.setValue(address, node.startPosition.column, "i32");
-  address += SIZE_OF_INT;
-  C.setValue(address, node[0], "i32");
+  const heap32 = C.HEAP32;
+  const word = TRANSFER_BUFFER + index * SIZE_OF_NODE >>> 2;
+  heap32[word] = node.id;
+  heap32[word + 1] = node.startIndex;
+  heap32[word + 2] = node.startPosition.row;
+  heap32[word + 3] = node.startPosition.column;
+  heap32[word + 4] = node[0];
 }
 __name(marshalNode, "marshalNode");
 function unmarshalNode(tree, address = TRANSFER_BUFFER) {
-  const id = C.getValue(address, "i32");
-  address += SIZE_OF_INT;
+  const heap32 = C.HEAP32;
+  const word = address >>> 2;
+  const id = heap32[word];
   if (id === 0) return null;
-  const index = C.getValue(address, "i32");
-  address += SIZE_OF_INT;
-  const row = C.getValue(address, "i32");
-  address += SIZE_OF_INT;
-  const column = C.getValue(address, "i32");
-  address += SIZE_OF_INT;
-  const other = C.getValue(address, "i32");
-  const result = new Node(INTERNAL, {
+  return new Node(INTERNAL, {
     id,
     tree,
-    startIndex: index,
-    startPosition: { row, column },
-    other
+    startIndex: heap32[word + 1],
+    startPosition: { row: heap32[word + 2], column: heap32[word + 3] },
+    other: heap32[word + 4]
   });
-  return result;
 }
 __name(unmarshalNode, "unmarshalNode");
 function marshalTreeCursor({ handles }, address = TRANSFER_BUFFER) {
-  C.setValue(address + 0 * SIZE_OF_INT, handles[0], "i32");
-  C.setValue(address + 1 * SIZE_OF_INT, handles[1], "i32");
-  C.setValue(address + 2 * SIZE_OF_INT, handles[2], "i32");
-  C.setValue(address + 3 * SIZE_OF_INT, handles[3], "i32");
+  const heap32 = C.HEAP32;
+  const word = address >>> 2;
+  heap32[word] = handles[0];
+  heap32[word + 1] = handles[1];
+  heap32[word + 2] = handles[2];
+  heap32[word + 3] = handles[3];
 }
 __name(marshalTreeCursor, "marshalTreeCursor");
 function unmarshalTreeCursor({ handles }) {
-  handles[0] = C.getValue(TRANSFER_BUFFER + 0 * SIZE_OF_INT, "i32");
-  handles[1] = C.getValue(TRANSFER_BUFFER + 1 * SIZE_OF_INT, "i32");
-  handles[2] = C.getValue(TRANSFER_BUFFER + 2 * SIZE_OF_INT, "i32");
-  handles[3] = C.getValue(TRANSFER_BUFFER + 3 * SIZE_OF_INT, "i32");
+  const heap32 = C.HEAP32;
+  const word = TRANSFER_BUFFER >>> 2;
+  handles[0] = heap32[word];
+  handles[1] = heap32[word + 1];
+  handles[2] = heap32[word + 2];
+  handles[3] = heap32[word + 3];
 }
 __name(unmarshalTreeCursor, "unmarshalTreeCursor");
 function marshalPoint(address, point) {
-  C.setValue(address, point.row, "i32");
-  C.setValue(address + SIZE_OF_INT, point.column, "i32");
+  const heap32 = C.HEAP32;
+  const word = address >>> 2;
+  heap32[word] = point.row;
+  heap32[word + 1] = point.column;
 }
 __name(marshalPoint, "marshalPoint");
 function unmarshalPoint(address) {
-  const result = {
-    row: C.getValue(address, "i32") >>> 0,
-    column: C.getValue(address + SIZE_OF_INT, "i32") >>> 0
+  const heapU32 = C.HEAPU32;
+  const word = address >>> 2;
+  return {
+    row: heapU32[word],
+    column: heapU32[word + 1]
   };
-  return result;
 }
 __name(unmarshalPoint, "unmarshalPoint");
 function marshalRange(address, range) {
-  marshalPoint(address, range.startPosition);
-  address += SIZE_OF_POINT;
-  marshalPoint(address, range.endPosition);
-  address += SIZE_OF_POINT;
-  C.setValue(address, range.startIndex, "i32");
-  address += SIZE_OF_INT;
-  C.setValue(address, range.endIndex, "i32");
-  address += SIZE_OF_INT;
+  const heap32 = C.HEAP32;
+  const word = address >>> 2;
+  heap32[word] = range.startPosition.row;
+  heap32[word + 1] = range.startPosition.column;
+  heap32[word + 2] = range.endPosition.row;
+  heap32[word + 3] = range.endPosition.column;
+  heap32[word + 4] = range.startIndex;
+  heap32[word + 5] = range.endIndex;
 }
 __name(marshalRange, "marshalRange");
 function unmarshalRange(address) {
-  const result = {};
-  result.startPosition = unmarshalPoint(address);
-  address += SIZE_OF_POINT;
-  result.endPosition = unmarshalPoint(address);
-  address += SIZE_OF_POINT;
-  result.startIndex = C.getValue(address, "i32") >>> 0;
-  address += SIZE_OF_INT;
-  result.endIndex = C.getValue(address, "i32") >>> 0;
-  return result;
+  const heapU32 = C.HEAPU32;
+  const word = address >>> 2;
+  return {
+    startPosition: { row: heapU32[word], column: heapU32[word + 1] },
+    endPosition: { row: heapU32[word + 2], column: heapU32[word + 3] },
+    startIndex: heapU32[word + 4],
+    endIndex: heapU32[word + 5]
+  };
 }
 __name(unmarshalRange, "unmarshalRange");
 function marshalEdit(edit, address = TRANSFER_BUFFER) {
-  marshalPoint(address, edit.startPosition);
-  address += SIZE_OF_POINT;
-  marshalPoint(address, edit.oldEndPosition);
-  address += SIZE_OF_POINT;
-  marshalPoint(address, edit.newEndPosition);
-  address += SIZE_OF_POINT;
-  C.setValue(address, edit.startIndex, "i32");
-  address += SIZE_OF_INT;
-  C.setValue(address, edit.oldEndIndex, "i32");
-  address += SIZE_OF_INT;
-  C.setValue(address, edit.newEndIndex, "i32");
-  address += SIZE_OF_INT;
+  const heap32 = C.HEAP32;
+  const word = address >>> 2;
+  heap32[word] = edit.startPosition.row;
+  heap32[word + 1] = edit.startPosition.column;
+  heap32[word + 2] = edit.oldEndPosition.row;
+  heap32[word + 3] = edit.oldEndPosition.column;
+  heap32[word + 4] = edit.newEndPosition.row;
+  heap32[word + 5] = edit.newEndPosition.column;
+  heap32[word + 6] = edit.startIndex;
+  heap32[word + 7] = edit.oldEndIndex;
+  heap32[word + 8] = edit.newEndIndex;
 }
 __name(marshalEdit, "marshalEdit");
 function unmarshalLanguageMetadata(address) {
-  const major_version = C.getValue(address, "i32");
-  const minor_version = C.getValue(address += SIZE_OF_INT, "i32");
-  const patch_version = C.getValue(address += SIZE_OF_INT, "i32");
-  return { major_version, minor_version, patch_version };
+  const heap32 = C.HEAP32;
+  const word = address >>> 2;
+  return {
+    major_version: heap32[word],
+    minor_version: heap32[word + 1],
+    patch_version: heap32[word + 2]
+  };
 }
 __name(unmarshalLanguageMetadata, "unmarshalLanguageMetadata");
 
@@ -1641,6 +1628,7 @@ async function createModule(options = {}) {
   let heapU8 = new Uint8Array(heapBuffer);
   let heap16 = new Int16Array(heapBuffer);
   let heap32 = new Int32Array(heapBuffer);
+  let heapU32 = new Uint32Array(heapBuffer);
   function refreshHeap() {
     if (resizable || heapBuffer === exports2.memory.buffer) return;
     heapBuffer = exports2.memory.buffer;
@@ -1649,6 +1637,7 @@ async function createModule(options = {}) {
     heapU8 = new Uint8Array(heapBuffer);
     heap16 = new Int16Array(heapBuffer);
     heap32 = new Int32Array(heapBuffer);
+    heapU32 = new Uint32Array(heapBuffer);
   }
   __name(refreshHeap, "refreshHeap");
   exports2._initialize();
@@ -1780,10 +1769,20 @@ async function createModule(options = {}) {
     stringToUTF16,
     loadWebAssemblyModule
   });
-  Object.defineProperty(module2, "HEAPU8", { get() {
-    refreshHeap();
-    return heapU8;
-  } });
+  Object.defineProperties(module2, {
+    HEAPU8: { get() {
+      refreshHeap();
+      return heapU8;
+    } },
+    HEAP32: { get() {
+      refreshHeap();
+      return heap32;
+    } },
+    HEAPU32: { get() {
+      refreshHeap();
+      return heapU32;
+    } }
+  });
   for (const [name, value] of Object.entries(exports2)) {
     if (typeof value === "function") module2[`_${name}`] = value;
   }
@@ -2119,7 +2118,7 @@ var TextBuffer = class {
     const units = this.units(this.length);
     let result = "";
     for (let at = startIndex; at < end; at += DECODE_CHUNK) {
-      result += String.fromCharCode(...units.subarray(at, Math.min(end, at + DECODE_CHUNK)));
+      result += String.fromCharCode.apply(null, units.subarray(at, Math.min(end, at + DECODE_CHUNK)));
     }
     return result;
   }
@@ -2128,13 +2127,17 @@ var TextBuffer = class {
   chunkStart = -1;
   chunk = "";
   /** The text from `index` on, in chunks, for {@link Tree#textCallback}. */
-  read = /* @__PURE__ */ __name((index) => {
+  read = /* @__PURE__ */ __name((index, _position, endIndex) => {
+    if (endIndex !== void 0 && endIndex <= index) return "";
     const start = index - index % DECODE_CHUNK;
     if (start !== this.chunkStart) {
       this.chunk = this.slice(start, Math.min(this.length, start + DECODE_CHUNK));
       this.chunkStart = start;
     }
-    return this.chunk.slice(index - start);
+    const localStart = index - start;
+    if (endIndex === void 0) return this.chunk.slice(localStart);
+    const localEnd = endIndex - start;
+    return localEnd < this.chunk.length ? this.chunk.slice(localStart, localEnd) : this.chunk.slice(localStart);
   }, "read");
   /** Free the buffer's memory. */
   delete() {
@@ -2304,17 +2307,14 @@ var Parser = class {
       if (callback instanceof TextBuffer) {
         C.currentParseCallback = callback.read;
       } else if (typeof callback === "string") {
-        C.currentParseCallback = (index) => callback.slice(index);
+        C.currentParseCallback = (index, _position, endIndex) => callback.slice(index, endIndex);
       } else if (typeof callback === "function") {
         C.currentParseCallback = callback;
       } else {
         throw new Error("Argument must be a string or a function");
       }
-      if (options?.progressCallback) {
-        C.currentProgressCallback = options.progressCallback;
-      } else {
-        C.currentProgressCallback = null;
-      }
+      const progressCallback = options?.progressCallback ?? null;
+      C.currentProgressCallback = progressCallback;
       if (this.logCallback) {
         C.currentLogCallback = this.logCallback;
         C._ts_parser_enable_logger_wasm(this[0], 1);
@@ -2328,6 +2328,7 @@ var Parser = class {
       for (let i = 0; i < rangeCount; i++) {
         marshalRange(rangeAddress + i * SIZE_OF_RANGE, ranges[i]);
       }
+      C.HEAP32[TRANSFER_BUFFER >>> 2] = progressCallback ? 1 : 0;
       const treeAddress = callback instanceof TextBuffer ? C._ts_parser_parse_utf16_wasm(
         this[0],
         callback[0],
@@ -2426,6 +2427,40 @@ var CaptureQuantifier = {
 };
 var isCaptureStep = /* @__PURE__ */ __name((step) => step.type === "capture", "isCaptureStep");
 var isStringStep = /* @__PURE__ */ __name((step) => step.type === "string", "isStringStep");
+function ensureRangeScratchPool(pool, count) {
+  while (pool.length < count) {
+    const rangeNode = { id: 0, startIndex: 0, endIndex: 0, startPosition: { row: 0, column: 0 } };
+    pool.push({
+      capture: { patternIndex: 0, name: "", node: rangeNode },
+      rangeNode
+    });
+  }
+}
+__name(ensureRangeScratchPool, "ensureRangeScratchPool");
+function acceptsRangeMatch(predicates, heapU32, capturesWord, captureCount, patternIndex, captureNames, scratchPool, scratch, readRangeText) {
+  ensureRangeScratchPool(scratchPool, captureCount);
+  scratch.length = captureCount;
+  let pWord = capturesWord;
+  for (let j = 0; j < captureCount; j++) {
+    const entry = scratchPool[j];
+    const rangeNode = entry.rangeNode;
+    rangeNode.id = heapU32[pWord + 1];
+    rangeNode.startIndex = heapU32[pWord + 2];
+    rangeNode.endIndex = heapU32[pWord + 3];
+    rangeNode.startPosition.row = heapU32[pWord + 4];
+    rangeNode.startPosition.column = heapU32[pWord + 5];
+    const capture = entry.capture;
+    capture.patternIndex = patternIndex;
+    capture.name = captureNames[heapU32[pWord]];
+    scratch[j] = capture;
+    pWord += 6;
+  }
+  for (const predicate of predicates) {
+    if (!predicate(scratch, readRangeText)) return false;
+  }
+  return true;
+}
+__name(acceptsRangeMatch, "acceptsRangeMatch");
 function createQueryTextReader() {
   const texts = /* @__PURE__ */ new Map();
   return (node) => {
@@ -2476,6 +2511,61 @@ var QueryError = class _QueryError extends Error {
     }
   }
 };
+function matchesCapturePair(text1, nodes2, isPositive, readText) {
+  for (const n2 of nodes2) {
+    if (text1 === readText(n2) === isPositive) return true;
+  }
+  return false;
+}
+__name(matchesCapturePair, "matchesCapturePair");
+function evalCaptureEquality(captures, captureName1, captureName2, isPositive, matchAll, readText) {
+  const nodes1 = [];
+  const nodes2 = [];
+  for (const c of captures) {
+    if (c.name === captureName1) nodes1.push(c.node);
+    if (c.name === captureName2) nodes2.push(c.node);
+  }
+  if (!nodes2.length) return matchAll && nodes1.length === 0;
+  for (const n1 of nodes1) {
+    const matched = matchesCapturePair(readText(n1), nodes2, isPositive, readText);
+    if (matchAll && !matched) return false;
+    if (!matchAll && matched) return true;
+  }
+  return matchAll;
+}
+__name(evalCaptureEquality, "evalCaptureEquality");
+function evalLiteralEquality(captures, captureName, stringValue, isPositive, matchAll, readText) {
+  for (const c of captures) {
+    if (c.name !== captureName) continue;
+    const matched = readText(c.node) === stringValue === isPositive;
+    if (matchAll && !matched) return false;
+    if (!matchAll && matched) return true;
+  }
+  return matchAll;
+}
+__name(evalLiteralEquality, "evalLiteralEquality");
+function evalRegexPredicate(captures, captureName, regex, isPositive, matchAll, readText) {
+  let sawCapture = false;
+  for (const c of captures) {
+    if (c.name !== captureName) continue;
+    sawCapture = true;
+    const matched = regex.test(readText(c.node)) === isPositive;
+    if (matchAll && !matched) return false;
+    if (!matchAll && matched) return true;
+  }
+  return sawCapture ? matchAll : !isPositive;
+}
+__name(evalRegexPredicate, "evalRegexPredicate");
+function evalAnyOfPredicate(captures, captureName, values, isPositive, readText) {
+  let sawCapture = false;
+  for (const c of captures) {
+    if (c.name !== captureName) continue;
+    sawCapture = true;
+    if (values.has(readText(c.node)) !== isPositive) return false;
+  }
+  return sawCapture || !isPositive;
+}
+__name(evalAnyOfPredicate, "evalAnyOfPredicate");
 function parseAnyPredicate(steps, index, operator, textPredicates) {
   if (steps.length !== 3) {
     throw new Error(
@@ -2492,31 +2582,15 @@ function parseAnyPredicate(steps, index, operator, textPredicates) {
   if (isCaptureStep(steps[2])) {
     const captureName1 = steps[1].name;
     const captureName2 = steps[2].name;
-    textPredicates[index].push((captures, readText) => {
-      const nodes1 = [];
-      const nodes2 = [];
-      for (const c of captures) {
-        if (c.name === captureName1) nodes1.push(c.node);
-        if (c.name === captureName2) nodes2.push(c.node);
-      }
-      const compare = /* @__PURE__ */ __name((n1, n2, positive) => {
-        return positive ? readText(n1) === readText(n2) : readText(n1) !== readText(n2);
-      }, "compare");
-      return matchAll ? nodes1.every((n1) => nodes2.some((n2) => compare(n1, n2, isPositive))) : nodes1.some((n1) => nodes2.some((n2) => compare(n1, n2, isPositive)));
-    });
+    textPredicates[index].push(
+      (captures, readText) => evalCaptureEquality(captures, captureName1, captureName2, isPositive, matchAll, readText)
+    );
   } else {
     const captureName = steps[1].name;
     const stringValue = steps[2].value;
-    textPredicates[index].push((captures, readText) => {
-      const matches = /* @__PURE__ */ __name((n) => readText(n) === stringValue, "matches");
-      const doesNotMatch = /* @__PURE__ */ __name((n) => readText(n) !== stringValue, "doesNotMatch");
-      const nodes = [];
-      for (const c of captures) {
-        if (c.name === captureName) nodes.push(c.node);
-      }
-      const test = isPositive ? matches : doesNotMatch;
-      return matchAll ? nodes.every(test) : nodes.some(test);
-    });
+    textPredicates[index].push(
+      (captures, readText) => evalLiteralEquality(captures, captureName, stringValue, isPositive, matchAll, readText)
+    );
   }
 }
 __name(parseAnyPredicate, "parseAnyPredicate");
@@ -2540,17 +2614,9 @@ function parseMatchPredicate(steps, index, operator, textPredicates) {
   const matchAll = !operator.startsWith("any-");
   const captureName = steps[1].name;
   const regex = new RegExp(steps[2].value);
-  textPredicates[index].push((captures, readText) => {
-    const nodes = [];
-    for (const c of captures) {
-      if (c.name === captureName) nodes.push(readText(c.node));
-    }
-    const test = /* @__PURE__ */ __name((text, positive) => {
-      return positive ? regex.test(text) : !regex.test(text);
-    }, "test");
-    if (nodes.length === 0) return !isPositive;
-    return matchAll ? nodes.every((text) => test(text, isPositive)) : nodes.some((text) => test(text, isPositive));
-  });
+  textPredicates[index].push(
+    (captures, readText) => evalRegexPredicate(captures, captureName, regex, isPositive, matchAll, readText)
+  );
 }
 __name(parseMatchPredicate, "parseMatchPredicate");
 function parseAnyOfPredicate(steps, index, operator, textPredicates) {
@@ -2573,14 +2639,9 @@ function parseAnyOfPredicate(steps, index, operator, textPredicates) {
     );
   }
   const values = new Set(stringSteps.map((s) => s.value));
-  textPredicates[index].push((captures, readText) => {
-    const nodes = [];
-    for (const c of captures) {
-      if (c.name === captureName) nodes.push(readText(c.node));
-    }
-    if (nodes.length === 0) return !isPositive;
-    return nodes.every((text) => values.has(text) === isPositive);
-  });
+  textPredicates[index].push(
+    (captures, readText) => evalAnyOfPredicate(captures, captureName, values, isPositive, readText)
+  );
 }
 __name(parseAnyOfPredicate, "parseAnyOfPredicate");
 function parseIsPredicate(steps, index, operator, assertedProperties, refutedProperties) {
@@ -2868,24 +2929,40 @@ var Query = class {
   readMatches(node, rawCount, startAddress) {
     const result = new Array(rawCount);
     const readText = createQueryTextReader();
+    const captureNames = this.captureNames;
+    const tree = node.tree;
+    let heap32 = C.HEAP32;
     let filteredCount = 0;
-    let address = startAddress;
+    let word = startAddress >>> 2;
     for (let i = 0; i < rawCount; i++) {
-      const patternIndex = C.getValue(address, "i32");
-      address += SIZE_OF_INT;
-      const captureCount = C.getValue(address, "i32");
-      address += SIZE_OF_INT;
+      const patternIndex = heap32[word];
+      const captureCount = heap32[word + 1];
+      word += 2;
       const captures = new Array(captureCount);
-      address = unmarshalCaptures(this, node.tree, address, patternIndex, captures);
-      if (this.textPredicates[patternIndex].every((p) => p(captures, readText))) {
-        result[filteredCount] = { patternIndex, captures };
-        const setProperties = this.setProperties[patternIndex];
-        result[filteredCount].setProperties = setProperties;
-        const assertedProperties = this.assertedProperties[patternIndex];
-        result[filteredCount].assertedProperties = assertedProperties;
-        const refutedProperties = this.refutedProperties[patternIndex];
-        result[filteredCount].refutedProperties = refutedProperties;
-        filteredCount++;
+      for (let j = 0; j < captureCount; j++) {
+        const captureIndex = heap32[word];
+        const capturedNode = new Node(INTERNAL, {
+          id: heap32[word + 1],
+          tree,
+          startIndex: heap32[word + 2],
+          startPosition: { row: heap32[word + 3], column: heap32[word + 4] },
+          other: heap32[word + 5]
+        });
+        word += 6;
+        captures[j] = { patternIndex, name: captureNames[captureIndex], node: capturedNode };
+      }
+      const predicates = this.textPredicates[patternIndex];
+      if (predicates.length === 0 || predicates.every((p) => p(captures, readText))) {
+        if (predicates.length > 0) heap32 = C.HEAP32;
+        result[filteredCount++] = {
+          patternIndex,
+          captures,
+          setProperties: this.setProperties[patternIndex],
+          assertedProperties: this.assertedProperties[patternIndex],
+          refutedProperties: this.refutedProperties[patternIndex]
+        };
+      } else {
+        heap32 = C.HEAP32;
       }
     }
     result.length = filteredCount;
@@ -2906,7 +2983,7 @@ var Query = class {
     );
   }
   captureRangesWithCursor(node, options) {
-    const [rawCount, startAddress] = this.execute(node, options);
+    const [rawCount, startAddress] = this.execute(node, options, "captureRanges");
     try {
       return this.readCaptureRanges(node, rawCount, startAddress);
     } finally {
@@ -2916,44 +2993,64 @@ var Query = class {
   readCaptureRanges(node, rawCount, startAddress) {
     const result = [];
     const scratch = [];
-    const readText = createQueryTextReader();
-    let address = startAddress;
+    const scratchPool = [];
+    const captureNames = this.captureNames;
+    const tree = node.tree;
+    let texts = null;
+    const readRangeText = /* @__PURE__ */ __name((n) => {
+      const rangeNode = n;
+      texts ??= /* @__PURE__ */ new Map();
+      const cached = texts.get(rangeNode.id);
+      if (cached !== void 0) return cached;
+      const point = { row: rangeNode.startPosition.row, column: rangeNode.startPosition.column };
+      const text = getText(tree, rangeNode.startIndex, rangeNode.endIndex, point);
+      texts.set(rangeNode.id, text);
+      return text;
+    }, "readRangeText");
+    let heapU32 = C.HEAPU32;
+    let word = startAddress >>> 2;
     for (let i = 0; i < rawCount; i++) {
-      const patternIndex = C.getValue(address, "i32");
-      const captureCount = C.getValue(address + SIZE_OF_INT, "i32");
-      address += 2 * SIZE_OF_INT;
-      const capturesAddress = address;
-      address += captureCount * (SIZE_OF_INT + SIZE_OF_NODE);
-      if (!this.acceptsRangeMatch(node, patternIndex, capturesAddress, captureCount, scratch, readText)) continue;
-      let captureAddress = capturesAddress;
+      const patternIndex = heapU32[word];
+      const captureCount = heapU32[word + 1];
+      word += 2;
+      const capturesWord = word;
+      word += captureCount * 6;
+      const predicates = this.textPredicates[patternIndex];
+      if (predicates.length > 0) {
+        const accepted = acceptsRangeMatch(
+          predicates,
+          heapU32,
+          capturesWord,
+          captureCount,
+          patternIndex,
+          captureNames,
+          scratchPool,
+          scratch,
+          readRangeText
+        );
+        heapU32 = C.HEAPU32;
+        if (!accepted) continue;
+      }
+      const setProperties = this.setProperties[patternIndex];
+      const assertedProperties = this.assertedProperties[patternIndex];
+      const refutedProperties = this.refutedProperties[patternIndex];
+      let cWord = capturesWord;
       for (let j = 0; j < captureCount; j++) {
-        const captureIndex = C.getValue(captureAddress, "i32");
-        const nodeAddress = captureAddress + SIZE_OF_INT >>> 0;
-        const startIndex = C.getValue(nodeAddress + SIZE_OF_INT, "i32");
-        C.HEAPU8.copyWithin(TRANSFER_BUFFER, nodeAddress, nodeAddress + SIZE_OF_NODE);
-        const endIndex = C._ts_node_end_index_wasm(node.tree[0]);
         result.push({
           patternIndex,
-          name: this.captureNames[captureIndex],
-          startIndex,
-          endIndex,
-          setProperties: this.setProperties[patternIndex],
-          assertedProperties: this.assertedProperties[patternIndex],
-          refutedProperties: this.refutedProperties[patternIndex]
+          name: captureNames[heapU32[cWord]],
+          startIndex: heapU32[cWord + 2],
+          endIndex: heapU32[cWord + 3],
+          setProperties,
+          assertedProperties,
+          refutedProperties
         });
-        captureAddress += SIZE_OF_INT + SIZE_OF_NODE;
+        cWord += 6;
       }
     }
     return result;
   }
-  acceptsRangeMatch(node, patternIndex, address, count, scratch, readText) {
-    const predicates = this.textPredicates[patternIndex];
-    if (!predicates.length) return true;
-    scratch.length = count;
-    unmarshalCaptures(this, node.tree, address, patternIndex, scratch);
-    return predicates.every((predicate) => predicate(scratch, readText));
-  }
-  execute(node, options, captures = false) {
+  execute(node, options, mode = "matches") {
     const startPosition = options.startPosition ?? ZERO_POINT;
     const endPosition = options.endPosition ?? ZERO_POINT;
     const startIndex = options.startIndex ?? 0;
@@ -2981,7 +3078,8 @@ var Query = class {
       throw new Error("`startContainingPosition` cannot be greater than `endContainingPosition`");
     }
     marshalNode(node);
-    C[captures ? "_ts_query_captures_wasm" : "_ts_query_matches_wasm"](
+    C.HEAP32[(TRANSFER_BUFFER >>> 2) + 5] = C.currentQueryProgressCallback ? 1 : 0;
+    C[mode === "captures" ? "_ts_query_captures_wasm" : mode === "captureRanges" ? "_ts_query_capture_ranges_wasm" : "_ts_query_matches_wasm"](
       this[0],
       node.tree[0],
       startPosition.row,
@@ -2999,9 +3097,11 @@ var Query = class {
       matchLimit,
       maxStartDepth
     );
-    const rawCount = C.getValue(TRANSFER_BUFFER, "i32");
-    const startAddress = C.getValue(TRANSFER_BUFFER + SIZE_OF_INT, "i32");
-    const didExceedMatchLimit = C.getValue(TRANSFER_BUFFER + 2 * SIZE_OF_INT, "i32");
+    const heapU32 = C.HEAPU32;
+    const transferWord = TRANSFER_BUFFER >>> 2;
+    const rawCount = heapU32[transferWord];
+    const startAddress = heapU32[transferWord + 1];
+    const didExceedMatchLimit = heapU32[transferWord + 2];
     this.exceededMatchLimit = Boolean(didExceedMatchLimit);
     try {
       checkQueryProgress(C);
@@ -3032,7 +3132,7 @@ var Query = class {
     );
   }
   capturesWithCursor(node, options) {
-    const [count, startAddress] = this.execute(node, options, true);
+    const [count, startAddress] = this.execute(node, options, "captures");
     try {
       return this.readCaptures(node, count, startAddress);
     } finally {
@@ -3043,25 +3143,58 @@ var Query = class {
     const result = new Array();
     const readText = createQueryTextReader();
     const captures = new Array();
+    const captureNames = this.captureNames;
+    const tree = node.tree;
+    let heap32 = C.HEAP32;
+    let word = address >>> 2;
     for (let i = 0; i < count; i++) {
-      const patternIndex = C.getValue(address, "i32");
-      address += SIZE_OF_INT;
-      const captureCount = C.getValue(address, "i32");
-      address += SIZE_OF_INT;
-      const captureIndex = C.getValue(address, "i32");
-      address += SIZE_OF_INT;
+      const patternIndex = heap32[word];
+      const captureCount = heap32[word + 1];
+      const captureIndex = heap32[word + 2];
+      word += 3;
+      const capturesWord = word;
+      word += captureCount * 6;
+      const predicates = this.textPredicates[patternIndex];
+      if (predicates.length === 0) {
+        const cWord2 = capturesWord + captureIndex * 6;
+        const capturedNode = new Node(INTERNAL, {
+          id: heap32[cWord2 + 1],
+          tree,
+          startIndex: heap32[cWord2 + 2],
+          startPosition: { row: heap32[cWord2 + 3], column: heap32[cWord2 + 4] },
+          other: heap32[cWord2 + 5]
+        });
+        result.push({
+          patternIndex,
+          name: captureNames[heap32[cWord2]],
+          node: capturedNode,
+          setProperties: this.setProperties[patternIndex],
+          assertedProperties: this.assertedProperties[patternIndex],
+          refutedProperties: this.refutedProperties[patternIndex]
+        });
+        continue;
+      }
       captures.length = captureCount;
-      address = unmarshalCaptures(this, node.tree, address, patternIndex, captures);
-      if (this.textPredicates[patternIndex].every((p) => p(captures, readText))) {
+      let cWord = capturesWord;
+      for (let j = 0; j < captureCount; j++) {
+        const capturedNode = new Node(INTERNAL, {
+          id: heap32[cWord + 1],
+          tree,
+          startIndex: heap32[cWord + 2],
+          startPosition: { row: heap32[cWord + 3], column: heap32[cWord + 4] },
+          other: heap32[cWord + 5]
+        });
+        captures[j] = { patternIndex, name: captureNames[heap32[cWord]], node: capturedNode };
+        cWord += 6;
+      }
+      if (predicates.every((p) => p(captures, readText))) {
         const capture = captures[captureIndex];
-        const setProperties = this.setProperties[patternIndex];
-        capture.setProperties = setProperties;
-        const assertedProperties = this.assertedProperties[patternIndex];
-        capture.assertedProperties = assertedProperties;
-        const refutedProperties = this.refutedProperties[patternIndex];
-        capture.refutedProperties = refutedProperties;
+        capture.setProperties = this.setProperties[patternIndex];
+        capture.assertedProperties = this.assertedProperties[patternIndex];
+        capture.refutedProperties = this.refutedProperties[patternIndex];
         result.push(capture);
       }
+      heap32 = C.HEAP32;
     }
     return result;
   }

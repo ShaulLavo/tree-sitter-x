@@ -387,7 +387,7 @@
 		private chunkStart;
 		private chunk;
 		/** The text from `index` on, in chunks, for {@link Tree#textCallback}. */
-		readonly read: (index: number) => string;
+		readonly read: (index: number, _position?: Point, endIndex?: number) => string;
 		/** Free the buffer's memory. */
 		delete(): void;
 		private units;
@@ -1007,7 +1007,6 @@
 		captureRanges(node: Node, options?: QueryOptions): QueryCaptureRange[];
 		private captureRangesWithCursor;
 		private readCaptureRanges;
-		private acceptsRangeMatch;
 		private execute;
 		/**
 		 * Iterate over all of the individual captures in the order that they
