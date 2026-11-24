@@ -4808,6 +4808,34 @@ fn test_query_field_qualified_error_pattern_compiles() {
 }
 
 #[test]
+fn test_query_unbounded_range_excludes_max_offset_nodes() {
+    allocations::record(|| {
+        let language = get_language("json");
+        let query = Query::new(&language, "(document) @root").unwrap();
+        let mut parser = Parser::new();
+        parser.set_language(&language).unwrap();
+        let tree = parser.parse("", None).unwrap();
+
+        let mut cursor = QueryCursor::new();
+        let source = "".as_bytes();
+        let root_zero = tree.root_node_with_offset(0, Point::new(0, 0));
+        assert_eq!(cursor.matches(&query, root_zero, source).count(), 1);
+
+        let root_max_byte = tree.root_node_with_offset(u32::MAX as usize, Point::new(0, 0));
+        assert_eq!(cursor.matches(&query, root_max_byte, source).count(), 0);
+
+        let root_max_point =
+            tree.root_node_with_offset(0, Point::new(u32::MAX as usize, u32::MAX as usize));
+        assert_eq!(cursor.matches(&query, root_max_point, source).count(), 0);
+
+        cursor.set_byte_range(0..u32::MAX as usize);
+        assert_eq!(cursor.matches(&query, root_max_byte, source).count(), 0);
+        assert_eq!(cursor.matches(&query, root_max_point, source).count(), 0);
+        assert_eq!(cursor.matches(&query, root_zero, source).count(), 1);
+    });
+}
+
+#[test]
 fn test_query_deep_clone() {
     allocations::record(|| {
         let language = get_language("javascript");

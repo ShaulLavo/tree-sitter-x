@@ -377,6 +377,7 @@ struct TSQueryCursor {
   uint32_t work_count;
   bool has_included_range;
   bool has_containing_range;
+  bool root_within_unbounded_bounds;
   bool on_visible_node;
   bool ascending;
   bool halted;
@@ -1544,6 +1545,29 @@ static inline bool analysis_subgraph__find_nodes(
   return true;
 }
 
+static inline void analysis_transition_table__record_lookahead(
+  AnalysisTransitionTable *table,
+  TSStateId state,
+  const LookaheadIterator *lookahead
+) {
+  if (lookahead->action_count) {
+    const TSParseAction *last_action = &lookahead->actions[lookahead->action_count - 1];
+    if (last_action->type == TSParseActionTypeShift) {
+      array_push(&table->transitions, ((AnalysisTransition) {
+        .symbol = lookahead->symbol,
+        .next_state = last_action->shift.extra ? state : last_action->shift.state,
+        .is_extra = last_action->shift.extra,
+      }));
+    }
+  } else if (lookahead->next_state != 0) {
+    array_push(&table->transitions, ((AnalysisTransition) {
+      .symbol = lookahead->symbol,
+      .next_state = lookahead->next_state,
+      .is_extra = false,
+    }));
+  }
+}
+
 static inline TSFieldId ts_query__field_id_for_child(
   const TSLanguage *language,
   uint16_t production_id,
@@ -1559,6 +1583,323 @@ static inline TSFieldId ts_query__field_id_for_child(
     }
   }
   return 0;
+}
+
+static inline bool ts_query__match_analysis_child(
+  const TSLanguage *language,
+  AnalysisState *state,
+  const QueryStep *step,
+  TSSymbol sym,
+  TSSymbol visible_symbol,
+  uint16_t production_id,
+  uint32_t child_index,
+  TSFieldId *field_id
+) {
+  if (step->symbol == ts_builtin_sym_error) return true;
+  if (!visible_symbol) {
+    if (sym >= language->token_count) {
+      *field_id = ts_query__field_id_for_child(language, production_id, child_index, *field_id);
+    }
+    return false;
+  }
+  if (step->symbol == WILDCARD_SYMBOL) {
+    if (step->is_named && !language->symbol_metadata[visible_symbol].named) return false;
+  } else if (step->symbol != visible_symbol) {
+    return false;
+  }
+  if (step->supertype_symbol && !analysis_state__has_supertype(state, step->supertype_symbol)) {
+    return false;
+  }
+  if (!step->field) return true;
+  *field_id = ts_query__field_id_for_child(language, production_id, child_index, *field_id);
+  return step->field == *field_id;
+}
+
+static inline bool ts_query__descend_hidden_analysis_child(
+  QueryAnalysis *analysis,
+  AnalysisState *next_state,
+  TSStateId parse_state,
+  TSSymbol sym,
+  TSFieldId field_id,
+  uint32_t state_index,
+  uint32_t recursion_depth_limit
+) {
+  AnalysisStateEntry *next_state_top = analysis_state__top(next_state);
+  if (!next_state_top->done) {
+    if (next_state->depth + 1 >= MAX_ANALYSIS_STATE_DEPTH) {
+      #ifdef DEBUG_ANALYZE_QUERY
+        printf("Exceeded depth limit for state %u\n", state_index);
+      #else
+        (void)state_index;
+      #endif
+      analysis->did_abort = true;
+      return false;
+    }
+    next_state->depth++;
+    next_state_top = analysis_state__top(next_state);
+  }
+
+  *next_state_top = (AnalysisStateEntry) {
+    .parse_state = parse_state,
+    .parent_symbol = sym,
+    .child_index = 0,
+    .field_id = field_id,
+    .done = false,
+  };
+
+  if (analysis_state__recursion_depth(next_state) > recursion_depth_limit) {
+    analysis_state_set__insert_sorted_hashed(
+      &analysis->deeper_states,
+      &analysis->deeper_states_set,
+      &analysis->state_pool,
+      next_state
+    );
+    return false;
+  }
+  return true;
+}
+
+static inline void ts_query__record_analysis_step(
+  const TSQuery *self,
+  QueryAnalysis *analysis,
+  const AnalysisState *state,
+  AnalysisState *next_state,
+  const QueryStep *step
+) {
+  bool did_finish_pattern = array_get(&self->steps, next_state->step_index)->depth != step->depth;
+  if (did_finish_pattern) {
+    array_insert_sorted_by(&analysis->finished_parent_symbols, , state->root_symbol);
+  } else if (next_state->depth == 0) {
+    array_insert_sorted_by(&analysis->final_step_indices, , next_state->step_index);
+  } else {
+    analysis_state_set__insert_sorted_hashed(
+      &analysis->next_states,
+      &analysis->next_states_set,
+      &analysis->state_pool,
+      next_state
+    );
+  }
+}
+
+static inline void ts_query__record_analysis_next_steps(
+  const TSQuery *self,
+  QueryAnalysis *analysis,
+  const AnalysisState *state,
+  AnalysisState *next_state,
+  const QueryStep *step,
+  const QueryStep *next_step,
+  bool does_match
+) {
+  for (;;) {
+    // Skip pass-through states. Although these states have alternatives, they are only
+    // used to implement repetitions, and query analysis does not need to process
+    // repetitions in order to determine whether steps are possible and definite.
+    if (next_step->is_pass_through) {
+      next_state->step_index++;
+      next_step++;
+      continue;
+    }
+
+    // If the pattern is finished or hypothetical parent node is complete, then
+    // record that matching can terminate at this step of the pattern. Otherwise,
+    // add this state to the list of states to process on the next iteration.
+    if (!next_step->is_dead_end) {
+      ts_query__record_analysis_step(self, analysis, state, next_state, step);
+    }
+
+    // If the state has advanced to a step with an alternative step, then add another state
+    // at that alternative step. This process is simpler than the process of actually matching a
+    // pattern during query execution, because for the purposes of query analysis, there is no
+    // need to process repetitions.
+    if (
+      !does_match ||
+      next_step->alternative_index == NONE ||
+      next_step->alternative_index <= next_state->step_index
+    ) {
+      break;
+    }
+    next_state->step_index = next_step->alternative_index;
+    next_step = array_get(&self->steps, next_state->step_index);
+  }
+}
+
+static inline void ts_query__analyze_subgraph_node(
+  const TSQuery *self,
+  QueryAnalysis *analysis,
+  AnalysisState *state,
+  const QueryStep *step,
+  const AnalysisSubgraphNode *node,
+  TSSymbol sym,
+  TSStateId parse_state,
+  uint32_t child_index,
+  TSFieldId parent_field_id,
+  uint32_t state_index,
+  uint32_t recursion_depth_limit
+) {
+  // Use the subgraph to determine what alias will eventually be applied
+  // to this child node.
+  TSSymbol alias = ts_language_alias_at(self->language, node->production_id, child_index);
+  TSSymbol visible_symbol = alias
+    ? alias
+    : self->language->symbol_metadata[sym].visible
+      ? self->language->public_symbol_map[sym]
+      : 0;
+
+  TSFieldId field_id = parent_field_id;
+  bool does_match = ts_query__match_analysis_child(
+    self->language,
+    state,
+    step,
+    sym,
+    visible_symbol,
+    node->production_id,
+    child_index,
+    &field_id
+  );
+
+  // Extra shifts that don't match and aren't hidden non-terminals can't change state.
+  if (!does_match && node->state == parse_state && (visible_symbol || sym < self->language->token_count)) {
+    return;
+  }
+
+  // Create a new state that has advanced past this hypothetical subtree.
+  AnalysisState next_state = *state;
+  AnalysisStateEntry *next_state_top = analysis_state__top(&next_state);
+  next_state_top->child_index = node->child_index;
+  next_state_top->parse_state = node->state;
+  if (node->done) next_state_top->done = true;
+
+  // If this child is hidden, then descend into it and walk through its children.
+  if (!visible_symbol && step->symbol != ts_builtin_sym_error && sym >= self->language->token_count) {
+    if (!ts_query__descend_hidden_analysis_child(
+      analysis,
+      &next_state,
+      parse_state,
+      sym,
+      field_id,
+      state_index,
+      recursion_depth_limit
+    )) {
+      return;
+    }
+    next_state_top = analysis_state__top(&next_state);
+  }
+
+  // Pop from the stack when this state reached the end of its current syntax node.
+  while (next_state.depth > 0 && next_state_top->done) {
+    next_state.depth--;
+    next_state_top = analysis_state__top(&next_state);
+  }
+
+  // If this hypothetical child did match the current step of the query pattern,
+  // then advance to the next step at the current depth.
+  const QueryStep *next_step = step;
+  if (!does_match && node->state == parse_state) return;
+  if (does_match) {
+    do {
+      next_state.step_index++;
+      next_step = array_get(&self->steps, next_state.step_index);
+    } while (
+      next_step->depth != PATTERN_DONE_MARKER &&
+      next_step->depth > step->depth
+    );
+  }
+
+  ts_query__record_analysis_next_steps(
+    self,
+    analysis,
+    state,
+    &next_state,
+    step,
+    next_step,
+    does_match
+  );
+}
+
+static inline void ts_query__analyze_subgraph_nodes(
+  const TSQuery *self,
+  const AnalysisSubgraph *subgraph,
+  QueryAnalysis *analysis,
+  AnalysisState *state,
+  const QueryStep *step,
+  TSSymbol sym,
+  TSStateId parse_state,
+  uint32_t child_index,
+  TSFieldId parent_field_id,
+  TSStateId succ_state,
+  uint32_t succ_child_index,
+  uint32_t node_index,
+  uint32_t state_index,
+  uint32_t recursion_depth_limit
+) {
+  while (node_index < subgraph->nodes.size) {
+    const AnalysisSubgraphNode *node = array_get(&subgraph->nodes, node_index);
+    node_index++;
+    if (node->state != succ_state || node->child_index != succ_child_index) break;
+    ts_query__analyze_subgraph_node(
+      self,
+      analysis,
+      state,
+      step,
+      node,
+      sym,
+      parse_state,
+      child_index,
+      parent_field_id,
+      state_index,
+      recursion_depth_limit
+    );
+  }
+}
+
+static void ts_query__advance_analysis_state(
+  const TSQuery *self,
+  const AnalysisSubgraph *subgraph,
+  const AnalysisTransitionTable *transition_table,
+  QueryAnalysis *analysis,
+  AnalysisState *state,
+  uint32_t state_index,
+  uint32_t recursion_depth_limit
+) {
+  const TSStateId parse_state = analysis_state__top(state)->parse_state;
+  const TSFieldId parent_field_id = analysis_state__top(state)->field_id;
+  const uint32_t child_index = analysis_state__top(state)->child_index;
+  const QueryStep * const step = array_get(&self->steps, state->step_index);
+
+  if (parse_state >= transition_table->state_count) return;
+  uint32_t transition_start = transition_table->offsets[parse_state];
+  uint32_t transition_end = transition_table->offsets[parse_state + 1];
+  for (uint32_t t = transition_start; t < transition_end; t++) {
+    const AnalysisTransition *transition = array_get(&transition_table->transitions, t);
+    uint32_t succ_child_index = transition->is_extra ? child_index : child_index + 1;
+    if (succ_child_index >= 128) continue;
+    uint32_t node_index;
+    if (!analysis_subgraph__find_nodes(
+      subgraph,
+      transition->next_state,
+      succ_child_index,
+      transition_table->state_count,
+      &node_index
+    )) {
+      continue;
+    }
+    ts_query__analyze_subgraph_nodes(
+      self,
+      subgraph,
+      analysis,
+      state,
+      step,
+      transition->symbol,
+      parse_state,
+      child_index,
+      parent_field_id,
+      transition->next_state,
+      succ_child_index,
+      node_index,
+      state_index,
+      recursion_depth_limit
+    );
+  }
 }
 
 // Walk the subgraph for this non-terminal, tracking all of the possible
@@ -1670,12 +2011,7 @@ static void ts_query__perform_analysis(
         }
       }
 
-      const TSStateId parse_state = analysis_state__top(state)->parse_state;
       const TSSymbol parent_symbol = analysis_state__top(state)->parent_symbol;
-      const TSFieldId parent_field_id = analysis_state__top(state)->field_id;
-      const uint32_t child_index = analysis_state__top(state)->child_index;
-      const QueryStep * const step = array_get(&self->steps, state->step_index);
-
       if (parent_symbol >= total_symbol_count) continue;
       uint32_t subgraph_index = subgraph_indices[parent_symbol];
       if (subgraph_index == UINT32_MAX) continue;
@@ -1683,203 +2019,15 @@ static void ts_query__perform_analysis(
 
       // Follow every possible shift/goto transition from this parse state,
       // skipping states that are not part of the subgraph for the current symbol.
-      uint32_t transition_start = parse_state < transition_table->state_count
-        ? transition_table->offsets[parse_state]
-        : 0;
-      uint32_t transition_end = parse_state < transition_table->state_count
-        ? transition_table->offsets[parse_state + 1]
-        : 0;
-      for (uint32_t t = transition_start; t < transition_end; t++) {
-        const AnalysisTransition *transition = array_get(&transition_table->transitions, t);
-        TSSymbol sym = transition->symbol;
-
-        uint32_t succ_child_index = transition->is_extra ? child_index : child_index + 1;
-        if (succ_child_index >= 128) continue;
-        TSStateId succ_state = transition->next_state;
-        uint32_t node_index;
-        if (!analysis_subgraph__find_nodes(
-          subgraph,
-          succ_state,
-          succ_child_index,
-          transition_table->state_count,
-          &node_index
-        )) {
-          continue;
-        }
-        AnalysisSubgraphNode successor = {
-          .state = succ_state,
-          .child_index = succ_child_index,
-        };
-        while (node_index < subgraph->nodes.size) {
-          AnalysisSubgraphNode *node = array_get(&subgraph->nodes, node_index);
-          node_index++;
-          if (node->state != successor.state || node->child_index != successor.child_index) break;
-
-          // Use the subgraph to determine what alias will eventually be applied
-          // to this child node.
-          TSSymbol alias = ts_language_alias_at(self->language, node->production_id, child_index);
-          TSSymbol visible_symbol = alias
-            ? alias
-            : self->language->symbol_metadata[sym].visible
-              ? self->language->public_symbol_map[sym]
-              : 0;
-
-          // Determine if this hypothetical child node would match the current step
-          // of the query pattern. Compute `field_id` lazily only when needed.
-          bool does_match = false;
-          TSFieldId field_id = parent_field_id;
-
-          if (step->symbol == ts_builtin_sym_error) {
-            does_match = true;
-          } else if (visible_symbol) {
-            does_match = true;
-            if (step->symbol == WILDCARD_SYMBOL) {
-              if (
-                step->is_named &&
-                !self->language->symbol_metadata[visible_symbol].named
-              ) does_match = false;
-            } else if (step->symbol != visible_symbol) {
-              does_match = false;
-            }
-            if (does_match && step->supertype_symbol && !analysis_state__has_supertype(state, step->supertype_symbol)) {
-              does_match = false;
-            }
-            if (does_match && step->field) {
-              field_id = ts_query__field_id_for_child(
-                self->language,
-                node->production_id,
-                child_index,
-                parent_field_id
-              );
-              if (step->field != field_id) does_match = false;
-            }
-          } else if (sym >= self->language->token_count) {
-            field_id = ts_query__field_id_for_child(
-              self->language,
-              node->production_id,
-              child_index,
-              parent_field_id
-            );
-          }
-
-          // Extra shifts that don't match and aren't hidden non-terminals can't change state.
-          if (!does_match && successor.state == parse_state && (visible_symbol || sym < self->language->token_count)) {
-            continue;
-          }
-
-          // Create a new state that has advanced past this hypothetical subtree.
-          AnalysisState next_state = *state;
-          AnalysisStateEntry *next_state_top = analysis_state__top(&next_state);
-          next_state_top->child_index = successor.child_index;
-          next_state_top->parse_state = successor.state;
-          if (node->done) next_state_top->done = true;
-
-          // If this child is hidden, then descend into it and walk through its children.
-          // If the top entry of the stack is at the end of its rule, then that entry can
-          // be replaced. Otherwise, push a new entry onto the stack.
-          if (!visible_symbol && step->symbol != ts_builtin_sym_error && sym >= self->language->token_count) {
-            if (!next_state_top->done) {
-              if (next_state.depth + 1 >= MAX_ANALYSIS_STATE_DEPTH) {
-                #ifdef DEBUG_ANALYZE_QUERY
-                  printf("Exceeded depth limit for state %u\n", j);
-                #endif
-
-                analysis->did_abort = true;
-                continue;
-              }
-
-              next_state.depth++;
-              next_state_top = analysis_state__top(&next_state);
-            }
-
-            *next_state_top = (AnalysisStateEntry) {
-              .parse_state = parse_state,
-              .parent_symbol = sym,
-              .child_index = 0,
-              .field_id = field_id,
-              .done = false,
-            };
-
-            if (analysis_state__recursion_depth(&next_state) > recursion_depth_limit) {
-              analysis_state_set__insert_sorted_hashed(
-                &analysis->deeper_states,
-                &analysis->deeper_states_set,
-                &analysis->state_pool,
-                &next_state
-              );
-              continue;
-            }
-          }
-
-          // Pop from the stack when this state reached the end of its current syntax node.
-          while (next_state.depth > 0 && next_state_top->done) {
-            next_state.depth--;
-            next_state_top = analysis_state__top(&next_state);
-          }
-
-          // If this hypothetical child did match the current step of the query pattern,
-          // then advance to the next step at the current depth. This involves skipping
-          // over any descendant steps of the current child.
-          const QueryStep *next_step = step;
-          if (does_match) {
-            for (;;) {
-              next_state.step_index++;
-              next_step = array_get(&self->steps, next_state.step_index);
-              if (
-                next_step->depth == PATTERN_DONE_MARKER ||
-                next_step->depth <= step->depth
-              ) break;
-            }
-          } else if (successor.state == parse_state) {
-            continue;
-          }
-
-          for (;;) {
-            // Skip pass-through states. Although these states have alternatives, they are only
-            // used to implement repetitions, and query analysis does not need to process
-            // repetitions in order to determine whether steps are possible and definite.
-            if (next_step->is_pass_through) {
-              next_state.step_index++;
-              next_step++;
-              continue;
-            }
-
-            // If the pattern is finished or hypothetical parent node is complete, then
-            // record that matching can terminate at this step of the pattern. Otherwise,
-            // add this state to the list of states to process on the next iteration.
-            if (!next_step->is_dead_end) {
-              bool did_finish_pattern = array_get(&self->steps, next_state.step_index)->depth != step->depth;
-              if (did_finish_pattern) {
-                array_insert_sorted_by(&analysis->finished_parent_symbols, , state->root_symbol);
-              } else if (next_state.depth == 0) {
-                array_insert_sorted_by(&analysis->final_step_indices, , next_state.step_index);
-              } else {
-                analysis_state_set__insert_sorted_hashed(
-                  &analysis->next_states,
-                  &analysis->next_states_set,
-                  &analysis->state_pool,
-                  &next_state
-                );
-              }
-            }
-
-            // If the state has advanced to a step with an alternative step, then add another state
-            // at that alternative step. This process is simpler than the process of actually matching a
-            // pattern during query execution, because for the purposes of query analysis, there is no
-            // need to process repetitions.
-            if (
-              does_match &&
-              next_step->alternative_index != NONE &&
-              next_step->alternative_index > next_state.step_index
-            ) {
-              next_state.step_index = next_step->alternative_index;
-              next_step = array_get(&self->steps, next_state.step_index);
-            } else {
-              break;
-            }
-          }
-        }
-      }
+      ts_query__advance_analysis_state(
+        self,
+        subgraph,
+        transition_table,
+        analysis,
+        state,
+        j,
+        recursion_depth_limit
+      );
     }
 
     AnalysisStateSet _states = analysis->states;
@@ -2058,16 +2206,8 @@ static bool ts_query__analyze_patterns(TSQuery *self, uint32_t *error_offset) {
     transition_table.offsets[state] = transition_table.transitions.size;
     LookaheadIterator lookahead_iterator = ts_language_lookaheads(self->language, state);
     while (ts_lookahead_iterator__next(&lookahead_iterator)) {
+      analysis_transition_table__record_lookahead(&transition_table, state, &lookahead_iterator);
       if (lookahead_iterator.action_count) {
-        const TSParseAction *last_action =
-          &lookahead_iterator.actions[lookahead_iterator.action_count - 1];
-        if (last_action->type == TSParseActionTypeShift) {
-          array_push(&transition_table.transitions, ((AnalysisTransition) {
-            .symbol = lookahead_iterator.symbol,
-            .next_state = last_action->shift.extra ? state : last_action->shift.state,
-            .is_extra = last_action->shift.extra,
-          }));
-        }
         for (uint32_t i = 0; i < lookahead_iterator.action_count; i++) {
           const TSParseAction *action = &lookahead_iterator.actions[i];
           if (action->type == TSParseActionTypeReduce) {
@@ -2100,11 +2240,6 @@ static bool ts_query__analyze_patterns(TSQuery *self, uint32_t *error_offset) {
           }
         }
       } else if (lookahead_iterator.next_state != 0) {
-        array_push(&transition_table.transitions, ((AnalysisTransition) {
-          .symbol = lookahead_iterator.symbol,
-          .next_state = lookahead_iterator.next_state,
-          .is_extra = false,
-        }));
         if (lookahead_iterator.next_state != state) {
           state_predecessor_map_add(&predecessor_map, lookahead_iterator.next_state, state);
         }
@@ -3738,13 +3873,12 @@ void ts_query_disable_pattern(
   // be in the `steps` array, but they will never be read.
   for (uint32_t i = 0; i < self->pattern_map.size; i++) {
     PatternEntry *pattern = array_get(&self->pattern_map, i);
-    if (pattern->pattern_index == pattern_index) {
-      array_erase(&self->pattern_map, i);
-      if (i < self->wildcard_root_pattern_count) {
-        self->wildcard_root_pattern_count--;
-      }
-      i--;
+    if (pattern->pattern_index != pattern_index) continue;
+    array_erase(&self->pattern_map, i);
+    if (i < self->wildcard_root_pattern_count) {
+      self->wildcard_root_pattern_count--;
     }
+    i--;
   }
   ts_query__build_symbol_pattern_map(self);
 }
@@ -3847,6 +3981,12 @@ void ts_query_cursor_exec(
   ts_tree_cursor_reset(&self->cursor, node);
   capture_list_pool_reset(&self->capture_list_pool);
   self->on_visible_node = true;
+  self->root_within_unbounded_bounds =
+    ts_node_is_null(node) ||
+    (
+      ts_node_end_byte(node) < UINT32_MAX &&
+      point_lt(ts_node_end_point(node), POINT_MAX)
+    );
   self->next_state_id = 0;
   self->next_finished_state_id = 0;
   self->depth = 0;
@@ -4394,7 +4534,9 @@ static inline QueryCursorRangeCheck ts_query_cursor__check_ranges(
     .node_intersects_containing_range = true,
     .node_within_containing_range = true,
   };
-  if (!self->has_included_range && !self->has_containing_range) {
+  bool check_included = self->has_included_range || !self->root_within_unbounded_bounds;
+  bool check_containing = self->has_containing_range || !self->root_within_unbounded_bounds;
+  if (!check_included && !check_containing) {
     return check;
   }
 
@@ -4404,7 +4546,7 @@ static inline QueryCursorRangeCheck ts_query_cursor__check_ranges(
     .start_byte = ts_node_start_byte(node),
     .end_byte = ts_node_end_byte(node),
   };
-  if (self->has_included_range) {
+  if (check_included) {
     check.parent_node = ts_tree_cursor_parent_node(&self->cursor);
     check.has_parent_node = true;
     check.parent_intersects_range =
@@ -4418,13 +4560,36 @@ static inline QueryCursorRangeCheck ts_query_cursor__check_ranges(
     check.node_intersects_range =
       check.parent_intersects_range && range_intersects(&node_range, &self->included_range);
   }
-  if (self->has_containing_range) {
+  if (check_containing) {
     check.node_intersects_containing_range =
       range_intersects(&node_range, &self->containing_range);
     check.node_within_containing_range =
       range_within(&node_range, &self->containing_range);
   }
   return check;
+}
+
+static inline bool ts_query_cursor__should_process_visible_node(
+  const TSQueryCursor *self,
+  TSNode node,
+  bool node_within_containing_range,
+  TSSymbol *symbol_out,
+  uint32_t *pattern_map_index_out,
+  bool *has_symbol_patterns_out,
+  bool *has_wildcard_patterns_out
+) {
+  if (!node_within_containing_range || !self->on_visible_node) return false;
+  TSSymbol symbol = ts_node_symbol(node);
+  bool node_is_error = symbol == ts_builtin_sym_error;
+  uint32_t pattern_map_index = 0;
+  bool has_symbol_patterns = ts_query__pattern_map_lookup(self->query, symbol, &pattern_map_index);
+  bool has_wildcard_patterns = !node_is_error && self->query->wildcard_root_pattern_count > 0;
+  if (self->states.size == 0 && !has_symbol_patterns && !has_wildcard_patterns) return false;
+  *symbol_out = symbol;
+  *pattern_map_index_out = pattern_map_index;
+  *has_symbol_patterns_out = has_symbol_patterns;
+  *has_wildcard_patterns_out = has_wildcard_patterns;
+  return true;
 }
 
 static inline bool ts_query_cursor__parent_is_error(
@@ -4568,17 +4733,20 @@ static inline bool ts_query_cursor__advance(
       bool node_intersects_containing_range = range_check.node_intersects_containing_range;
       bool node_within_containing_range = range_check.node_within_containing_range;
 
-      if (node_within_containing_range && self->on_visible_node) {
-        TSSymbol symbol = ts_node_symbol(node);
+      TSSymbol symbol = 0;
+      uint32_t pattern_map_index = 0;
+      bool has_symbol_patterns = false;
+      bool has_wildcard_patterns = false;
+      if (ts_query_cursor__should_process_visible_node(
+        self,
+        node,
+        node_within_containing_range,
+        &symbol,
+        &pattern_map_index,
+        &has_symbol_patterns,
+        &has_wildcard_patterns
+      )) {
         bool node_is_error = symbol == ts_builtin_sym_error;
-        uint32_t pattern_map_index = 0;
-        bool has_symbol_patterns = ts_query__pattern_map_lookup(self->query, symbol, &pattern_map_index);
-        bool has_wildcard_patterns = !node_is_error && self->query->wildcard_root_pattern_count > 0;
-
-        if (self->states.size == 0 && !has_symbol_patterns && !has_wildcard_patterns) {
-          goto descend_or_ascend;
-        }
-
         bool is_named = ts_node_is_named(node);
         bool is_missing = ts_node_is_missing(node);
         bool has_later_siblings;
@@ -5038,7 +5206,6 @@ static inline bool ts_query_cursor__advance(
         }
       }
 
-      descend_or_ascend:
       if (node_intersects_containing_range && ts_query_cursor__should_descend(self, node_intersects_range)) {
         switch (ts_tree_cursor_goto_first_child_internal(&self->cursor)) {
           case TreeCursorStepVisible:
