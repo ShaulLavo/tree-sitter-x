@@ -4799,6 +4799,15 @@ fn test_query_disable_wildcard_pattern() {
 }
 
 #[test]
+fn test_query_field_qualified_error_pattern_compiles() {
+    allocations::record(|| {
+        let language = get_language("javascript");
+        let query = Query::new(&language, "(binary_expression left: (ERROR) @err)").unwrap();
+        assert_eq!(query.pattern_count(), 1);
+    });
+}
+
+#[test]
 fn test_query_deep_clone() {
     allocations::record(|| {
         let language = get_language("javascript");

@@ -1547,8 +1547,10 @@ static inline bool analysis_subgraph__find_nodes(
 static inline TSFieldId ts_query__field_id_for_child(
   const TSLanguage *language,
   uint16_t production_id,
-  uint32_t child_index
+  uint32_t child_index,
+  TSFieldId parent_field_id
 ) {
+  if (parent_field_id) return parent_field_id;
   const TSFieldMapEntry *field_map, *field_map_end;
   ts_language_field_map(language, production_id, &field_map, &field_map_end);
   for (; field_map != field_map_end; field_map++) {
@@ -1726,7 +1728,6 @@ static void ts_query__perform_analysis(
           // of the query pattern. Compute `field_id` lazily only when needed.
           bool does_match = false;
           TSFieldId field_id = parent_field_id;
-          bool need_field = false;
 
           if (step->symbol == ts_builtin_sym_error) {
             does_match = true;
@@ -1744,17 +1745,21 @@ static void ts_query__perform_analysis(
               does_match = false;
             }
             if (does_match && step->field) {
-              need_field = !field_id;
+              field_id = ts_query__field_id_for_child(
+                self->language,
+                node->production_id,
+                child_index,
+                parent_field_id
+              );
+              if (step->field != field_id) does_match = false;
             }
           } else if (sym >= self->language->token_count) {
-            need_field = !field_id;
-          }
-
-          if (need_field) {
-            field_id = ts_query__field_id_for_child(self->language, node->production_id, child_index);
-          }
-          if (visible_symbol && does_match && step->field && step->field != field_id) {
-            does_match = false;
+            field_id = ts_query__field_id_for_child(
+              self->language,
+              node->production_id,
+              child_index,
+              parent_field_id
+            );
           }
 
           // Extra shifts that don't match and aren't hidden non-terminals can't change state.
@@ -4382,7 +4387,7 @@ static inline QueryCursorRangeCheck ts_query_cursor__check_ranges(
   TSNode node
 ) {
   QueryCursorRangeCheck check = {
-    .parent_node = {0},
+    .parent_node = { .id = NULL },
     .has_parent_node = false,
     .parent_intersects_range = true,
     .node_intersects_range = true,
