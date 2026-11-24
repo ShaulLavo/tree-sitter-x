@@ -1413,17 +1413,22 @@ impl Loader {
             "-fPIC",
             "-shared",
             "--no-wasm-opt",
-            if self.debug_build { "-g" } else { "-Os" },
+            if self.debug_build { "-g" } else { "-Oz" },
             format!("-Wl,--export=tree_sitter_{language_name}").as_str(),
             "-Wl,--allow-undefined",
             "-Wl,--no-entry",
             "-nostdlib",
             "-fno-exceptions",
             "-fvisibility=hidden",
-            "-I",
-            ".",
-            "parser.c",
         ]);
+        if !self.debug_build {
+            compile_command.args([
+                "-ffunction-sections",
+                "-fdata-sections",
+                "-Wl,--gc-sections",
+            ]);
+        }
+        compile_command.args(["-I", ".", "parser.c"]);
 
         if let Some(scanner_filename) = scanner_filename {
             compile_command.arg(scanner_filename);
@@ -1453,9 +1458,13 @@ impl Loader {
         }
 
         let mut opt_command = Command::new(&wasm_opt_exe);
-        opt_command
-            .current_dir(src_path)
-            .args([temp_output_str, "-Os", "-o", temp_output_str]);
+        opt_command.current_dir(src_path).arg(temp_output_str);
+        if self.debug_build {
+            opt_command.arg("-Os");
+        } else {
+            opt_command.args(["-Oz", "--strip-producers", "--low-memory-unused"]);
+        }
+        opt_command.args(["-o", temp_output_str]);
 
         if self.verbose {
             display_build_cmd(&opt_command);

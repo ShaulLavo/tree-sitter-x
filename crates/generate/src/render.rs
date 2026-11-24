@@ -23,7 +23,7 @@ use super::{
 };
 use crate::tables::{ActionListId, ActionListPool};
 
-const SMALL_STATE_THRESHOLD: usize = 64;
+const SMALL_STATE_THRESHOLD: usize = 96;
 /// The two highest symbol IDs are reserved for `ERROR` and `_ERROR`.
 const MAX_SYMBOL_COUNT: usize = u16::MAX as usize - 1;
 pub const ABI_VERSION_MIN: usize = 14;
@@ -1397,9 +1397,17 @@ impl Generator {
                     .len()
                     .saturating_sub(self.large_state_count),
             );
+            let mut small_state_rows =
+                FxHashMap::<Vec<((u32, SymbolType), Vec<Symbol>)>, usize>::default();
             let mut symbols_by_value = FxHashMap::<(u32, SymbolType), Vec<Symbol>>::default();
-            for state in self.parse_table.states.iter().skip(self.large_state_count) {
-                small_state_indices.push(next_table_index);
+            for (offset, state) in self
+                .parse_table
+                .states
+                .iter()
+                .skip(self.large_state_count)
+                .enumerate()
+            {
+                let state_index = (self.large_state_count + offset) as u32;
                 symbols_by_value.clear();
 
                 terminal_entries.clear();
@@ -1424,9 +1432,7 @@ impl Generator {
                 for (symbol, action) in state.nonterminal_entries.iter() {
                     let state_id = match action {
                         GotoAction::Goto(i) => *i,
-                        GotoAction::ShiftExtra => {
-                            (self.large_state_count + small_state_indices.len() - 1) as u32
-                        }
+                        GotoAction::ShiftExtra => state_index,
                     };
                     symbols_by_value
                         .entry((state_id, SymbolType::NonTerminal))
@@ -1435,9 +1441,22 @@ impl Generator {
                 }
 
                 let mut values_with_symbols = symbols_by_value.drain().collect::<Vec<_>>();
+                for (_, symbols) in &mut values_with_symbols {
+                    symbols.sort_unstable();
+                }
+                // Place larger action groups first to reduce average comparisons in
+                // `ts_language_lookup`, and deduplicate identical small-state rows.
                 values_with_symbols.sort_unstable_by_key(|((value, kind), symbols)| {
-                    (symbols.len(), *kind, *value, symbols[0])
+                    (cmp::Reverse(symbols.len()), *kind, *value, symbols[0])
                 });
+
+                if let Some(&existing_index) = small_state_rows.get(&values_with_symbols) {
+                    small_state_indices.push(existing_index);
+                    continue;
+                }
+
+                small_state_indices.push(next_table_index);
+                let row_index = next_table_index;
 
                 add_line!(
                     self,
@@ -1447,7 +1466,7 @@ impl Generator {
                 indent!(self);
                 next_table_index += 1;
 
-                for ((value, kind), symbols) in &mut values_with_symbols {
+                for ((value, kind), symbols) in &values_with_symbols {
                     next_table_index += 2 + symbols.len();
                     if *kind == SymbolType::NonTerminal {
                         add_line!(self, "STATE({value}), {},", symbols.len());
@@ -1455,7 +1474,6 @@ impl Generator {
                         add_line!(self, "ACTIONS({value}), {},", symbols.len());
                     }
 
-                    symbols.sort_unstable();
                     indent!(self);
                     for symbol in symbols {
                         add_line!(self, "{},", self.symbol_ids[symbol]);
@@ -1464,6 +1482,7 @@ impl Generator {
                 }
 
                 dedent!(self);
+                small_state_rows.insert(values_with_symbols, row_index);
             }
 
             dedent!(self);
@@ -2018,4 +2037,123 @@ pub fn render_c_code(
         ..Default::default()
     }
     .generate()
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+
+    use crate::{LANGUAGE_VERSION, OptLevel, generate_parser_for_grammar};
+
+    #[test]
+    fn test_small_parse_table_dedup_and_group_order() {
+        let grammar_json = r#"{
+            "name": "small_table_test",
+            "word": "ident",
+            "reserved": {
+                "r1": [{ "type": "STRING", "value": "x" }],
+                "r2": [{ "type": "STRING", "value": "y" }]
+            },
+            "rules": {
+                "program": {
+                    "type": "CHOICE",
+                    "members": [
+                        { "type": "SEQ", "members": [{ "type": "STRING", "value": "a" }, { "type": "RESERVED", "context_name": "r1", "content": { "type": "SYMBOL", "name": "tail" } }] },
+                        { "type": "SEQ", "members": [{ "type": "STRING", "value": "b" }, { "type": "RESERVED", "context_name": "r2", "content": { "type": "SYMBOL", "name": "tail" } }] },
+                        { "type": "SEQ", "members": [{ "type": "STRING", "value": "c" }, { "type": "SYMBOL", "name": "item" }, { "type": "STRING", "value": "!" }] },
+                        { "type": "SEQ", "members": [{ "type": "STRING", "value": "d" }, { "type": "SYMBOL", "name": "item" }, { "type": "STRING", "value": "?" }] }
+                    ]
+                },
+                "tail": {
+                    "type": "SEQ",
+                    "members": [
+                        { "type": "SYMBOL", "name": "item" },
+                        { "type": "CHOICE", "members": [
+                            { "type": "STRING", "value": ";" },
+                            { "type": "STRING", "value": "," },
+                            { "type": "STRING", "value": "." }
+                        ]}
+                    ]
+                },
+                "item": {
+                    "type": "CHOICE",
+                    "members": [
+                        { "type": "SYMBOL", "name": "ident" },
+                        { "type": "STRING", "value": "x" },
+                        { "type": "STRING", "value": "y" },
+                        { "type": "STRING", "value": "z" }
+                    ]
+                },
+                "ident": { "type": "PATTERN", "value": "[a-z]+" }
+            }
+        }"#;
+
+        let (_, c_code) =
+            generate_parser_for_grammar(grammar_json, None, OptLevel::default(), &mut Vec::new())
+                .unwrap();
+        assert!(c_code.contains(&format!("#define LANGUAGE_VERSION {LANGUAGE_VERSION}")));
+
+        let map_start = c_code
+            .find("static const uint32_t ts_small_parse_table_map[] = {")
+            .expect("expected small parse table map");
+        let map_end = map_start + c_code[map_start..].find("};").unwrap();
+        let map_section = &c_code[map_start..map_end];
+
+        let mut offsets = Vec::new();
+        for line in map_section.lines() {
+            let trimmed = line.trim();
+            if trimmed.starts_with("[SMALL_STATE(")
+                && let Some((_, rhs)) = trimmed.split_once("] = ")
+            {
+                let value: usize = rhs.trim_end_matches(',').parse().unwrap();
+                offsets.push(value);
+            }
+        }
+        assert!(offsets.len() >= 2, "expected multiple small states");
+        let unique_offsets: HashSet<usize> = offsets.iter().copied().collect();
+        assert!(
+            unique_offsets.len() < offsets.len(),
+            "expected duplicate small-state rows to share offsets: {offsets:?}"
+        );
+
+        let table_start = c_code
+            .find("static const uint16_t ts_small_parse_table[] = {")
+            .expect("expected small parse table");
+        let table_end = table_start + c_code[table_start..].find("};").unwrap();
+        let table_section = &c_code[table_start..table_end];
+
+        let mut current_group_sizes: Vec<usize> = Vec::new();
+        let mut saw_multi_group = false;
+        for line in table_section.lines() {
+            let trimmed = line.trim();
+            if trimmed.starts_with('[') {
+                if current_group_sizes.len() >= 2 {
+                    saw_multi_group = true;
+                }
+                for pair in current_group_sizes.windows(2) {
+                    assert!(
+                        pair[0] >= pair[1],
+                        "expected descending group sizes, got {current_group_sizes:?}"
+                    );
+                }
+                current_group_sizes.clear();
+            } else if trimmed.starts_with("ACTIONS(") || trimmed.starts_with("STATE(") {
+                let count_str = trimmed.split(", ").nth(1).unwrap().trim_end_matches(',');
+                current_group_sizes.push(count_str.parse().unwrap());
+            }
+        }
+        if current_group_sizes.len() >= 2 {
+            saw_multi_group = true;
+        }
+        for pair in current_group_sizes.windows(2) {
+            assert!(
+                pair[0] >= pair[1],
+                "expected descending group sizes, got {current_group_sizes:?}"
+            );
+        }
+        assert!(
+            saw_multi_group,
+            "expected at least one multi-group small-state row"
+        );
+    }
 }
