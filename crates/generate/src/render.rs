@@ -1444,10 +1444,8 @@ impl Generator {
                 for (_, symbols) in &mut values_with_symbols {
                     symbols.sort_unstable();
                 }
-                // Place larger action groups first to reduce average comparisons in
-                // `ts_language_lookup`, and deduplicate identical small-state rows.
                 values_with_symbols.sort_unstable_by_key(|((value, kind), symbols)| {
-                    (cmp::Reverse(symbols.len()), *kind, *value, symbols[0])
+                    (symbols.len(), *kind, *value, symbols[0])
                 });
 
                 if let Some(&existing_index) = small_state_rows.get(&values_with_symbols) {
@@ -2132,8 +2130,8 @@ mod tests {
                 }
                 for pair in current_group_sizes.windows(2) {
                     assert!(
-                        pair[0] >= pair[1],
-                        "expected descending group sizes, got {current_group_sizes:?}"
+                        pair[0] <= pair[1],
+                        "expected ascending group sizes, got {current_group_sizes:?}"
                     );
                 }
                 current_group_sizes.clear();
@@ -2147,8 +2145,8 @@ mod tests {
         }
         for pair in current_group_sizes.windows(2) {
             assert!(
-                pair[0] >= pair[1],
-                "expected descending group sizes, got {current_group_sizes:?}"
+                pair[0] <= pair[1],
+                "expected ascending group sizes, got {current_group_sizes:?}"
             );
         }
         assert!(
