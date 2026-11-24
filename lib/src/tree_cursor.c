@@ -141,17 +141,19 @@ static inline bool ts_tree_cursor_child_iterator_previous(
 
   if (!extra && self->alias_sequence) {
     *visible |= self->alias_sequence[self->structural_child_index];
-    if (self->structural_child_index > 0) {
-      self->structural_child_index--;
-    }
   }
 
   // unsigned can underflow so compare it to child_count
   if (self->child_index < self->parent.ptr->child_count) {
     Subtree previous_child = ts_subtree_children(self->parent)[self->child_index];
     bool previous_visible = ts_subtree_visible(previous_child);
-    if (!ts_subtree_extra(previous_child) && self->alias_sequence) {
-      previous_visible |= self->alias_sequence[self->structural_child_index];
+    if (!ts_subtree_extra(previous_child)) {
+      if (self->structural_child_index > 0) {
+        self->structural_child_index--;
+      }
+      if (self->alias_sequence) {
+        previous_visible |= self->alias_sequence[self->structural_child_index];
+      }
     }
     self->descendant_index -= ts_subtree_visible_descendant_count(previous_child);
     if (previous_visible) {

@@ -495,6 +495,77 @@ fn test_tree_cursor_previous_sibling_descendant_index() {
 }
 
 #[test]
+fn test_tree_cursor_previous_sibling_across_extra_with_alias() {
+    let language = get_test_fixture_language("field_lookup_through_hidden_nodes");
+    let mut parser = Parser::new();
+    parser.set_language(&language).unwrap();
+    let tree = parser.parse("pair a // comment\n, b;", None).unwrap();
+
+    // Forward walk across alias_pair children: "pair", wrapped(name), comment, ",", b, ";"
+    let mut cursor = tree.walk();
+    assert!(cursor.goto_first_child());
+    assert_eq!(cursor.node().kind(), "alias_pair");
+
+    assert!(cursor.goto_first_child());
+    let mut forward = Vec::new();
+    loop {
+        forward.push((cursor.node().kind().to_string(), cursor.descendant_index()));
+        if !cursor.goto_next_sibling() {
+            break;
+        }
+    }
+    let comment_pos = forward
+        .iter()
+        .position(|(kind, _)| kind == "comment")
+        .unwrap();
+    assert_eq!(forward[comment_pos - 1].0, "wrapped");
+    assert_eq!(forward[comment_pos + 1].0, ",");
+
+    // Reverse from the comment reached forward: must land on `wrapped`, not nested `name`.
+    let mut c1 = tree.walk();
+    assert!(c1.goto_first_child());
+    assert!(c1.goto_first_child());
+    for _ in 0..comment_pos {
+        assert!(c1.goto_next_sibling());
+    }
+    assert_eq!(c1.node().kind(), "comment");
+    assert_eq!(c1.descendant_index(), forward[comment_pos].1);
+    assert!(c1.goto_previous_sibling());
+    assert_eq!(c1.node().kind(), forward[comment_pos - 1].0);
+    assert_eq!(c1.descendant_index(), forward[comment_pos - 1].1);
+
+    // Reverse from `,` to `comment` and forward again to `,`: must preserve alias/index.
+    let mut c2 = tree.walk();
+    assert!(c2.goto_first_child());
+    assert!(c2.goto_first_child());
+    for _ in 0..=comment_pos {
+        assert!(c2.goto_next_sibling());
+    }
+    assert_eq!(c2.node().kind(), ",");
+    assert_eq!(c2.descendant_index(), forward[comment_pos + 1].1);
+    assert!(c2.goto_previous_sibling());
+    assert_eq!(c2.node().kind(), "comment");
+    assert_eq!(c2.descendant_index(), forward[comment_pos].1);
+    assert!(c2.goto_next_sibling());
+    assert_eq!(c2.node().kind(), ",");
+    assert_eq!(c2.descendant_index(), forward[comment_pos + 1].1);
+
+    // Full reverse walk from last child must match forward walk exactly.
+    let mut c3 = tree.walk();
+    assert!(c3.goto_first_child());
+    assert!(c3.goto_last_child());
+    let mut backward = Vec::new();
+    loop {
+        backward.push((c3.node().kind().to_string(), c3.descendant_index()));
+        if !c3.goto_previous_sibling() {
+            break;
+        }
+    }
+    backward.reverse();
+    assert_eq!(backward, forward);
+}
+
+#[test]
 fn test_tree_cursor_fields() {
     let mut parser = Parser::new();
     parser.set_language(&get_language("javascript")).unwrap();

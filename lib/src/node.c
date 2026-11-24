@@ -753,15 +753,6 @@ static TSNode ts_node_child_with_same_range_descendant(
 
     if (ts_node_eq(child, descendant)) {
       result = child;
-
-      // Return the outermost visible node on the path. Hidden wrappers
-      // should not become the result when a visible descendant exists.
-      while (stack.size) {
-        DescendantSearchFrame frame = array_pop(&stack);
-        if (ts_node__is_relevant(frame.child, true)) {
-          result = frame.child;
-        }
-      }
       break;
     }
 
@@ -777,6 +768,17 @@ static TSNode ts_node_child_with_same_range_descendant(
         .iterator = iterator,
       }));
       iterator = ts_node_iterate_children(&child);
+    }
+  }
+
+  // Return the outermost visible node on the path. Hidden wrappers
+  // should not become the result when a visible descendant exists.
+  if (!ts_node_is_null(result)) {
+    while (stack.size) {
+      DescendantSearchFrame frame = array_pop(&stack);
+      if (ts_node__is_relevant(frame.child, true)) {
+        result = frame.child;
+      }
     }
   }
 
