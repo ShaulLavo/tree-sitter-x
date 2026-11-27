@@ -1,0 +1,32 @@
+{
+  "name": "@shaulavo/tree-sitter-scope-compat",
+  "version": "0.1.0",
+  "description": "Standalone Tree-sitter TextMate scope packs, native VS Code theme matcher, and universal Zed-plus capture fallback for @shaulavo/web-tree-sitter-x",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ShaulLavo/tree-sitter-x.git",
+    "directory": "lib/scope-compat"
+  },
+  "exports": {
+    ".": {
+      "types": "./js/index.ts",
+      "default": "./js/index.ts"
+    },
+    "./scope-compat.wasm": "./build/scope-compat.wasm",
+    "./packs/*": "./packs/*"
+  },
+  "types": "./js/index.ts",
+  "files": [
+    "js",
+    "packs",
+    "build/scope-compat.wasm"
+  ],
+  "peerDependencies": {
+    "@shaulavo/web-tree-sitter-x": ">=0.28.0"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
