@@ -12,7 +12,7 @@ import type { NativePack } from './component.ts';
 import type { Edit, TextSpan } from './edit-batch.ts';
 import { integer } from './edit-batch.ts';
 import type { ScopeInterval } from '../baselines/compose.ts';
-export interface ReplayOptions { readonly seed: number; readonly edits: number; readonly language: 'json' | 'typescript' | 'tsx' | 'markdown' }
+export interface ReplayOptions { readonly seed: number; readonly edits: number; readonly language: 'json' | 'javascript' | 'jsx' | 'typescript' | 'tsx' | 'markdown' }
 export class ReplayFailure extends Error {
   readonly reproduction: Readonly<Record<string, unknown>>;
   constructor(reproduction: Readonly<Record<string, unknown>>) { super(`Native replay mismatch: ${JSON.stringify(reproduction)}`); this.reproduction = reproduction; }
@@ -23,7 +23,8 @@ async function open(language: ReplayOptions['language'], source: string): Promis
 function initial(language: ReplayOptions['language']): string {
   if (language === 'markdown') return '# Replay\r\n```typescript\nconst value = JSON;\n```\n```json\n{"x":1}\n```\n';
   if (language === 'json') return '\ufeff{"value":[1,true,"😀"]}\r\n';
-  return language === 'tsx' ? 'const view = <div>{JSON.stringify("😀")}</div>;\r\n' : '\ufeffconst value = JSON;\r\nconst text = "😀é";\n';
+  if (language === 'jsx' || language === 'tsx') return 'const view = <div>{JSON.stringify("😀")}</div>;\r\n';
+  return '\ufeffconst value = JSON;\r\nconst text = "😀é";\n';
 }
 function random(seed: number): () => number {
   let value = seed >>> 0;
