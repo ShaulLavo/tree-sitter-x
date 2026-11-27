@@ -17,10 +17,10 @@ const packs = [
   { id: 'json', version: 'pilot-1', manifestSha256: 'cba12f44071b2115fbd1fa11e75fa0da1ba3294fa7e294efbe2b585b44828964',
     queries: [['json.scm', '2a7d911634197084f96a7ebc6f149f8bc29012b45943268d0939d049d0fbaccf']] },
   { id: 'typescript', version: 'pilot-1', manifestSha256: '0e76a226b692093d49a8c94e98780ea1531dcf05e7380ab15da872b9b381ecad',
-    queries: [['../shared/typescript-common.scm', '727cf56941bd5f88a40c75ecd5f4d9be59080624773c570e6fe5afb67427aae0'],
+    queries: [['../shared/typescript-common.scm', '4d6bfd44c1bfecab0d422415e0185cd9cbb7463575170381f30ec77e913261d9'],
       ['typescript.scm', '1bfe84ac1adbb8aa88fc134eb8a06b54eb6fb34a82c5a02cf8016dda964c8e32']] },
   { id: 'tsx', version: 'pilot-1', manifestSha256: '7ebacb0df09270d968ff328b8b00de6423618051ead437a3e59afa48e3bd5fdf',
-    queries: [['../shared/typescript-common.scm', '727cf56941bd5f88a40c75ecd5f4d9be59080624773c570e6fe5afb67427aae0'],
+    queries: [['../shared/typescript-common.scm', '4d6bfd44c1bfecab0d422415e0185cd9cbb7463575170381f30ec77e913261d9'],
       ['tsx.scm', '13d1db68c6ce51d63df7d4b42f3ae9711d68ba7cfd6269c8dd2fc353b337fcfe']] },
 ] as const satisfies readonly FixedPack[];
 
