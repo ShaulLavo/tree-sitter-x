@@ -19,8 +19,8 @@
 (function_definition "async" @storage.type.function.async)
 
 ; Classes, functions & decorators
-(class_definition name: (identifier) @entity.name.type.class)
-(function_definition name: (identifier) @entity.name.function)
+((class_definition name: (identifier) @entity.name.type.class) (#set! priority "20"))
+((function_definition name: (identifier) @entity.name.function) (#set! priority "20"))
 (decorator) @meta.function.decorator
 (decorator "@" @entity.name.function.decorator @punctuation.definition.decorator)
 ((decorator (identifier) @entity.name.function.decorator) (#set! priority "20"))
@@ -28,12 +28,12 @@
 ((decorator (attribute attribute: (identifier) @entity.name.function.decorator)) (#set! priority "20"))
 
 ; Parameters & keyword arguments
-(parameters (identifier) @variable.parameter.function.language)
-(typed_parameter (identifier) @variable.parameter.function.language)
-(default_parameter name: (identifier) @variable.parameter.function.language)
-(typed_default_parameter name: (identifier) @variable.parameter.function.language)
-(list_splat_pattern (identifier) @variable.parameter.function.language)
-(dictionary_splat_pattern (identifier) @variable.parameter.function.language)
+((parameters (identifier) @variable.parameter.function.language) (#set! priority "20"))
+((typed_parameter (identifier) @variable.parameter.function.language) (#set! priority "20"))
+((default_parameter name: (identifier) @variable.parameter.function.language) (#set! priority "20"))
+((typed_default_parameter name: (identifier) @variable.parameter.function.language) (#set! priority "20"))
+((list_splat_pattern (identifier) @variable.parameter.function.language) (#set! priority "20"))
+((dictionary_splat_pattern (identifier) @variable.parameter.function.language) (#set! priority "20"))
 ((parameters (identifier) @variable.parameter.function.language.special.self)
  (#any-of? @variable.parameter.function.language.special.self "self" "cls")
  (#set! priority "25"))

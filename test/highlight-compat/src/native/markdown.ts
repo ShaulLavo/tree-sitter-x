@@ -385,21 +385,91 @@ function outerOnly(input: AppendChild, reason: string): void {
   input.diagnostics.push(reason); input.coverage.push(Object.freeze({ from: input.range.start, to: input.range.end, language: null, reason }));
 }
 
-function extraDecorations(source: string, decorations: readonly ResolverRecord[]): ResolverRecord[] {
-  const extra: ResolverRecord[] = [];
-  for (const record of decorations) {
-    if (record.kind !== 16) continue;
-    const text = source.slice(record.start, record.end);
-    const open = text.indexOf(']('), close = text.lastIndexOf(')');
-    if (open >= 0 && close > open + 2) {
-      extra.push(Object.freeze({ start: record.start + open + 2, end: record.start + close, kind: 100, extra: 0 }));
+function skipSpaces(source: string, index: number, limit: number): number {
+  let cursor = index;
+  while (cursor < limit && (source[cursor] === ' ' || source[cursor] === '\t')) cursor++;
+  return cursor;
+}
+function isEscaped(source: string, start: number, index: number): boolean {
+  let slashes = 0;
+  for (let i = index - 1; i >= start && source[i] === '\\'; i--) slashes++;
+  return (slashes & 1) === 1;
+}
+function linkDestinationSpan(source: string, start: number, limit: number): { readonly from: number; readonly to: number; readonly after: number } | undefined {
+  const from = skipSpaces(source, start, limit);
+  if (from >= limit) return undefined;
+  if (source[from] === '<') {
+    for (let i = from + 1; i < limit; i++) {
+      if (source[i] === '>' && !isEscaped(source, from + 1, i)) return { from: from + 1, to: i, after: i + 1 };
     }
+    return undefined;
+  }
+  let depth = 0, cursor = from;
+  while (cursor < limit) {
+    const ch = source[cursor];
+    if (ch === ' ' || ch === '\t' || ch === '\r' || ch === '\n') break;
+    if (ch === '(' && !isEscaped(source, from, cursor)) depth++;
+    else if (ch === ')' && !isEscaped(source, from, cursor)) {
+      if (depth === 0) break;
+      depth--;
+    }
+    cursor++;
+  }
+  return cursor > from ? { from, to: cursor, after: cursor } : undefined;
+}
+function linkTitleSpan(source: string, start: number, limit: number): { readonly from: number; readonly to: number } | undefined {
+  const from = skipSpaces(source, start, limit);
+  let to = limit;
+  while (to > from && (source[to - 1] === ' ' || source[to - 1] === '\t')) to--;
+  if (to - from < 2) return undefined;
+  const open = source[from], close = source[to - 1];
+  const paired = (open === '"' && close === '"') || (open === "'" && close === "'") || (open === '(' && close === ')');
+  return paired ? { from, to } : undefined;
+}
+function appendLinkExtras(source: string, link: ResolverRecord, label: ResolverRecord | undefined, extra: ResolverRecord[]): void {
+  if (!label || !source.startsWith('](', label.end) || source[link.end - 1] !== ')') return;
+  const dest = linkDestinationSpan(source, label.end + 2, link.end - 1);
+  if (!dest) return;
+  if (dest.from < dest.to) extra.push(Object.freeze({ start: dest.from, end: dest.to, kind: 100, extra: 0 }));
+  const title = linkTitleSpan(source, dest.after, link.end - 1);
+  if (title) extra.push(Object.freeze({ start: title.from, end: title.to, kind: 102, extra: 0 }));
+}
+function appendHeadingSection(source: string, heading: ResolverRecord, marker: ResolverRecord | undefined, extra: ResolverRecord[]): void {
+  let end = heading.end;
+  while (end > heading.start && (source[end - 1] === '\n' || source[end - 1] === '\r')) end--;
+  const start = marker ? skipSpaces(source, marker.end, end) : heading.start;
+  if (start < end) extra.push(Object.freeze({ start, end, kind: 101, extra: 0 }));
+}
+function extraDecorations(source: string, decorations: readonly ResolverRecord[]): ResolverRecord[] {
+  const sorted = decorations.toSorted((a, b) => a.start - b.start || b.end - a.end || a.kind - b.kind);
+  const headings: ResolverRecord[] = [], headingMarkers: ResolverRecord[] = [];
+  const links: ResolverRecord[] = [], linkLabels: ResolverRecord[] = [];
+  for (const record of sorted) {
+    if (record.kind === 2) headings.push(record);
+    else if (record.kind === 32) headingMarkers.push(record);
+    else if (record.kind === 16) links.push(record);
+    else if (record.kind === 39) linkLabels.push(record);
+  }
+  const extra: ResolverRecord[] = [];
+  let markerIndex = 0;
+  for (const heading of headings) {
+    while (markerIndex < headingMarkers.length && headingMarkers[markerIndex].start < heading.start) markerIndex++;
+    const candidate = headingMarkers[markerIndex];
+    const marker = candidate && candidate.start === heading.start && candidate.end <= heading.end ? candidate : undefined;
+    appendHeadingSection(source, heading, marker, extra);
+  }
+  let labelIndex = 0;
+  for (const link of links) {
+    while (labelIndex < linkLabels.length && linkLabels[labelIndex].start < link.start) labelIndex++;
+    const candidate = linkLabels[labelIndex];
+    const label = candidate && candidate.start >= link.start && candidate.end <= link.end ? candidate : undefined;
+    appendLinkExtras(source, link, label, extra);
   }
   return extra;
 }
 function decorationScopes(record: ResolverRecord): readonly string[] {
   if (record.kind === 1) return ['meta.paragraph.markdown'];
-  if (record.kind === 2) return ['markup.heading.markdown', `heading.${record.extra}.markdown`, 'entity.name.section.markdown'];
+  if (record.kind === 2) return ['markup.heading.markdown', `heading.${record.extra}.markdown`];
   if (record.kind === 3) return ['meta.separator.markdown'];
   if (record.kind === 4 && record.extra === 1) return ['markup.fenced_code.block.markdown'];
   if (record.kind === 5) return ['markup.quote.markdown'];
@@ -416,22 +486,43 @@ function decorationScopes(record: ResolverRecord): readonly string[] {
   if (record.kind === 36) return ['fenced_code.block.language.markdown'];
   if (record.kind === 39) return ['string.other.link.title.markdown'];
   if (record.kind === 100) return ['markup.underline.link.markdown'];
+  if (record.kind === 101) return ['entity.name.section.markdown'];
+  if (record.kind === 102) return ['string.other.link.description.title.markdown'];
   return [];
 }
+function compareDecoration(a: ResolverRecord, b: ResolverRecord): number {
+  return a.start - b.start || b.end - a.end || a.kind - b.kind;
+}
+function pruneExpired(active: ResolverRecord[], from: number): void {
+  let write = 0;
+  for (let read = 0; read < active.length; read++) {
+    if (active[read].end > from) active[write++] = active[read];
+  }
+  active.length = write;
+}
 function frame(source: string, decorations: readonly ResolverRecord[], children: readonly ScopeInterval[]): ScopeInterval[] {
-  const mapped = decorations.concat(extraDecorations(source, decorations)).filter(record => decorationScopes(record).length > 0);
+  const mapped = decorations.concat(extraDecorations(source, decorations))
+    .filter(record => record.start < record.end && decorationScopes(record).length > 0);
+  mapped.sort(compareDecoration);
   const sortedChildren = children.toSorted((a, b) => a.from - b.from || a.to - b.to);
   const ends = mapped.flatMap(record => [record.start, record.end]).concat(sortedChildren.flatMap(child => [child.from, child.to]),
     sourceLines(source).flatMap(line => [line.start, line.start + line.text.length, line.next]), [0, source.length]);
   const points = Array.from(new Set(ends)); points.sort((a, b) => a - b);
-  let childIndex = 0;
+  const active: ResolverRecord[] = [];
+  let decIndex = 0, childIndex = 0;
   return points.slice(0, -1).map((from, index) => {
     const to = points[index + 1];
+    pruneExpired(active, from);
+    let added = false;
+    while (decIndex < mapped.length && mapped[decIndex].start <= from) {
+      if (mapped[decIndex].end > from) { active.push(mapped[decIndex]); added = true; }
+      decIndex++;
+    }
+    if (added) active.sort(compareDecoration);
     const terminator = source.slice(from, to) === '\n' || source.slice(from, to) === '\r\n';
-    const parent = mapped.filter(item => item.start <= from && item.end >= to).sort((a, b) => a.start - b.start || b.end - a.end || a.kind - b.kind);
     while (childIndex < sortedChildren.length && sortedChildren[childIndex].to <= from) childIndex++;
     const candidate = sortedChildren[childIndex];
     const child = candidate && candidate.from <= from && candidate.to >= to ? candidate : undefined;
-    return { from, to, scopes: terminator ? [] : ['text.html.markdown'].concat(parent.flatMap(decorationScopes), child?.scopes ?? []) };
+    return { from, to, scopes: terminator ? [] : ['text.html.markdown'].concat(active.flatMap(decorationScopes), child?.scopes ?? []) };
   });
 }

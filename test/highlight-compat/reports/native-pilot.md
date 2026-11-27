@@ -81,16 +81,16 @@ Scope tables use the unchanged raw, product and shiki-api reference scopes; shik
 | json | shiki-api | original | native | 6/6 | 0.15% | 0.04% | 41.39% | 30/20055 | 8/20032 |
 | json | shiki-api | original | baseline:captures | 6/6 | 0.06% | 0.00% | 14.51% | 13/20055 | 0/20032 |
 | json | shiki-api | original | baseline:vscode-ts | 0/6 | N/A | N/A | N/A | 0/0 | 0/0 |
-| markdown | raw | original | native | 1/1 | 40.28% | 34.62% | 40.28% | 29/72 | 18/52 |
+| markdown | raw | original | native | 1/1 | 43.06% | 36.54% | 43.06% | 31/72 | 19/52 |
 | markdown | raw | original | baseline:captures | 0/1 | N/A | N/A | N/A | 0/0 | 0/0 |
 | markdown | raw | original | baseline:vscode-ts | 0/1 | N/A | N/A | N/A | 0/0 | 0/0 |
-| markdown | product | original | native | 1/1 | 40.28% | 34.62% | 40.28% | 29/72 | 18/52 |
+| markdown | product | original | native | 1/1 | 43.06% | 36.54% | 43.06% | 31/72 | 19/52 |
 | markdown | product | original | baseline:captures | 0/1 | N/A | N/A | N/A | 0/0 | 0/0 |
 | markdown | product | original | baseline:vscode-ts | 0/1 | N/A | N/A | N/A | 0/0 | 0/0 |
-| markdown | shiki-api | original | native | 1/1 | 40.28% | 34.62% | 40.28% | 29/72 | 18/52 |
+| markdown | shiki-api | original | native | 1/1 | 43.06% | 36.54% | 43.06% | 31/72 | 19/52 |
 | markdown | shiki-api | original | baseline:captures | 0/1 | N/A | N/A | N/A | 0/0 | 0/0 |
 | markdown | shiki-api | original | baseline:vscode-ts | 0/1 | N/A | N/A | N/A | 0/0 | 0/0 |
-| markdown | product:warm | original | native | 1/1 | 86.11% | 82.69% | 86.11% | 62/72 | 43/52 |
+| markdown | product:warm | original | native | 1/1 | 88.89% | 84.62% | 88.89% | 64/72 | 44/52 |
 | markdown | product:warm | original | baseline:captures | 0/1 | N/A | N/A | N/A | 0/0 | 0/0 |
 | markdown | product:warm | original | baseline:vscode-ts | 0/1 | N/A | N/A | N/A | 0/0 | 0/0 |
 | tsx | raw | original | native | 4/4 | 99.81% | 99.85% | 77.25% | 20081/20120 | 20049/20080 |
@@ -380,13 +380,12 @@ Scope tables use the unchanged raw, product and shiki-api reference scopes; shik
 | json | shiki-api | original | other | 6 | 6 |
 | json | shiki-api | original | extra-scope | 10 | 20000 |
 | markdown | raw | original | leaf | 2 | 6 |
-| markdown | raw | original | extra-scope | 31 | 37 |
+| markdown | raw | original | extra-scope | 29 | 35 |
 | markdown | product | original | leaf | 2 | 6 |
-| markdown | product | original | extra-scope | 31 | 37 |
+| markdown | product | original | extra-scope | 29 | 35 |
 | markdown | shiki-api | original | leaf | 2 | 6 |
-| markdown | shiki-api | original | extra-scope | 31 | 37 |
+| markdown | shiki-api | original | extra-scope | 29 | 35 |
 | markdown | product:warm | original | leaf | 5 | 5 |
-| markdown | product:warm | original | extra-scope | 2 | 2 |
 | markdown | product:warm | original | ancestor | 1 | 1 |
 | markdown | product:warm | original | other | 2 | 2 |
 | tsx | raw | original | ancestor | 25 | 38 |
@@ -897,16 +896,6 @@ Native: source.json meta.structure.dictionary.json punctuation.definition.struct
 - [0, 20000) meta.structure.dictionary.json, pattern 0, @meta.structure.dictionary, priority 0, kept, lib/scope-compat/packs/json/json.scm:1
 - [0, 1) punctuation.definition.structure.json, pattern 10, @punctuation.definition.structure, priority 0, kept, lib/scope-compat/packs/json/json.scm:12
 
-### markdown / raw / original / extra-scope
-
-original/fences:1:1, [0, 1), excerpt "#"
-
-Reference: text.html.markdown markup.heading.markdown heading.1.markdown punctuation.definition.heading.markdown
-
-Native: text.html.markdown markup.heading.markdown heading.1.markdown entity.name.section.markdown punctuation.definition.heading.markdown
-
-No child-pack interval covers this mismatch. The remaining path comes from the Markdown parent and resolver fence frame.
-
 ### markdown / raw / original / leaf
 
 original/fences:3:4, [13, 15), excerpt "ts"
@@ -917,15 +906,15 @@ Native: text.html.markdown markup.fenced_code.block.markdown fenced_code.block.l
 
 No child-pack interval covers this mismatch. The remaining path comes from the Markdown parent and resolver fence frame.
 
-### markdown / product / original / extra-scope
+### markdown / raw / original / extra-scope
 
-original/fences:1:1, [0, 1), excerpt "#"
+original/fences:4:6, [21, 22), excerpt " "
 
-Reference: text.html.markdown markup.heading.markdown heading.1.markdown punctuation.definition.heading.markdown
+Reference: text.html.markdown markup.fenced_code.block.markdown
 
-Native: text.html.markdown markup.heading.markdown heading.1.markdown entity.name.section.markdown punctuation.definition.heading.markdown
+Native: text.html.markdown markup.fenced_code.block.markdown meta.embedded.block.typescript meta.var.expr.ts
 
-No child-pack interval covers this mismatch. The remaining path comes from the Markdown parent and resolver fence frame.
+- [16, 27) meta.var.expr.ts, pattern 15, interval ordinal 0, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:23
 
 ### markdown / product / original / leaf
 
@@ -937,15 +926,15 @@ Native: text.html.markdown markup.fenced_code.block.markdown fenced_code.block.l
 
 No child-pack interval covers this mismatch. The remaining path comes from the Markdown parent and resolver fence frame.
 
-### markdown / shiki-api / original / extra-scope
+### markdown / product / original / extra-scope
 
-original/fences:1:1, [0, 1), excerpt "#"
+original/fences:4:6, [21, 22), excerpt " "
 
-Reference: text.html.markdown markup.heading.markdown heading.1.markdown punctuation.definition.heading.markdown
+Reference: text.html.markdown markup.fenced_code.block.markdown
 
-Native: text.html.markdown markup.heading.markdown heading.1.markdown entity.name.section.markdown punctuation.definition.heading.markdown
+Native: text.html.markdown markup.fenced_code.block.markdown meta.embedded.block.typescript meta.var.expr.ts
 
-No child-pack interval covers this mismatch. The remaining path comes from the Markdown parent and resolver fence frame.
+- [16, 27) meta.var.expr.ts, pattern 15, interval ordinal 0, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:23
 
 ### markdown / shiki-api / original / leaf
 
@@ -957,15 +946,15 @@ Native: text.html.markdown markup.fenced_code.block.markdown fenced_code.block.l
 
 No child-pack interval covers this mismatch. The remaining path comes from the Markdown parent and resolver fence frame.
 
-### markdown / product:warm / original / extra-scope
+### markdown / shiki-api / original / extra-scope
 
-original/fences:1:1, [0, 1), excerpt "#"
+original/fences:4:6, [21, 22), excerpt " "
 
-Reference: text.html.markdown markup.heading.markdown heading.1.markdown punctuation.definition.heading.markdown
+Reference: text.html.markdown markup.fenced_code.block.markdown
 
-Native: text.html.markdown markup.heading.markdown heading.1.markdown entity.name.section.markdown punctuation.definition.heading.markdown
+Native: text.html.markdown markup.fenced_code.block.markdown meta.embedded.block.typescript meta.var.expr.ts
 
-No child-pack interval covers this mismatch. The remaining path comes from the Markdown parent and resolver fence frame.
+- [16, 27) meta.var.expr.ts, pattern 15, interval ordinal 0, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:23
 
 ### markdown / product:warm / original / leaf
 
@@ -1217,13 +1206,13 @@ Native: source.ts meta.var.expr.ts
 | Fixture | Reference | Region | Matching / units | Non-whitespace matching / units |
 | --- | --- | --- | ---: | ---: |
 | original/fences | raw | recognized fence content | 4/39 | 0/27 |
-| original/fences | raw | markdown parent outside the pilot | 25/33 | 18/25 |
+| original/fences | raw | markdown parent outside the pilot | 27/33 | 19/25 |
 | original/fences | product | recognized fence content | 4/39 | 0/27 |
-| original/fences | product | markdown parent outside the pilot | 25/33 | 18/25 |
+| original/fences | product | markdown parent outside the pilot | 27/33 | 19/25 |
 | original/fences | shiki-api | recognized fence content | 4/39 | 0/27 |
-| original/fences | shiki-api | markdown parent outside the pilot | 25/33 | 18/25 |
+| original/fences | shiki-api | markdown parent outside the pilot | 27/33 | 19/25 |
 | original/fences | product:warm | recognized fence content | 31/39 | 19/27 |
-| original/fences | product:warm | markdown parent outside the pilot | 31/33 | 24/25 |
+| original/fences | product:warm | markdown parent outside the pilot | 33/33 | 25/25 |
 
 - original/fences: {"resolverSetText":1,"childParses":2} ; child ranges [{"languageId":"typescript","start":16,"end":41,"rootStart":16,"rootEnd":41},{"languageId":"json","start":54,"end":68,"rootStart":54,"rootEnd":68}].
 

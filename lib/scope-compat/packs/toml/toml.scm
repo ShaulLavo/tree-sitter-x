@@ -8,19 +8,19 @@
 ; Tables & table arrays
 (table "[" @punctuation.definition.section.begin)
 (table "]" @punctuation.definition.section.end)
-((table (bare_key) @entity.name.section) (#set! priority "20"))
-((table (dotted_key (bare_key) @entity.name.section)) (#set! priority "20"))
-((table (quoted_key) @entity.name.section) (#set! priority "20"))
+((table "[" (bare_key) @entity.name.section "]") (#set! priority "20"))
+((table "[" (dotted_key) @entity.name.section "]") (#set! priority "20"))
+((table "[" (quoted_key) @entity.name.section "]") (#set! priority "20"))
 
 (table_array_element "[[" @punctuation.definition.section.begin)
 (table_array_element "]]" @punctuation.definition.section.end)
-((table_array_element (bare_key) @entity.name.section) (#set! priority "20"))
-((table_array_element (dotted_key (bare_key) @entity.name.section)) (#set! priority "20"))
-((table_array_element (quoted_key) @entity.name.section) (#set! priority "20"))
+((table_array_element "[[" (bare_key) @entity.name.section "]]") (#set! priority "20"))
+((table_array_element "[[" (dotted_key) @entity.name.section "]]") (#set! priority "20"))
+((table_array_element "[[" (quoted_key) @entity.name.section "]]") (#set! priority "20"))
 
 ; Pairs & keys
 (pair (bare_key) @variable.other.key)
-(pair (dotted_key (bare_key) @variable.other.key))
+(pair (dotted_key) @variable.other.key)
 (pair (quoted_key) @variable.other.key)
 (pair "=" @punctuation.separator.key-value)
 

@@ -2,11 +2,13 @@ import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import { checkWave1Assets, WAVE1_LANGUAGES } from '../src/native/wave1-assets.ts';
 import { loadLanguagePack, nativeLanguage } from '../src/native/packs.ts';
+import { Component } from '../src/native/component.ts';
 import { PilotDocument } from '../src/native/owner.ts';
 import { MarkdownPilotDocument } from '../src/native/markdown.ts';
 import { nativeScopes } from '../src/native/adapter.ts';
 import { ScopeSession } from '../src/native/incremental.ts';
 import { decodedSnapshot } from '../src/native/scope-output.ts';
+import { catalog } from '../src/measurement/identity.ts';
 import type { NativePack } from '../src/native/component.ts';
 import type { PassResult } from '../src/native/decode.ts';
 
@@ -36,20 +38,31 @@ describe('Phase 5 Wave 1 core language packs', () => {
     expect(checkWave1Assets()).toEqual([]);
   });
 
-  it('resolves canonical Wave 1 aliases across packs and owners', async () => {
+  it('resolves canonical Wave 1 aliases across packs, Component.loadPack, owners, and measurement catalog', async () => {
     expect(nativeLanguage('bash')).toBe('shellscript');
     expect(nativeLanguage('sh')).toBe('shellscript');
     expect(nativeLanguage('rs')).toBe('rust');
     expect(nativeLanguage('py')).toBe('python');
     expect(nativeLanguage('yml')).toBe('yaml');
     const pack = await loadLanguagePack('bash');
+    const customPack = await (await Component.load()).loadPack({
+      id: 'alias-bash-check', version: 'test', languageId: 'bash',
+      rootScope: 'source.shell', suffix: '.shell',
+      files: [{ path: 'alias-bash.scm', query: '(word) @variable.other' }],
+    });
     const owner = await PilotDocument.open('bash', 'export FOO="bar"\n');
     try {
       expect(owner.languageId).toBe('shellscript');
+      expect(customPack.spec.languageId).toBe('shellscript');
+      expect(customPack.engine.parserLanguageId).toBe('shellscript');
       const result = nativeScopes(pack, owner);
       expect(scopesAt(pack, result, 0)).toContain('storage.modifier.export.shell');
+      expect(nativeScopes(customPack, owner).status).toBe(0);
+      const summary = await catalog(nativeLanguage('bash')!);
+      expect(summary.languages.find(entry => entry.id === 'shellscript')?.status).toBe('measured-partial-prototype');
     } finally {
       owner.dispose();
+      customPack.dispose();
       pack.dispose();
     }
   });
@@ -101,6 +114,57 @@ describe('Phase 5 Wave 1 core language packs', () => {
     }
   });
 
+  it('handles priority, dotted-key, and delimiter edge cases across Wave 1 packs', async () => {
+    const check = async (lang: typeof WAVE1_LANGUAGES[number], source: string, assertions: (at: (offset: number) => string[]) => void) => {
+      const pack = await loadLanguagePack(lang);
+      const owner = await PilotDocument.open(lang, source);
+      try {
+        const result = nativeScopes(pack, owner);
+        assertions(offset => scopesAt(pack, result, offset));
+      } finally { owner.dispose(); pack.dispose(); }
+    };
+    await check('css', 'a + b { width: calc(1px + 2px); }', at => {
+      expect(at(2)).toContain('keyword.operator.combinator.css');
+      expect(at(24)).toContain('keyword.operator.arithmetic.css');
+      expect(at(24)).not.toContain('keyword.operator.combinator.css');
+    });
+    await check('python', 'def F(A):\n  pass\n', at => {
+      expect(at(4)).toContain('entity.name.function.python');
+      expect(at(4)).not.toContain('constant.other.caps.python');
+      expect(at(6)).toContain('variable.parameter.function.language.python');
+      expect(at(6)).not.toContain('constant.other.caps.python');
+    });
+    await check('rust', 'struct Foo;\nfn F() {}\n', at => {
+      expect(at(7)).toContain('entity.name.type.struct.rust');
+      expect(at(15)).toContain('entity.name.function.rust');
+      expect(at(15)).not.toContain('constant.other.caps.rust');
+    });
+    await check('toml', '[a."b".c]\na."b".c = 42\n', at => {
+      expect(at(1)).toContain('entity.name.section.toml');
+      expect(at(4)).toContain('entity.name.section.toml');
+      expect(at(7)).toContain('entity.name.section.toml');
+      expect(at(10)).toContain('variable.other.key.toml');
+      expect(at(13)).toContain('variable.other.key.toml');
+      expect(at(16)).toContain('variable.other.key.toml');
+    });
+    await check('html', '<p>&amp; &amp</p>', at => {
+      expect(at(3)).toContain('punctuation.definition.entity.html');
+      expect(at(7)).toContain('punctuation.definition.entity.html');
+      expect(at(12)).not.toContain('punctuation.definition.entity.html');
+      expect(at(12)).not.toContain('constant.character.entity.html');
+    });
+    await check('shellscript', 'echo "hello"\n', at => {
+      expect(at(5)).toContain('punctuation.definition.string.begin.shell');
+      expect(at(11)).toContain('punctuation.definition.string.end.shell');
+      expect(at(11)).not.toContain('punctuation.definition.string.begin.shell');
+    });
+    await check('go', 'package p\nconst s = "hello"\n', at => {
+      expect(at(20)).toContain('punctuation.definition.string.begin.go');
+      expect(at(26)).toContain('punctuation.definition.string.end.go');
+      expect(at(26)).not.toContain('punctuation.definition.string.begin.go');
+    });
+  });
+
   it('decorates Markdown headings, inline styles, links, lists, blockquotes, and fenced blocks', async () => {
     const source = await readFile(new URL('./fixtures/wave-1/markdown/sample.md', import.meta.url), 'utf8');
     const packs = new Map([
@@ -110,12 +174,15 @@ describe('Phase 5 Wave 1 core language packs', () => {
     const owner = await MarkdownPilotDocument.open(source);
     try {
       const intervals = owner.intervals(packs);
-      const scopeAt = (needle: string) => {
-        const offset = source.indexOf(needle);
+      const scopeAt = (needle: string, extraOffset = 0) => {
+        const offset = source.indexOf(needle) + extraOffset;
         expect(offset).toBeGreaterThanOrEqual(0);
         return intervals.find(item => offset >= item.from && offset < item.to)?.scopes ?? [];
       };
+      expect(scopeAt('# Release Notes')).toContain('punctuation.definition.heading.markdown');
+      expect(scopeAt('# Release Notes')).not.toContain('entity.name.section.markdown');
       expect(scopeAt('Release Notes')).toContain('heading.1.markdown');
+      expect(scopeAt('Release Notes')).toContain('entity.name.section.markdown');
       expect(scopeAt('bold')).toContain('markup.bold.markdown');
       expect(scopeAt('italic')).toContain('markup.italic.markdown');
       expect(scopeAt('inline_code')).toContain('markup.inline.raw.string.markdown');
@@ -127,5 +194,27 @@ describe('Phase 5 Wave 1 core language packs', () => {
       owner.dispose();
       for (const pack of packs.values()) pack.dispose();
     }
+  });
+
+  it('scopes escaped-bracket Markdown links and optional link titles cleanly without quadratic blowup', async () => {
+    const edgeSource = '# Heading\n\n[A\\](B](https://a.test) and [A](https://a.test "Title") and [C](<https://c.test> "T")\n';
+    const owner = await MarkdownPilotDocument.open(edgeSource);
+    try {
+      const intervals = owner.intervals(new Map());
+      const at = (offset: number) => intervals.find(item => offset >= item.from && offset < item.to)?.scopes ?? [];
+      expect(at(0)).toContain('punctuation.definition.heading.markdown');
+      expect(at(0)).not.toContain('entity.name.section.markdown');
+      expect(at(2)).toContain('entity.name.section.markdown');
+      const escapedLabel = edgeSource.indexOf('(B');
+      expect(at(escapedLabel)).toContain('string.other.link.title.markdown');
+      expect(at(escapedLabel)).not.toContain('markup.underline.link.markdown');
+      const firstUrl = edgeSource.indexOf('https://a.test');
+      expect(at(firstUrl)).toContain('markup.underline.link.markdown');
+      const titlePos = edgeSource.indexOf('"Title"');
+      expect(at(titlePos)).toContain('string.other.link.description.title.markdown');
+      expect(at(titlePos)).not.toContain('markup.underline.link.markdown');
+      const angleUrl = edgeSource.indexOf('https://c.test');
+      expect(at(angleUrl)).toContain('markup.underline.link.markdown');
+    } finally { owner.dispose(); }
   });
 });

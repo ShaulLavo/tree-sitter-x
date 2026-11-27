@@ -59,9 +59,9 @@
 ; Types & lifetimes
 (type_identifier) @entity.name.type
 ((type_identifier) @variable.language.self (#eq? @variable.language.self "Self") (#set! priority "25"))
-(struct_item name: (type_identifier) @entity.name.type.struct)
-(enum_item name: (type_identifier) @entity.name.type.enum)
-(trait_item name: (type_identifier) @entity.name.type.trait)
+((struct_item name: (type_identifier) @entity.name.type.struct) (#set! priority "20"))
+((enum_item name: (type_identifier) @entity.name.type.enum) (#set! priority "20"))
+((trait_item name: (type_identifier) @entity.name.type.trait) (#set! priority "20"))
 (type_item name: (type_identifier) @entity.name.type)
 (primitive_type) @entity.name.type.primitive
 ((primitive_type) @entity.name.type.numeric
@@ -85,8 +85,8 @@
 (mod_item name: (identifier) @entity.name.namespace)
 
 ; Functions, methods & macros
-(function_item name: (identifier) @entity.name.function)
-(function_signature_item name: (identifier) @entity.name.function)
+((function_item name: (identifier) @entity.name.function) (#set! priority "20"))
+((function_signature_item name: (identifier) @entity.name.function) (#set! priority "20"))
 ((call_expression function: (identifier) @entity.name.function) (#set! priority "20"))
 ((call_expression function: (field_expression field: (field_identifier) @entity.name.function)) (#set! priority "25"))
 ((call_expression function: (scoped_identifier name: (identifier) @entity.name.function)) (#set! priority "25"))

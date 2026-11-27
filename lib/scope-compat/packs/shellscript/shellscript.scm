@@ -94,7 +94,8 @@
 
 ; Strings & heredocs
 (string) @string.quoted.double
-(string "\"" @punctuation.definition.string.begin)
+(string . "\"" @punctuation.definition.string.begin)
+(string "\"" @punctuation.definition.string.end .)
 ((raw_string) @_s
  (#make-span! "string.quoted.single" @_s @_s "start" "0" @_s "end" "0")
  (#make-span! "punctuation.definition.string.begin" @_s @_s "start" "0" @_s "start" "1")

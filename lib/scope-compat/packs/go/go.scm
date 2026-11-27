@@ -75,7 +75,8 @@
 (imaginary_literal) @constant.numeric.imaginary
 
 (interpreted_string_literal) @string.quoted.double
-(interpreted_string_literal "\"" @punctuation.definition.string.begin)
+(interpreted_string_literal . "\"" @punctuation.definition.string.begin)
+(interpreted_string_literal "\"" @punctuation.definition.string.end .)
 (raw_string_literal) @string.quoted.raw
 (rune_literal) @string.quoted.rune
 (escape_sequence) @constant.character.escape

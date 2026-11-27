@@ -34,6 +34,7 @@
 
 ; Character entities (&amp;, &#123;)
 ((entity) @_e
+ (#not-text-class? @_e "[&]" "[A-Za-z0-9#]")
  (#make-span! "constant.character.entity" @_e @_e "start" "0" @_e "end" "0")
  (#make-span! "punctuation.definition.entity" @_e @_e "start" "0" @_e "start" "1")
  (#make-span! "punctuation.definition.entity" @_e @_e "end" "-1" @_e "end" "0"))

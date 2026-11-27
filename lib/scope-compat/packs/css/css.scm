@@ -28,7 +28,9 @@
 (namespace_name) @entity.name.tag
 
 ; Combinators & operators
-[">" "+" "~"] @keyword.operator.combinator
+(child_selector ">" @keyword.operator.combinator)
+(adjacent_sibling_selector "+" @keyword.operator.combinator)
+(sibling_selector "~" @keyword.operator.combinator)
 ["=" "~=" "|=" "^=" "$=" "*="] @keyword.operator.pattern
 ["+" "-" "*" "/"] @keyword.operator.arithmetic
 ["and" "or" "not" "only"] @keyword.operator.logical
