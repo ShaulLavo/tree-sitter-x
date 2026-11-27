@@ -96,7 +96,7 @@ describe('explicit native language variants', () => {
   it.each(['typescript', 'tsx'] as const)('loads %s and completes its unchanged corpus', checkCorpus);
 
   it('preserves high-impact TypeScript and TSX TextMate scopes and exact-stack edge cases', async () => {
-    const tsSource = '// note\n//\n/**/\nimport * as module from "pkg";\nexport * as NaN from "pkg";\ninterface Box<const T extends string> { readonly a: T | void; }\nexport const x = { a: 1, b: 2, c: 3 } as const satisfies Record<string, number>;\nconst trailing = { a: 1, };\nconst spaced = { a: 1   };\nconst multiline = { a: 1\n  };\nconst shorthand = { a   };\nconst spreadObj = { ...a   };\nconst value = ui.menu.item;\nconst opt1 = ui?.menu.item;\nconst opt2 = ui.menu?.item;\nconst opt3 = getUi().menu?.item;\nconst opt4 = ui.menu.section?.item;\nobj?.run();\nfor (let i = 0; i < 1; i++) {}\nif (ready) var result = 1;\nswitch (x) { case 1: const scoped = 1 /* c */; }\nfunction f<T>(p: T): T { return p; }\nclass C { accessor v = 1; accessor = 2; @first @second value = 7; @dec /* c */ other = 8; }\nconst obj = { constructor() {}   };\nlet NaN = 0; const Infinity = 1; function NaN() {}\nconst realNan = NaN;\nthrow NaN;\nconst spread = [...Infinity];\n';
+    const tsSource = '// note\n//\n/**/\nimport * as module from "pkg";\nexport * as NaN from "pkg";\ninterface Box<const T extends string> { readonly a: T | void; }\nexport const x = { a: 1, b: 2, c: 3 } as const satisfies Record<string, number>;\nconst trailing = { a: 1, };\nconst spaced = { a: 1   };\nconst multiline = { a: 1\n  };\nconst shorthand = { a   };\nconst spreadObj = { ...a   };\nconst value = ui.menu.item;\nconst deep = ui.menu?.section.item.leaf;\nconst opt1 = ui?.menu.item;\nconst opt2 = ui.menu?.item;\nconst opt3 = getUi().menu?.item;\nconst opt4 = ui.menu.section?.item;\nobj?.run();\nfor (let i = 0; i < 1; i++) {}\nif (ready) var result = 1;\nswitch (x) { case 1: const scoped = 1 /* c */; }\nfunction f<T>(p: T): T { return p; }\nclass C { accessor v = 1; accessor = 2; @first @second value = 7; @dec /* c */ other = 8; }\nconst obj = { constructor() {}   };\nlet NaN = 0; const Infinity = 1; function NaN() {}\nconst realNan = NaN;\nthrow NaN;\nconst spread = [...Infinity];\n';
     const tsPack = await loadLanguagePack('typescript');
     const tsOwner = await PilotDocument.open('typescript', tsSource);
     try {
@@ -125,6 +125,9 @@ describe('explicit native language variants', () => {
       expect(scopesAt(tsPack, result, tsSource.indexOf('.menu'))).toEqual(['source.ts', 'meta.var.expr.ts', 'punctuation.accessor.ts']);
       expect(scopesAt(tsPack, result, tsSource.indexOf('menu.item'))).toEqual(['source.ts', 'meta.var.expr.ts', 'variable.other.object.property.ts']);
       expect(scopesAt(tsPack, result, tsSource.indexOf('item;'))).toEqual(['source.ts', 'meta.var.expr.ts', 'variable.other.property.ts']);
+      const deepTs = tsSource.indexOf('ui.menu?.section.item.leaf');
+      expect(scopesAt(tsPack, result, deepTs + 17)).toEqual(['source.ts', 'meta.var.expr.ts', 'variable.other.object.property.ts']);
+      expect(scopesAt(tsPack, result, deepTs + 22)).toEqual(['source.ts', 'meta.var.expr.ts', 'variable.other.property.ts']);
       expect(scopesAt(tsPack, result, tsSource.indexOf('run()'))).toEqual(['source.ts', 'meta.function-call.ts', 'entity.name.function.ts']);
       expect(scopesAt(tsPack, result, tsSource.indexOf('let i = 0'))).toEqual(['source.ts', 'meta.var.expr.ts', 'storage.type.ts']);
       expect(scopesAt(tsPack, result, tsSource.indexOf('var result = 1'))).toEqual(['source.ts', 'meta.var.expr.ts', 'storage.type.ts']);
@@ -153,7 +156,7 @@ describe('explicit native language variants', () => {
       expect(scopesAt(tsPack, result, tsSource.indexOf('...Infinity') + 3)).toEqual(['source.ts', 'meta.var.expr.ts', 'meta.array.literal.ts', 'constant.language.infinity.ts']);
     } finally { tsOwner.dispose(); tsPack.dispose(); }
 
-    const tsxSource = 'const el = <UI.Button />;\nconst nested = <UI.Menu.Item />;\nconst p = <Promise.then />;\nconst nanTag = <NaN.Menu.Item />;\nconst value = ui.menu.item;\nconst opt1 = ui?.menu.item;\nconst opt2 = ui.menu?.item;\nconst opt3 = getUi().menu?.item;\nconst opt4 = ui.menu.section?.item;\nobj?.run();\nconst trailing = { a: 1, };\nconst spaced = { a: 1   };\nconst multiline = { a: 1\n  };\nconst methodObj = { a() {}   };\nconst shorthand = { a   };\nconst spreadObj = { ...a   };\nclass C { accessor = 2; @first @second value = 7; @dec /* c */ other = 8; }\nconst shown = <div>{NaN}</div>;\nthrow NaN;\nconst spread = [...Infinity];\n';
+    const tsxSource = 'const el = <UI.Button />;\nconst nested = <UI.Menu.Item />;\nconst p = <Promise.then />;\nconst nanTag = <NaN.Menu.Item />;\nconst value = ui.menu.item;\nconst deep = ui.menu?.section.item.leaf;\nconst opt1 = ui?.menu.item;\nconst opt2 = ui.menu?.item;\nconst opt3 = getUi().menu?.item;\nconst opt4 = ui.menu.section?.item;\nobj?.run();\nconst trailing = { a: 1, };\nconst spaced = { a: 1   };\nconst multiline = { a: 1\n  };\nconst methodObj = { a() {}   };\nconst shorthand = { a   };\nconst spreadObj = { ...a   };\nclass C { accessor = 2; @first @second value = 7; @dec /* c */ other = 8; }\nconst shown = <div>{NaN}</div>;\nthrow NaN;\nconst spread = [...Infinity];\n';
     const tsxPack = await loadLanguagePack('tsx');
     const tsxOwner = await PilotDocument.open('tsx', tsxSource);
     try {
