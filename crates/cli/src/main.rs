@@ -2202,6 +2202,7 @@ mod tests {
 
         let mut completion = Vec::new();
         generate(Shell::Zsh, &mut cli, "tree-sitter", &mut completion);
-        assert!(!completion.is_empty());
+        let completion = String::from_utf8(completion).unwrap();
+        assert!(completion.contains("#compdef tree-sitter"));
     }
 }
