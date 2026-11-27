@@ -3,7 +3,7 @@ import { Component } from './component.ts';
 import type { NativePack } from './component.ts';
 import { foreign } from './runtime.ts';
 import { parserLanguageId, vendorAssets } from '../baselines/assets.ts';
-import { wave1Asset } from './wave1-assets.ts';
+import { wave1Asset, WAVE1_ALIASES } from './wave1-assets.ts';
 import { loadJsonPack } from './adapter.ts';
 
 export const NATIVE_LANGUAGES = [
@@ -12,20 +12,10 @@ export const NATIVE_LANGUAGES = [
 ] as const;
 export type NativeLanguage = typeof NATIVE_LANGUAGES[number];
 
-const LANGUAGE_ALIASES: Readonly<Record<string, NativeLanguage>> = Object.freeze({
-  bash: 'shellscript',
-  sh: 'shellscript',
-  shell: 'shellscript',
-  zsh: 'shellscript',
-  rs: 'rust',
-  py: 'python',
-  yml: 'yaml',
-});
-
 export function nativeLanguage(value: string): NativeLanguage | undefined {
   const direct = NATIVE_LANGUAGES.find(language => language === value);
   if (direct) return direct;
-  return Object.hasOwn(LANGUAGE_ALIASES, value) ? LANGUAGE_ALIASES[value] : undefined;
+  return Object.hasOwn(WAVE1_ALIASES, value) ? WAVE1_ALIASES[value] : undefined;
 }
 export function embeddedScope(language: NativeLanguage): string {
   return `meta.embedded.block.${language}`;

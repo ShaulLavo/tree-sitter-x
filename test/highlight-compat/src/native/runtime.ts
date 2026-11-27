@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { parserLanguageId, parserUrl, vendorAssets } from '../baselines/assets.ts';
-import { wave1Asset, wave1ParserUrl } from './wave1-assets.ts';
+import { wave1Asset, wave1ParserUrl, resolveWave1Alias } from './wave1-assets.ts';
 import { digest } from './component-inputs.ts';
 
 export type Foreign = Record<PropertyKey, unknown>;
@@ -46,7 +46,7 @@ export class Runtime {
   }
   async extension(module: WebAssembly.Module): Promise<Foreign> { return foreign(await invoke(this.binding, 'loadExtension', [module])); }
   language(id: string): Promise<Foreign> {
-    const parserId = parserLanguageId(id);
+    const parserId = parserLanguageId(resolveWave1Alias(id));
     let pending = this.#languages.get(parserId);
     if (!pending) { pending = this.loadLanguage(parserId); this.#languages.set(parserId, pending); }
     return pending;

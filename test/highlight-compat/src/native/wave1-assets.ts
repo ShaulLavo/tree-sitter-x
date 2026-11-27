@@ -6,6 +6,20 @@ export const WAVE1_VENDOR_ROOT = new URL('../../vendor/wave-1/', import.meta.url
 export const WAVE1_LANGUAGES = ['css', 'html', 'shellscript', 'rust', 'python', 'go', 'yaml', 'toml'] as const;
 export type Wave1Language = typeof WAVE1_LANGUAGES[number];
 
+export const WAVE1_ALIASES: Readonly<Record<string, Wave1Language>> = Object.freeze({
+  bash: 'shellscript',
+  sh: 'shellscript',
+  shell: 'shellscript',
+  zsh: 'shellscript',
+  rs: 'rust',
+  py: 'python',
+  yml: 'yaml',
+});
+
+export function resolveWave1Alias(languageId: string): string {
+  return Object.hasOwn(WAVE1_ALIASES, languageId) ? WAVE1_ALIASES[languageId] : languageId;
+}
+
 interface StructuralManifest {
   readonly languages: readonly {
     readonly id: string;

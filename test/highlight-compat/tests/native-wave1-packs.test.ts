@@ -36,12 +36,22 @@ describe('Phase 5 Wave 1 core language packs', () => {
     expect(checkWave1Assets()).toEqual([]);
   });
 
-  it('resolves canonical Wave 1 aliases', () => {
+  it('resolves canonical Wave 1 aliases across packs and owners', async () => {
     expect(nativeLanguage('bash')).toBe('shellscript');
     expect(nativeLanguage('sh')).toBe('shellscript');
     expect(nativeLanguage('rs')).toBe('rust');
     expect(nativeLanguage('py')).toBe('python');
     expect(nativeLanguage('yml')).toBe('yaml');
+    const pack = await loadLanguagePack('bash');
+    const owner = await PilotDocument.open('bash', 'export FOO="bar"\n');
+    try {
+      expect(owner.languageId).toBe('shellscript');
+      const result = nativeScopes(pack, owner);
+      expect(scopesAt(pack, result, 0)).toContain('storage.modifier.export.shell');
+    } finally {
+      owner.dispose();
+      pack.dispose();
+    }
   });
 
   it.each(WAVE1_LANGUAGES)('loads and scopes %s cleanly with deterministic session output', async language => {

@@ -1,20 +1,20 @@
 # Package manifest
-title = "tree-sitter-x"
 edition = 2024
 published = true
 ratio = 0.95
+title = "tree-sitter-x"
 updated = 2026-11-27T10:30:00Z
 
 [package]
+keywords = [ "parser", "highlight", "wasm" ]
 name = "scope-compat"
 version = '0.2.0'
-keywords = ["parser", "highlight", "wasm"]
 
 [dependencies.serde]
+features = [ "derive" ]
 version = "1.0"
-features = ["derive"]
 
 [[bin]]
+inline = { debug = false, jobs = 4 }
 name = "runner"
 path = "src/main.rs"
-inline = { debug = false, jobs = 4 }
