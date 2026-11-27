@@ -8,6 +8,7 @@
 (import_statement "import" @keyword.control.import)
 (import_statement "from" @keyword.control.from)
 ((import_specifier name: (identifier) @variable.other.readwrite "as" @keyword.control.as alias: (identifier) @variable.other.readwrite.alias) (#set! priority "20"))
+((import_specifier name: (string) "as" @keyword.control.as alias: (identifier) @variable.other.readwrite.alias) (#set! priority "20"))
 ((import_specifier name: (identifier) @variable.other.readwrite.alias !alias) (#set! priority "20"))
 ((import_clause (identifier) @variable.other.readwrite.alias) (#set! priority "20"))
 ((namespace_import "*" @constant.language.import-export-all "as" @keyword.control.as (identifier) @variable.other.readwrite.alias) (#set! priority "20"))
@@ -231,6 +232,7 @@
 ; Member expressions that cannot occur inside JSX tag names.
 (member_expression object: [(this) (super) (call_expression) (subscript_expression) (parenthesized_expression) (non_null_expression) (new_expression) (await_expression)] ["." @punctuation.accessor (optional_chain)] property: (property_identifier) @variable.other.property)
 (member_expression object: (identifier) @variable.other.object (optional_chain) property: (property_identifier) @variable.other.property)
+((member_expression object: (member_expression property: (property_identifier) @variable.other.object.property) (optional_chain) property: (property_identifier) @variable.other.property) (#set! priority "14"))
 ((member_expression object: (member_expression object: (identifier) @variable.other.object (optional_chain) property: (property_identifier) @variable.other.object.property) "." @punctuation.accessor property: (property_identifier) @variable.other.property) (#set! priority "14"))
 ((member_expression object: (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.object.property) (optional_chain) property: (property_identifier) @variable.other.property) (#set! priority "14"))
 ((member_expression object: (member_expression object: (identifier) @variable.other.object (optional_chain) property: (property_identifier) @variable.other.object.property) (optional_chain) property: (property_identifier) @variable.other.property) (#set! priority "14"))
