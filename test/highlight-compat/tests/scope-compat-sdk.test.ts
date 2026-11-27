@@ -182,6 +182,32 @@ function assertOracleTokensMatch(
   }
 }
 
+async function verifyOracleThemes(
+  compat: ScopeCompat,
+  resolve: (theme: ReturnType<ScopeCompat['compileTheme']>) => StyledResult,
+  source: string,
+  styles: Readonly<Record<string, StyleTrack>> | undefined,
+  tokens: readonly string[],
+): Promise<void> {
+  for (const themeId of ORACLE_THEMES) {
+    const compiled = compat.compileTheme((await themeModule(themeId)) as unknown as VscodeThemeInput);
+    try {
+      assertOracleTokensMatch(source, resolve(compiled), styles?.[themeId], tokens);
+    } finally {
+      compiled.dispose();
+    }
+  }
+}
+
+async function verifyBundledTheme(compat: ScopeCompat, themeId: string, sample: ScopeResult): Promise<void> {
+  const compiled = compat.compileTheme((await themeModule(themeId)) as unknown as VscodeThemeInput);
+  try {
+    expect(compiled.resolve(sample).segments.length).toBe(3);
+  } finally {
+    compiled.dispose();
+  }
+}
+
 describe('Phase 6 public zero-Shiki consumer SDK (@shaulavo/tree-sitter-scope-compat)', () => {
   it('contains zero Shiki, Oniguruma, vscode-textmate, or Node-only imports in js/, dist/, and package.json', async () => {
     const pkgRaw = await readFile(resolve(repositoryRoot, 'lib/scope-compat/package.json'), 'utf8');
@@ -315,16 +341,9 @@ describe('Phase 6 public zero-Shiki consumer SDK (@shaulavo/tree-sitter-scope-co
       const engine = await textmateEngine('upstream');
       const raw = await rawDocument(engine, { profileId: 'raw', languageId: 'typescript', source, themeIds: ORACLE_THEMES });
       if (raw.status !== 'complete') throw new Error(`Expected complete oracle result, got ${raw.status}`);
-      for (const themeId of ORACLE_THEMES) {
-        const compiled = compat.compileTheme((await themeModule(themeId)) as unknown as VscodeThemeInput);
-        try {
-          assertOracleTokensMatch(source, session.resolveTheme(compiled), raw.styles?.[themeId], [
-            'const', '"hello"', '// comment', 'function', 'run', 'return',
-          ]);
-        } finally {
-          compiled.dispose();
-        }
-      }
+      await verifyOracleThemes(compat, theme => session.resolveTheme(theme), source, raw.styles, [
+        'const', '"hello"', '// comment', 'function', 'run', 'return',
+      ]);
     } finally {
       highlightSpy.mockRestore();
       darkTheme.dispose();
@@ -350,20 +369,19 @@ describe('Phase 6 public zero-Shiki consumer SDK (@shaulavo/tree-sitter-scope-co
       scopes: ['source.ts', 'keyword.control.flow.ts'],
     };
     for (const entry of assets.themes) {
-      const compiled = compat.compileTheme((await themeModule(entry.id)) as unknown as VscodeThemeInput);
-      try {
-        expect(compiled.resolve(sampleScopes).segments.length).toBe(3);
-      } finally {
-        compiled.dispose();
-      }
+      await verifyBundledTheme(compat, entry.id, sampleScopes);
     }
     const overriddenDefault = compat.compileTheme({
       colors: { 'editor.foreground': '#000000', 'editor.background': '#111111' },
-      tokenColors: [{ settings: { foreground: '#ffffff', background: '#222222' } }],
+      tokenColors: [
+        { settings: { foreground: '#123456', background: '#222222' } },
+        { scope: [''], settings: { foreground: '#ab12cd' } },
+        { scope: '   ', settings: { background: '#334455' } },
+      ],
     });
     try {
-      expect(overriddenDefault.defaultForegroundRgba).toBe(parseColorRgba('#ffffff'));
-      expect(overriddenDefault.defaultBackgroundRgba).toBe(parseColorRgba('#222222'));
+      expect(overriddenDefault.defaultForegroundRgba).toBe(parseColorRgba('#ab12cd'));
+      expect(overriddenDefault.defaultBackgroundRgba).toBe(parseColorRgba('#334455'));
       const resolved = overriddenDefault.resolve({
         sourceLength: 1,
         window: { start: 0, end: 1 },
@@ -372,8 +390,8 @@ describe('Phase 6 public zero-Shiki consumer SDK (@shaulavo/tree-sitter-scope-co
         scopes: ['source.ts'],
       });
       expect(styleAtOffset(resolved, 0)).toMatchObject({
-        fg: parseColorRgba('#ffffff'),
-        bg: parseColorRgba('#222222'),
+        fg: parseColorRgba('#ab12cd'),
+        bg: parseColorRgba('#334455'),
       });
       expect(() => overriddenDefault.resolve({
         sourceLength: 0,

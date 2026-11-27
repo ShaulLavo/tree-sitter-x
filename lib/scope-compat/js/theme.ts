@@ -93,13 +93,15 @@ function parseSelector(selector: string): {
 }
 
 function extractSelectors(scope: VscodeTokenColor['scope']): readonly string[] {
-  if (scope === undefined || scope === '') return [''];
-  const raw = typeof scope === 'string' ? scope.split(',') : scope;
+  if (scope === undefined) return [''];
+  if (typeof scope === 'string') {
+    const stripped = scope.trim().replace(/^,+|,+$/g, '');
+    if (!stripped) return [''];
+    return stripped.split(',').map(item => item.trim());
+  }
   const result: string[] = [];
-  for (const item of raw) {
-    if (typeof item !== 'string') continue;
-    const trimmed = item.trim();
-    if (trimmed) result.push(trimmed);
+  for (const item of scope) {
+    if (typeof item === 'string') result.push(item.trim());
   }
   return result;
 }
