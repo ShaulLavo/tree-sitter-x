@@ -135,6 +135,57 @@ it('recovers terminal JSX call and attribute-string shapes without treating stri
   });
 });
 
+it('keeps JSX member tag names, built-in declaration names, object constructors and short comments clean', async () => {
+  const jsxSource = 'const a = <UI.Menu.Item />;\nconst b = <Promise.then />;\nconst c = <NaN.Menu.Item />;\nconst value = ui.menu.item;\nconst trailing = { a: 1, };\nconst spaced = { a: 1   };\nconst multiline = { a: 1\n  };\nconst methodObj = { a() {}   };\nconst shorthand = { a   };\nconst spreadObj = { ...a   };\nconst shown = <div>{NaN}</div>;\nthrow NaN;\nconst spread = [...Infinity];\n';
+  await usingRoot(roots[1], jsxSource, (pack, owner) => {
+    const result = decoded(pack, owner);
+    for (const token of ['UI', 'Menu', 'Item', 'Promise', 'then', 'NaN.Menu.Item']) {
+      expect(pathAt(pack, result, jsxSource.indexOf(token))).toEqual(['source.js.jsx', 'meta.var.expr.js.jsx', 'meta.tag.js.jsx', 'entity.name.tag.js.jsx', 'support.class.component.js.jsx']);
+    }
+    expect(pathAt(pack, result, jsxSource.indexOf('ui.menu'))).toEqual(['source.js.jsx', 'meta.var.expr.js.jsx', 'variable.other.object.js.jsx']);
+    expect(pathAt(pack, result, jsxSource.indexOf('.menu'))).toEqual(['source.js.jsx', 'meta.var.expr.js.jsx', 'punctuation.accessor.js.jsx']);
+    expect(pathAt(pack, result, jsxSource.indexOf('menu.item'))).toEqual(['source.js.jsx', 'meta.var.expr.js.jsx', 'variable.other.object.property.js.jsx']);
+    expect(pathAt(pack, result, jsxSource.indexOf('item;'))).toEqual(['source.js.jsx', 'meta.var.expr.js.jsx', 'variable.other.property.js.jsx']);
+    const trailingAt = jsxSource.indexOf('a: 1,');
+    expect(pathAt(pack, result, trailingAt)).toEqual(['source.js.jsx', 'meta.var.expr.js.jsx', 'meta.objectliteral.js.jsx', 'meta.object.member.js.jsx', 'meta.object-literal.key.js.jsx']);
+    expect(pathAt(pack, result, trailingAt + 4)).toEqual(['source.js.jsx', 'meta.var.expr.js.jsx', 'meta.objectliteral.js.jsx', 'punctuation.separator.comma.js.jsx']);
+    expect(pathAt(pack, result, jsxSource.indexOf('1   };') + 2)).toEqual(['source.js.jsx', 'meta.var.expr.js.jsx', 'meta.objectliteral.js.jsx', 'meta.object.member.js.jsx']);
+    expect(pathAt(pack, result, jsxSource.indexOf('\n  };') + 2)).toEqual(['source.js.jsx', 'meta.var.expr.js.jsx', 'meta.objectliteral.js.jsx', 'meta.object.member.js.jsx']);
+    expect(pathAt(pack, result, jsxSource.indexOf('{}   };') + 3)).toEqual(['source.js.jsx', 'meta.var.expr.js.jsx', 'meta.objectliteral.js.jsx']);
+    expect(pathAt(pack, result, jsxSource.indexOf('{ a   };') + 4)).toEqual(['source.js.jsx', 'meta.var.expr.js.jsx', 'meta.objectliteral.js.jsx', 'meta.object.member.js.jsx']);
+    expect(pathAt(pack, result, jsxSource.indexOf('...a   };') + 5)).toEqual(['source.js.jsx', 'meta.var.expr.js.jsx', 'meta.objectliteral.js.jsx', 'meta.object.member.js.jsx']);
+    expect(pathAt(pack, result, jsxSource.indexOf('{NaN}') + 1)).toContain('constant.language.nan.js.jsx');
+    expect(pathAt(pack, result, jsxSource.indexOf('throw NaN;') + 6)).toEqual(['source.js.jsx', 'constant.language.nan.js.jsx']);
+    expect(pathAt(pack, result, jsxSource.indexOf('...Infinity') + 3)).toEqual(['source.js.jsx', 'meta.var.expr.js.jsx', 'meta.array.literal.js.jsx', 'constant.language.infinity.js.jsx']);
+  });
+  const jsSource = '//\n/**/\nlet NaN = 0;\nconst Infinity = 1;\nfunction NaN() {}\nconst o = { constructor() {}, a: 1, b: 2, c: 3 };\nconst trailing = { a: 1, };\nconst spaced = { a: 1   };\nconst multiline = { a: 1\n  };\nconst methodObj = { a() {}   };\nconst shorthand = { a   };\nconst spreadObj = { ...a   };\nconst value = ui.menu.item;\nobj?.run();\nthrow NaN;\nconst spread = [...Infinity];\n';
+  await usingRoot(roots[0], jsSource, (pack, owner) => {
+    const result = decoded(pack, owner);
+    expect(pathAt(pack, result, 0)).toEqual(['source.js', 'comment.line.double-slash.js', 'punctuation.definition.comment.js']);
+    expect(pathAt(pack, result, jsSource.indexOf('/**/'))).toEqual(['source.js', 'comment.block.js']);
+    expect(pathAt(pack, result, jsSource.indexOf('NaN = 0'))).toEqual(['source.js', 'meta.var.expr.js', 'meta.var-single-variable.expr.js', 'meta.definition.variable.js', 'variable.other.readwrite.js']);
+    expect(pathAt(pack, result, jsSource.indexOf('Infinity = 1'))).toEqual(['source.js', 'meta.var.expr.js', 'meta.var-single-variable.expr.js', 'meta.definition.variable.js', 'variable.other.constant.js']);
+    expect(pathAt(pack, result, jsSource.indexOf('NaN()'))).toEqual(['source.js', 'entity.name.function.js']);
+    expect(pathAt(pack, result, jsSource.indexOf('constructor'))).toEqual(['source.js', 'meta.var.expr.js', 'meta.objectliteral.js', 'entity.name.function.js']);
+    expect(pathAt(pack, result, jsSource.indexOf('b: 2'))).toEqual(['source.js', 'meta.var.expr.js', 'meta.objectliteral.js', 'meta.object.member.js', 'meta.object-literal.key.js']);
+    const trailingAt = jsSource.indexOf('a: 1, };');
+    expect(pathAt(pack, result, trailingAt)).toEqual(['source.js', 'meta.var.expr.js', 'meta.objectliteral.js', 'meta.object.member.js', 'meta.object-literal.key.js']);
+    expect(pathAt(pack, result, trailingAt + 4)).toEqual(['source.js', 'meta.var.expr.js', 'meta.objectliteral.js', 'punctuation.separator.comma.js']);
+    expect(pathAt(pack, result, jsSource.indexOf('1   };') + 2)).toEqual(['source.js', 'meta.var.expr.js', 'meta.objectliteral.js', 'meta.object.member.js']);
+    expect(pathAt(pack, result, jsSource.indexOf('\n  };') + 2)).toEqual(['source.js', 'meta.var.expr.js', 'meta.objectliteral.js', 'meta.object.member.js']);
+    expect(pathAt(pack, result, jsSource.indexOf('{}   };') + 3)).toEqual(['source.js', 'meta.var.expr.js', 'meta.objectliteral.js']);
+    expect(pathAt(pack, result, jsSource.indexOf('{ a   };') + 4)).toEqual(['source.js', 'meta.var.expr.js', 'meta.objectliteral.js', 'meta.object.member.js']);
+    expect(pathAt(pack, result, jsSource.indexOf('...a   };') + 5)).toEqual(['source.js', 'meta.var.expr.js', 'meta.objectliteral.js', 'meta.object.member.js']);
+    expect(pathAt(pack, result, jsSource.indexOf('ui.menu'))).toEqual(['source.js', 'meta.var.expr.js', 'variable.other.object.js']);
+    expect(pathAt(pack, result, jsSource.indexOf('.menu'))).toEqual(['source.js', 'meta.var.expr.js', 'punctuation.accessor.js']);
+    expect(pathAt(pack, result, jsSource.indexOf('menu.item'))).toEqual(['source.js', 'meta.var.expr.js', 'variable.other.object.property.js']);
+    expect(pathAt(pack, result, jsSource.indexOf('item;'))).toEqual(['source.js', 'meta.var.expr.js', 'variable.other.property.js']);
+    expect(pathAt(pack, result, jsSource.indexOf('run()'))).toEqual(['source.js', 'meta.function-call.js', 'entity.name.function.js']);
+    expect(pathAt(pack, result, jsSource.indexOf('throw NaN;') + 6)).toEqual(['source.js', 'constant.language.nan.js']);
+    expect(pathAt(pack, result, jsSource.indexOf('...Infinity') + 3)).toEqual(['source.js', 'meta.var.expr.js', 'meta.array.literal.js', 'constant.language.infinity.js']);
+  });
+});
+
 it.each(roots)('returns whole $language budget failures and stable copied outputs after heap growth', async identity => {
   const source = 'const sample = `🧭${invoke(12)}`;';
   await usingRoot(identity, source, async (pack, owner) => {

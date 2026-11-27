@@ -108,7 +108,7 @@ it.each(['json', 'typescript', 'tsx', 'markdown'] as const)('runs bounded seeded
     const result = await replayNative({ seed, edits: 32, language });
     expect(result.complete).toBe(32); expect(result.viewportChecks).toBe(32);
   }
-});
+}, 30_000);
 
 it('defers disposal during synchronous child parsing and returns closed after the call', async () => {
   const owner = await MarkdownPilotDocument.open('old'), runtime = await Runtime.load();

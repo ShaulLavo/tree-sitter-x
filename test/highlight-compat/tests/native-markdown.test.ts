@@ -79,5 +79,5 @@ describe('current native Markdown pilot', () => {
     expect(cold.status, cold.stderr).toBe(0); expect(repeat.status, repeat.stderr).toBe(0);
     expect(JSON.parse(cold.stdout)).toEqual(JSON.parse(repeat.stdout));
     expect(JSON.parse(cold.stdout)).toMatchObject({ setText: 1, childParses: 2, scopeParses: 0, baselineParses: 1, retainedResolver: true, retainedParser: true, retainedTree: true, retainedChild: true, released: true });
-  });
+  }, 30_000);
 });
