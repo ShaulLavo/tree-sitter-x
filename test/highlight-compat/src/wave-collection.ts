@@ -33,7 +33,7 @@ const PACKS: Readonly<Record<string, string>> = {
   'javascript/pack.json': 'e41bbf21860722954cedaa62833c8a5d67772e532e54719b17d285a8bbaac09f',
   'jsx/jsx.scm': '1e53b3d224aeff04003a47f5092807acc6819a083b30da823d0dbb696c232ac0',
   'jsx/pack.json': 'ff97d18ff6dd0f7bfe8e06b2c4a81a4915c522b3d77cb4816d480e0a75847ada',
-  'shared/javascript-common.scm': '447e59760a35f6f94a9d855c5f41ccc34e6e50baa48f5a753ed28e5f9125a902',
+  'shared/javascript-common.scm': '7a5fc20a1a25e94240884bb9dfbb2b17d1fa14bcd4889c38dd86ca67678b3785',
 }
 export const hash = (bytes: string | Uint8Array): string => createHash('sha256').update(bytes).digest('hex')
 export function need(value: unknown, message: string): asserts value { if (!value) throw new Error(message) }
