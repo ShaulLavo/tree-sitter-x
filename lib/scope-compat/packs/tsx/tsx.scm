@@ -30,6 +30,12 @@
 ((jsx_expression "{" @punctuation.section.embedded.begin "}" @punctuation.section.embedded.end) @_expression
  (#make-span! "meta.embedded.expression" @_expression @punctuation.section.embedded.begin "end" "0" @punctuation.section.embedded.end "start" "0")
  (#set! priority "25"))
+(jsx_expression (identifier) @variable.other.readwrite)
+(jsx_expression (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+((jsx_expression (member_expression property: (property_identifier) @support.variable.property))
+ (#any-of? @support.variable.property "length" "prototype") (#set! priority "18"))
+((jsx_expression (member_expression object: (identifier) @support.class.promise))
+ (#eq? @support.class.promise "Promise") (#set! priority "26"))
 ((html_character_reference) @constant.character.entity
  (#make-span! "punctuation.definition.entity" @constant.character.entity @constant.character.entity "start" "0" @constant.character.entity "start" "1")
  (#make-span! "punctuation.definition.entity" @constant.character.entity @constant.character.entity "end" "-1" @constant.character.entity "end" "0"))

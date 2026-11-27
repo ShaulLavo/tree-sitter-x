@@ -95,29 +95,49 @@ describe('explicit native language variants', () => {
   });
   it.each(['typescript', 'tsx'] as const)('loads %s and completes its unchanged corpus', checkCorpus);
 
-  it('preserves high-impact TypeScript and TSX TextMate scopes (type params, annotations, return types, comments, const, satisfies, accessor)', async () => {
-    const source = '// note\ninterface Box<const T extends string> { readonly a: T | void; }\nconst x = { k: 1 } as const satisfies Record<string, number>;\nfunction f<T>(p: T): T { return p; }\nclass C { accessor v = 1; }\n';
-    const pack = await loadLanguagePack('typescript');
-    const owner = await PilotDocument.open('typescript', source);
+  it('preserves high-impact TypeScript and TSX TextMate scopes and exact-stack edge cases', async () => {
+    const tsSource = '// note\n//\n/**/\ninterface Box<const T extends string> { readonly a: T | void; }\nexport const x = { a: 1, b: 2, c: 3 } as const satisfies Record<string, number>;\nfunction f<T>(p: T): T { return p; }\nclass C { accessor v = 1; accessor = 2; }\nconst obj = { constructor() {} };\nlet NaN = 0; const Infinity = 1; function NaN() {}\n';
+    const tsPack = await loadLanguagePack('typescript');
+    const tsOwner = await PilotDocument.open('typescript', tsSource);
     try {
-      const result = nativeScopes(pack, owner);
-      expect(scopesAt(pack, result, 0)).toEqual(['source.ts', 'comment.line.double-slash.ts', 'punctuation.definition.comment.ts']);
-      expect(scopesAt(pack, result, source.indexOf('interface'))).toContain('storage.type.interface.ts');
-      expect(scopesAt(pack, result, source.indexOf('Box'))).toContain('entity.name.type.interface.ts');
-      expect(scopesAt(pack, result, source.indexOf('<const'))).toContain('punctuation.definition.typeparameters.begin.ts');
-      expect(scopesAt(pack, result, source.indexOf('const T'))).toContain('storage.modifier.ts');
-      expect(scopesAt(pack, result, source.indexOf('extends'))).toContain('storage.modifier.ts');
-      expect(scopesAt(pack, result, source.indexOf('a:'))).toContain('variable.object.property.ts');
-      expect(scopesAt(pack, result, source.indexOf(': T |'))).toContain('keyword.operator.type.annotation.ts');
-      expect(scopesAt(pack, result, source.indexOf('| void'))).toContain('keyword.operator.type.ts');
-      expect(scopesAt(pack, result, source.indexOf('void'))).toContain('support.type.primitive.ts');
-      expect(scopesAt(pack, result, source.indexOf('x ='))).toEqual(['source.ts', 'meta.var.expr.ts', 'meta.var-single-variable.expr.ts', 'meta.definition.variable.ts', 'variable.other.constant.ts']);
-      expect(scopesAt(pack, result, source.indexOf('as const') + 3)).toContain('entity.name.type.ts');
-      expect(scopesAt(pack, result, source.indexOf('satisfies'))).toContain('keyword.control.satisfies.ts');
-      expect(scopesAt(pack, result, source.indexOf('): T') + 3)).toEqual(['source.ts', 'meta.function.ts', 'meta.return.type.ts', 'entity.name.type.ts']);
-      expect(scopesAt(pack, result, source.indexOf('return'))).toContain('keyword.control.flow.ts');
-      expect(scopesAt(pack, result, source.indexOf('accessor'))).toContain('storage.type.property.ts');
-    } finally { owner.dispose(); pack.dispose(); }
+      const result = nativeScopes(tsPack, tsOwner);
+      expect(scopesAt(tsPack, result, 0)).toEqual(['source.ts', 'comment.line.double-slash.ts', 'punctuation.definition.comment.ts']);
+      expect(scopesAt(tsPack, result, tsSource.indexOf('//\n'))).toEqual(['source.ts', 'comment.line.double-slash.ts', 'punctuation.definition.comment.ts']);
+      expect(scopesAt(tsPack, result, tsSource.indexOf('/**/'))).toEqual(['source.ts', 'comment.block.ts', 'punctuation.definition.comment.ts']);
+      expect(scopesAt(tsPack, result, tsSource.indexOf('interface'))).toContain('storage.type.interface.ts');
+      expect(scopesAt(tsPack, result, tsSource.indexOf('Box'))).toContain('entity.name.type.interface.ts');
+      expect(scopesAt(tsPack, result, tsSource.indexOf('<const'))).toContain('punctuation.definition.typeparameters.begin.ts');
+      expect(scopesAt(tsPack, result, tsSource.indexOf('const T'))).toContain('storage.modifier.ts');
+      expect(scopesAt(tsPack, result, tsSource.indexOf('extends'))).toContain('storage.modifier.ts');
+      expect(scopesAt(tsPack, result, tsSource.indexOf('a: T'))).toContain('variable.object.property.ts');
+      expect(scopesAt(tsPack, result, tsSource.indexOf(': T |'))).toContain('keyword.operator.type.annotation.ts');
+      expect(scopesAt(tsPack, result, tsSource.indexOf('| void'))).toContain('keyword.operator.type.ts');
+      expect(scopesAt(tsPack, result, tsSource.indexOf('void'))).toContain('support.type.primitive.ts');
+      expect(scopesAt(tsPack, result, tsSource.indexOf('x ='))).toEqual(['source.ts', 'meta.var.expr.ts', 'meta.var-single-variable.expr.ts', 'meta.definition.variable.ts', 'variable.other.constant.ts']);
+      expect(scopesAt(tsPack, result, tsSource.indexOf('a: 1'))).toEqual(['source.ts', 'meta.var.expr.ts', 'meta.objectliteral.ts', 'meta.object.member.ts', 'meta.object-literal.key.ts']);
+      expect(scopesAt(tsPack, result, tsSource.indexOf('b: 2'))).toEqual(['source.ts', 'meta.var.expr.ts', 'meta.objectliteral.ts', 'meta.object.member.ts', 'meta.object-literal.key.ts']);
+      expect(scopesAt(tsPack, result, tsSource.indexOf('as const') + 3)).toContain('entity.name.type.ts');
+      expect(scopesAt(tsPack, result, tsSource.indexOf('satisfies'))).toContain('keyword.control.satisfies.ts');
+      expect(scopesAt(tsPack, result, tsSource.indexOf('): T') + 3)).toEqual(['source.ts', 'meta.function.ts', 'meta.return.type.ts', 'entity.name.type.ts']);
+      expect(scopesAt(tsPack, result, tsSource.indexOf('return'))).toContain('keyword.control.flow.ts');
+      expect(scopesAt(tsPack, result, tsSource.indexOf('accessor v'))).toContain('storage.type.property.ts');
+      expect(scopesAt(tsPack, result, tsSource.indexOf('accessor = 2'))).toEqual(['source.ts', 'meta.class.ts', 'meta.field.declaration.ts', 'meta.definition.property.ts', 'variable.object.property.ts']);
+      expect(scopesAt(tsPack, result, tsSource.indexOf('constructor'))).toContain('entity.name.function.ts');
+      expect(scopesAt(tsPack, result, tsSource.indexOf('constructor'))).not.toContain('storage.type.ts');
+      expect(scopesAt(tsPack, result, tsSource.indexOf('NaN = 0'))).toEqual(['source.ts', 'meta.var.expr.ts', 'meta.var-single-variable.expr.ts', 'meta.definition.variable.ts', 'variable.other.readwrite.ts']);
+      expect(scopesAt(tsPack, result, tsSource.indexOf('Infinity = 1'))).toEqual(['source.ts', 'meta.var.expr.ts', 'meta.var-single-variable.expr.ts', 'meta.definition.variable.ts', 'variable.other.constant.ts']);
+      expect(scopesAt(tsPack, result, tsSource.indexOf('NaN()'))).toEqual(['source.ts', 'meta.function.ts', 'meta.definition.function.ts', 'entity.name.function.ts']);
+    } finally { tsOwner.dispose(); tsPack.dispose(); }
+
+    const tsxSource = 'const el = <UI.Button />;\nconst nested = <UI.Menu.Item />;\nconst p = <Promise.then />;\n';
+    const tsxPack = await loadLanguagePack('tsx');
+    const tsxOwner = await PilotDocument.open('tsx', tsxSource);
+    try {
+      const result = nativeScopes(tsxPack, tsxOwner);
+      for (const token of ['UI.Button', 'Button', 'UI.Menu.Item', 'Item', 'Promise.then', 'then']) {
+        expect(scopesAt(tsxPack, result, tsxSource.indexOf(token))).toEqual(['source.tsx', 'meta.var.expr.tsx', 'meta.tag.tsx', 'entity.name.tag.tsx', 'support.class.component.tsx']);
+      }
+    } finally { tsxOwner.dispose(); tsxPack.dispose(); }
   });
 
   it('keeps unimplemented variants deferred', async () => {

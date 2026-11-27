@@ -135,6 +135,27 @@ it('recovers terminal JSX call and attribute-string shapes without treating stri
   });
 });
 
+it('keeps JSX member tag names, built-in declaration names, object constructors and short comments clean', async () => {
+  const jsxSource = 'const a = <UI.Menu.Item />;\nconst b = <Promise.then />;\n';
+  await usingRoot(roots[1], jsxSource, (pack, owner) => {
+    const result = decoded(pack, owner);
+    for (const token of ['UI', 'Menu', 'Item', 'Promise', 'then']) {
+      expect(pathAt(pack, result, jsxSource.indexOf(token))).toEqual(['source.js.jsx', 'meta.var.expr.js.jsx', 'meta.tag.js.jsx', 'entity.name.tag.js.jsx', 'support.class.component.js.jsx']);
+    }
+  });
+  const jsSource = '//\n/**/\nlet NaN = 0;\nconst Infinity = 1;\nfunction NaN() {}\nconst o = { constructor() {}, a: 1, b: 2, c: 3 };\n';
+  await usingRoot(roots[0], jsSource, (pack, owner) => {
+    const result = decoded(pack, owner);
+    expect(pathAt(pack, result, 0)).toEqual(['source.js', 'comment.line.double-slash.js', 'punctuation.definition.comment.js']);
+    expect(pathAt(pack, result, jsSource.indexOf('/**/'))).toEqual(['source.js', 'comment.block.js']);
+    expect(pathAt(pack, result, jsSource.indexOf('NaN = 0'))).toEqual(['source.js', 'meta.var.expr.js', 'meta.var-single-variable.expr.js', 'meta.definition.variable.js', 'variable.other.readwrite.js']);
+    expect(pathAt(pack, result, jsSource.indexOf('Infinity = 1'))).toEqual(['source.js', 'meta.var.expr.js', 'meta.var-single-variable.expr.js', 'meta.definition.variable.js', 'variable.other.constant.js']);
+    expect(pathAt(pack, result, jsSource.indexOf('NaN()'))).toEqual(['source.js', 'entity.name.function.js']);
+    expect(pathAt(pack, result, jsSource.indexOf('constructor'))).toEqual(['source.js', 'meta.var.expr.js', 'meta.objectliteral.js', 'entity.name.function.js']);
+    expect(pathAt(pack, result, jsSource.indexOf('b: 2'))).toEqual(['source.js', 'meta.var.expr.js', 'meta.objectliteral.js', 'meta.object.member.js', 'meta.object-literal.key.js']);
+  });
+});
+
 it.each(roots)('returns whole $language budget failures and stable copied outputs after heap growth', async identity => {
   const source = 'const sample = `🧭${invoke(12)}`;';
   await usingRoot(identity, source, async (pack, owner) => {

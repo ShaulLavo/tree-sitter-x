@@ -18,11 +18,19 @@
 ((export_specifier name: (identifier) @variable.other.readwrite !alias) (#set! priority "20"))
 (namespace_export "*" @constant.language.import-export-all "as" @keyword.control.as (identifier) @variable.other.readwrite.alias)
 
-; Variable declaration frames (exclude trailing comments and statement terminators).
-([(lexical_declaration (variable_declarator) @_last .) @_decl
-  (lexical_declaration (variable_declarator) @_last . (comment)* . (comment) .) @_decl
-  (variable_declaration (variable_declarator) @_last .) @_decl
-  (variable_declaration (variable_declarator) @_last . (comment)* . (comment) .) @_decl]
+; Variable declaration frames (exclude trailing comments, terminators, and double-framing on exports).
+([(program (lexical_declaration (variable_declarator) @_last .) @_decl)
+  (program (lexical_declaration (variable_declarator) @_last . (comment)* . (comment) .) @_decl)
+  (statement_block (lexical_declaration (variable_declarator) @_last .) @_decl)
+  (statement_block (lexical_declaration (variable_declarator) @_last . (comment)* . (comment) .) @_decl)
+  (switch_case (lexical_declaration (variable_declarator) @_last .) @_decl)
+  (switch_default (lexical_declaration (variable_declarator) @_last .) @_decl)
+  (program (variable_declaration (variable_declarator) @_last .) @_decl)
+  (program (variable_declaration (variable_declarator) @_last . (comment)* . (comment) .) @_decl)
+  (statement_block (variable_declaration (variable_declarator) @_last .) @_decl)
+  (statement_block (variable_declaration (variable_declarator) @_last . (comment)* . (comment) .) @_decl)
+  (switch_case (variable_declaration (variable_declarator) @_last .) @_decl)
+  (switch_default (variable_declaration (variable_declarator) @_last .) @_decl)]
  (#make-span! "meta.var.expr" @_decl @_decl "start" "0" @_last "end" "0"))
 ((export_statement declaration: [(lexical_declaration (variable_declarator) @_last .)
                                  (lexical_declaration (variable_declarator) @_last . (comment)* . (comment) .)
@@ -89,14 +97,16 @@
 ((method_definition return_type: (type_annotation) @meta.return.type) (#set! priority "10"))
 ((method_signature return_type: (type_annotation) @meta.return.type) (#set! priority "10"))
 
-; Object literal keys and members.
-((pair key: (property_identifier) @meta.object-literal.key ":" @_colon) @_pair
- (#make-span! "meta.object-literal.key" @_pair @meta.object-literal.key "start" "0" @_colon "end" "0")
- (#set! priority "20"))
+; Object literal keys and members (anchored comma; single meta.object-literal.key).
+((pair key: (property_identifier) @meta.object-literal.key) (#set! priority "20"))
+((pair key: (property_identifier) @_key ":" @_colon) @_pair
+ (#make-span! "meta.object-literal.key" @_pair @_key "end" "0" @_colon "end" "0"))
+((pair key: [(string) (number) (computed_property_name)] @_key ":" @_colon) @_pair
+ (#make-span! "meta.object-literal.key" @_pair @_key "start" "0" @_colon "end" "0"))
 ((pair key: (property_identifier) @entity.name.function value: [(function_expression) (arrow_function)]) (#set! priority "25"))
 ((object (pair) @_member . "}" @_close) @_object
  (#make-span! "meta.object.member" @_object @_member "start" "0" @_close "start" "0"))
-((object (pair) @_member "," @_comma) @_object
+((object (pair) @_member . "," @_comma) @_object
  (#make-span! "meta.object.member" @_object @_member "start" "0" @_comma "start" "0"))
 
 ; --- Function, method, class, type, and property definitions ---
@@ -116,10 +126,9 @@
  (#make-span! "meta.definition.function" @_fn @entity.name.function "start" "0" @entity.name.function "end" "0")
  (#set! priority "25"))
 ((method_definition name: (property_identifier) @entity.name.function) @_fn
- (#not-eq? @entity.name.function "constructor")
  (#make-span! "meta.definition.method" @_fn @entity.name.function "start" "0" @entity.name.function "end" "0")
  (#set! priority "25"))
-((method_definition name: (property_identifier) @storage.type) @_fn
+((class_body (method_definition name: (property_identifier) @storage.type) @_fn)
  (#eq? @storage.type "constructor")
  (#make-span! "meta.definition.method" @_fn @storage.type "start" "0" @storage.type "end" "0")
  (#set! priority "30"))
@@ -134,10 +143,13 @@
 
 ; Property and field declarations.
 ((public_field_definition name: (property_identifier) @variable.object.property) @_field
- (#not-eq? @variable.object.property "accessor")
  (#make-span! "meta.definition.property" @_field @variable.object.property "start" "0" @variable.object.property "end" "0")
  (#set! priority "20"))
-((public_field_definition "accessor" @storage.type.property) (#set! priority "30"))
+((public_field_definition "accessor" @storage.type.property . name: (_)) (#set! priority "30"))
+((public_field_definition "accessor" @variable.object.property (ERROR "=")) @_field
+ (#make-span! "meta.field.declaration" @_field @variable.object.property "start" "0" @_field "end" "0")
+ (#make-span! "meta.definition.property" @_field @variable.object.property "start" "0" @variable.object.property "end" "0")
+ (#set! priority "35"))
 ((public_field_definition name: (property_identifier) @storage.type.property (ERROR (identifier) @variable.object.property)) @_field
  (#eq? @storage.type.property "accessor")
  (#make-span! "meta.definition.property" @_field @variable.object.property "start" "0" @variable.object.property "end" "0")
@@ -165,20 +177,97 @@
  (#make-span! "meta.function-call" @entity.name.function @entity.name.function "start" "0" @entity.name.function "end" "0")
  (#set! priority "25"))
 (call_expression function: (member_expression) @meta.function-call)
-((call_expression function: (member_expression property: (property_identifier) @entity.name.function)) (#set! priority "25"))
+((call_expression function: (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @entity.name.function)) (#set! priority "25"))
+((call_expression function: (member_expression "." @punctuation.accessor property: (property_identifier) @entity.name.function)) (#set! priority "24"))
 ((new_expression constructor: (identifier) @entity.name.function)
  (#make-span! "meta.function-call" @entity.name.function @entity.name.function "start" "0" @entity.name.function "end" "0")
  (#set! priority "25"))
-((new_expression constructor: (member_expression property: (property_identifier) @entity.name.function)) (#set! priority "25"))
+((new_expression constructor: (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @entity.name.function)) (#set! priority "25"))
+((new_expression constructor: (member_expression "." @punctuation.accessor property: (property_identifier) @entity.name.function)) (#set! priority "24"))
 
-; Member object and special identifiers.
-((member_expression object: (identifier) @variable.other.object) (#set! priority "15"))
-((member_expression object: (identifier) @support.class.promise) (#eq? @support.class.promise "Promise") (#set! priority "22"))
-((member_expression property: (property_identifier) @support.variable.property)
+; Expression member expressions and identifiers (guarded from JSX tag names).
+[(expression_statement (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+ (binary_expression (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+ (unary_expression (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+ (update_expression (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+ (assignment_expression (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+ (augmented_assignment_expression (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+ (ternary_expression (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+ (parenthesized_expression (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+ (subscript_expression (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+ (arguments (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+ (array (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+ (pair (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+ (return_statement (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+ (throw_statement (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+ (await_expression (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+ (yield_expression (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+ (template_substitution (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+ (spread_element (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+ (variable_declarator value: (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+ (arrow_function body: (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+ (for_in_statement (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+ (as_expression (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+ (satisfies_expression (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+ (non_null_expression (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))
+ (member_expression object: (this) "." @punctuation.accessor property: (property_identifier) @variable.other.property)
+ (member_expression object: (call_expression) "." @punctuation.accessor property: (property_identifier) @variable.other.property)
+ (member_expression object: (subscript_expression) "." @punctuation.accessor property: (property_identifier) @variable.other.property)
+ (export_statement (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.property))]
+
+[(expression_statement (identifier) @variable.other.readwrite)
+ (binary_expression (identifier) @variable.other.readwrite)
+ (unary_expression (identifier) @variable.other.readwrite)
+ (update_expression (identifier) @variable.other.readwrite)
+ (assignment_expression (identifier) @variable.other.readwrite)
+ (augmented_assignment_expression (identifier) @variable.other.readwrite)
+ (ternary_expression (identifier) @variable.other.readwrite)
+ (parenthesized_expression (identifier) @variable.other.readwrite)
+ (subscript_expression (identifier) @variable.other.readwrite)
+ (arguments (identifier) @variable.other.readwrite)
+ (array (identifier) @variable.other.readwrite)
+ (pair value: (identifier) @variable.other.readwrite)
+ (template_substitution (identifier) @variable.other.readwrite)
+ (spread_element (identifier) @variable.other.readwrite)
+ (variable_declarator value: (identifier) @variable.other.readwrite)
+ (return_statement (identifier) @variable.other.readwrite)
+ (throw_statement (identifier) @variable.other.readwrite)
+ (await_expression (identifier) @variable.other.readwrite)
+ (yield_expression (identifier) @variable.other.readwrite)
+ (arrow_function body: (identifier) @variable.other.readwrite)
+ (for_in_statement (identifier) @variable.other.readwrite)
+ (switch_case (identifier) @variable.other.readwrite)
+ (export_statement (identifier) @variable.other.readwrite)
+ (computed_property_name (identifier) @variable.other.readwrite)
+ (sequence_expression (identifier) @variable.other.readwrite)
+ (public_field_definition value: (identifier) @variable.other.readwrite)
+ (assignment_pattern right: (identifier) @variable.other.readwrite)
+ (as_expression (identifier) @variable.other.readwrite)
+ (satisfies_expression (identifier) @variable.other.readwrite)
+ (non_null_expression (identifier) @variable.other.readwrite)]
+
+; Special built-in names in expression positions (below declaration priorities).
+([(call_expression function: (member_expression object: (identifier) @support.class.promise))
+  (expression_statement (member_expression object: (identifier) @support.class.promise))
+  (variable_declarator value: (member_expression object: (identifier) @support.class.promise))
+  (return_statement (member_expression object: (identifier) @support.class.promise))]
+ (#eq? @support.class.promise "Promise") (#set! priority "26"))
+([(call_expression function: (member_expression property: (property_identifier) @support.variable.property))
+  (expression_statement (member_expression property: (property_identifier) @support.variable.property))
+  (binary_expression (member_expression property: (property_identifier) @support.variable.property))
+  (arguments (member_expression property: (property_identifier) @support.variable.property))
+  (variable_declarator value: (member_expression property: (property_identifier) @support.variable.property))
+  (return_statement (member_expression property: (property_identifier) @support.variable.property))]
  (#any-of? @support.variable.property "length" "prototype") (#set! priority "18"))
-((identifier) @support.type.object.module (#any-of? @support.type.object.module "module" "exports") (#set! priority "16"))
-((identifier) @constant.language.nan (#eq? @constant.language.nan "NaN") (#set! priority "22"))
-((identifier) @constant.language.infinity (#eq? @constant.language.infinity "Infinity") (#set! priority "22"))
+([(arguments (identifier) @support.type.object.module)
+  (expression_statement (identifier) @support.type.object.module)
+  (assignment_expression left: (identifier) @support.type.object.module)
+  (assignment_expression left: (member_expression object: (identifier) @support.type.object.module))
+  (expression_statement (member_expression object: (identifier) @support.type.object.module))
+  (call_expression function: (member_expression object: (identifier) @support.type.object.module))]
+ (#any-of? @support.type.object.module "module" "exports") (#set! priority "16"))
+((identifier) @constant.language.nan (#eq? @constant.language.nan "NaN") (#set! priority "5"))
+((identifier) @constant.language.infinity (#eq? @constant.language.infinity "Infinity") (#set! priority "5"))
 
 ; Types and heritage.
 ((class_declaration name: (type_identifier) @entity.name.type.class) (#set! priority "25"))
@@ -191,14 +280,12 @@
 ((extends_clause value: (identifier) @entity.other.inherited-class) (#set! priority "25"))
 ((extends_type_clause type: (type_identifier) @entity.other.inherited-class) (#set! priority "25"))
 ((implements_clause (type_identifier) @entity.other.inherited-class) (#set! priority "25"))
+(nested_type_identifier "." @punctuation.accessor)
 (type_identifier) @entity.name.type
 (predefined_type) @support.type.primitive
 ((literal_type [(null) (undefined) (true) (false)] @support.type.builtin) (#set! priority "25"))
 ((as_expression "const" @entity.name.type) (#set! priority "25"))
 
-; Fallback identifiers and properties (priority 0 so contextual rules always win).
-(identifier) @variable.other.readwrite
-(property_identifier) @variable.other.property
 (private_property_identifier) @variable.other.property
 (shorthand_property_identifier) @variable.other.readwrite
 (shorthand_property_identifier_pattern) @variable.other.readwrite
@@ -219,20 +306,25 @@
 (null) @constant.language.null
 (undefined) @constant.language.undefined
 
-((comment) @comment.line.double-slash
- (#starts-with? @comment.line.double-slash "//")
- (#make-span! "punctuation.definition.comment" @comment.line.double-slash @comment.line.double-slash "start" "0" @comment.line.double-slash "start" "2")
- (#set! priority "20"))
-((comment) @comment.block.documentation
- (#starts-with? @comment.block.documentation "/**")
- (#make-span! "punctuation.definition.comment" @comment.block.documentation @comment.block.documentation "start" "0" @comment.block.documentation "start" "2")
- (#set! priority "25"))
-((comment) @comment.block
- (#starts-with? @comment.block "/*")
- (#not-starts-with? @comment.block "/**")
- (#make-span! "punctuation.definition.comment" @comment.block @comment.block "start" "0" @comment.block "start" "2")
- (#set! priority "20"))
-(comment) @comment.block
+; Emit comment container before punctuation.definition.comment so bare "//" and "/*" stay ordered.
+((comment) @_c
+ (#starts-with? @_c "//")
+ (#make-span! "comment.line.double-slash" @_c @_c "start" "0" @_c "end" "0")
+ (#make-span! "punctuation.definition.comment" @_c @_c "start" "0" @_c "start" "2"))
+((comment) @_c
+ (#starts-with? @_c "/**")
+ (#not-eq? @_c "/**/")
+ (#make-span! "comment.block.documentation" @_c @_c "start" "0" @_c "end" "0")
+ (#make-span! "punctuation.definition.comment" @_c @_c "start" "0" @_c "start" "2"))
+((comment) @_c
+ (#starts-with? @_c "/*")
+ (#not-starts-with? @_c "/**")
+ (#make-span! "comment.block" @_c @_c "start" "0" @_c "end" "0")
+ (#make-span! "punctuation.definition.comment" @_c @_c "start" "0" @_c "start" "2"))
+((comment) @_c
+ (#eq? @_c "/**/")
+ (#make-span! "comment.block" @_c @_c "start" "0" @_c "end" "0")
+ (#make-span! "punctuation.definition.comment" @_c @_c "start" "0" @_c "start" "2"))
 
 ((string . "'") @string.quoted.single (#set! priority "10"))
 ((string . "\"") @string.quoted.double (#set! priority "10"))
@@ -324,7 +416,6 @@
 ((type_arguments "<" @punctuation.definition.typeparameters.begin ">" @punctuation.definition.typeparameters.end) (#set! priority "25"))
 ";" @punctuation.terminator.statement
 "," @punctuation.separator.comma
-"." @punctuation.accessor
 ":" @punctuation.separator.key-value
 ["(" ")"] @meta.brace.round
 ["[" "]"] @meta.brace.square
