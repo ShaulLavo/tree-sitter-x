@@ -1,11 +1,13 @@
 import { OwnerState } from './owner-state.ts';
 import type { OwnerKey, EditOutcome } from './owner-state.ts';
 import { prepareEdits, BINDING_LIMITS } from './edit-batch.ts';
-import type { Edit, NumericLimits } from './edit-batch.ts';
+import type { Edit, NumericLimits, TextSpan } from './edit-batch.ts';
 import { withBorrowed } from './borrow.ts';
 import type { Borrowed } from './borrow.ts';
 import { Runtime, invoke, release, foreign } from './runtime.ts';
 import type { Foreign } from './runtime.ts';
+import { computeLocalWindow, extractChangedRanges, nodeHasError } from './local-invalidation.ts';
+import type { LocalWindow, OwnerChange } from './local-invalidation.ts';
 
 function releasePair(first: Foreign | undefined, second: Foreign | undefined): void {
   try { if (first) release(first); } finally { if (second) release(second); }
@@ -22,7 +24,9 @@ export class PilotDocument {
   readonly #limits: NumericLimits;
   #operation = false;
   #closeRequested = false;
+  #lastChange: OwnerChange | undefined;
   get source(): string { return this.#source; }
+  get lastChange(): OwnerChange | undefined { return this.#lastChange; }
   key() { return this.#state.key(); }
   observe() { return this.#state.observe(); }
   onCommit(listener: () => void) { return this.#state.onCommit(listener); }
@@ -63,15 +67,22 @@ export class PilotDocument {
     });
   }
 
+  localWindow(change: OwnerChange): LocalWindow | undefined {
+    if (this.#disposed) return undefined;
+    return this.#state.borrow(tree => computeLocalWindow(tree, this.languageId, this.#source, change));
+  }
+
   async applyEdits(input: Readonly<{ base: OwnerKey; edits: readonly Edit[] }>): Promise<EditOutcome> {
     if (this.#operation) throw new Error('Owner unavailable for mutation');
     this.#state.validate(input.base);
     const prepared = prepareEdits(this.source, input.edits, this.#limits);
     this.#state.validate(input.base);
     if (!prepared.schedule.length) return this.observe().kind === 'ready' ? { kind: 'ready', key: this.key(), oldTextSpans: [], newTextSpans: [] } : { kind: 'unavailable', key: this.key(), reason: 'Owner unavailable' };
-    const recovering = this.observe().kind === 'unavailable', previousSource = this.source;
+    const recovering = this.observe().kind === 'unavailable', previousSource = this.source, beforeKey = this.key();
     this.#operation = true;
-    let key = this.key(), tree = this.#state.ready();
+    let key = beforeKey, tree = this.#state.ready();
+    const hadErrorBefore = tree ? nodeHasError(tree) : true;
+    this.#lastChange = undefined;
     try {
       key = this.#state.begin(() => { this.#source = prepared.source; });
       this.#state.notify();
@@ -83,21 +94,28 @@ export class PilotDocument {
       const parsed = invoke(this.#parser, 'parse', [this.#buffer, tree]);
       if (!parsed) throw new Error('Native owner parse returned no tree');
       const next = foreign(parsed), old = tree; tree = next;
-      this.retireTree(old, next);
+      const changedRanges = this.retireTree(old, next, prepared.source.length);
       if (this.#closeRequested) { release(next); tree = undefined; this.#operation = false; this.dispose(); return { kind: 'closed', key }; }
+      const hasErrorAfter = nodeHasError(next);
+      this.#lastChange = Object.freeze({
+        fromKey: beforeKey, toKey: key, oldLength: previousSource.length, newLength: prepared.source.length,
+        oldTextSpans: prepared.oldTextSpans, newTextSpans: prepared.newTextSpans, changedRanges,
+        hadErrorBefore, hasErrorAfter, recovering,
+      });
       this.#state.finish(next);
       if (this.#closeRequested) return { kind: 'closed', key };
       return { kind: 'ready', key, oldTextSpans: prepared.oldTextSpans, newTextSpans: prepared.newTextSpans };
     } catch (error) {
+      this.#lastChange = undefined;
       if (tree) release(tree); tree = undefined;
       invoke(this.#parser, 'reset');
       return { kind: 'unavailable', key: this.key(), reason: this.#state.fail(error) };
     } finally { this.#operation = false; if (this.#closeRequested) this.dispose(); }
   }
 
-  private retireTree(old: Foreign | undefined, next: Foreign): void {
-    if (!old) return;
-    try { invoke(old, 'getChangedRanges', [next]); } finally { release(old); }
+  private retireTree(old: Foreign | undefined, next: Foreign, newLength: number): readonly TextSpan[] {
+    if (!old) return [];
+    try { return extractChangedRanges(invoke(old, 'getChangedRanges', [next]), newLength); } finally { release(old); }
   }
   dispose(): void {
     if (this.#disposed) return;

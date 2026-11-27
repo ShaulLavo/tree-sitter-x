@@ -53,6 +53,92 @@ function internName(name: string, names: string[], ids: Map<string, number>): nu
   if (id !== undefined) return id;
   id = names.length; names.push(name); ids.set(name, id); return id;
 }
+export function spliceSnapshot(
+  previous: ScopeSnapshot,
+  oldRange: TextSpan,
+  local: Readonly<{ segments: ArrayLike<number>; paths: readonly (readonly number[])[] }>,
+  packScopes: readonly string[],
+  newLength: number,
+  maxSegments: number,
+): { dictionary: ScopeDictionary; segments: readonly number[] } {
+  const delta = newLength - previous.sourceLength;
+  const newFrom = oldRange.from, newTo = oldRange.to + delta;
+  const builder = new DictionaryBuilder(maxSegments);
+  const oldMap = new Map<number, number>(), localMap = new Map<number, number>();
+  const mapOld = (id: number) => cachedPath(oldMap, id, () => previous.dictionary.paths[id].map(s => previous.dictionary.names[s]), builder);
+  const mapLocal = (id: number) => cachedPath(localMap, id, () => local.paths[id].map(s => packScopes[s]), builder);
+  emitOldRange(previous.segments, 0, oldRange.from, 0, mapOld, builder);
+  for (let i = 0; i < local.segments.length; i += 3) {
+    builder.push(local.segments[i], local.segments[i + 1], mapLocal(local.segments[i + 2]));
+  }
+  emitOldRange(previous.segments, oldRange.to, previous.sourceLength, delta, mapOld, builder);
+  return builder.finish(newLength, newFrom, newTo);
+}
+function cachedPath(cache: Map<number, number>, id: number, names: () => readonly string[], builder: DictionaryBuilder): number {
+  let mapped = cache.get(id);
+  if (mapped !== undefined) return mapped;
+  mapped = builder.internPath(names()); cache.set(id, mapped); return mapped;
+}
+function emitOldRange(
+  segments: readonly number[],
+  fromLimit: number,
+  toLimit: number,
+  shift: number,
+  mapPath: (id: number) => number,
+  builder: DictionaryBuilder,
+): void {
+  if (fromLimit >= toLimit || !segments.length) return;
+  let index = findSegmentAt(segments, fromLimit);
+  for (; index < segments.length; index += 3) {
+    const segFrom = segments[index], segTo = segments[index + 1];
+    if (segFrom >= toLimit) break;
+    const clippedFrom = Math.max(fromLimit, segFrom), clippedTo = Math.min(toLimit, segTo);
+    if (clippedFrom < clippedTo) builder.push(clippedFrom + shift, clippedTo + shift, mapPath(segments[index + 2]));
+  }
+}
+function findSegmentAt(segments: readonly number[], offset: number): number {
+  let lo = 0, hi = segments.length / 3;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    if (segments[mid * 3 + 1] <= offset) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo * 3;
+}
+class DictionaryBuilder {
+  readonly #names: string[] = [];
+  readonly #paths: number[][] = [];
+  readonly #segments: number[] = [];
+  readonly #nameIds = new Map<string, number>();
+  readonly #pathIds = new Map<string, number>();
+  readonly #maxSegments: number;
+  #end = 0;
+  constructor(maxSegments: number) { this.#maxSegments = maxSegments; }
+  internPath(scopeNames: readonly string[]): number {
+    const path = scopeNames.map(name => internName(name, this.#names, this.#nameIds));
+    const key = JSON.stringify(path);
+    let id = this.#pathIds.get(key);
+    if (id !== undefined) return id;
+    id = this.#paths.length; this.#paths.push(path); this.#pathIds.set(key, id); return id;
+  }
+  push(from: number, to: number, pathId: number): void {
+    if (!Number.isSafeInteger(from) || !Number.isSafeInteger(to) || from !== this.#end || to <= from) throw new Error('Invalid spliced scope coverage');
+    if (this.#segments.length && this.#segments[this.#segments.length - 1] === pathId) {
+      this.#segments[this.#segments.length - 2] = to;
+    } else {
+      if (this.#segments.length / 3 >= this.#maxSegments) throw new OutputBudgetError('Composed scope segment budget');
+      this.#segments.push(from, to, pathId);
+    }
+    this.#end = to;
+  }
+  finish(length: number, _newFrom: number, _newTo: number): { dictionary: ScopeDictionary; segments: readonly number[] } {
+    if (this.#end !== length) throw new Error('Incomplete spliced scope coverage');
+    return {
+      dictionary: Object.freeze({ names: Object.freeze(this.#names), paths: Object.freeze(this.#paths.map(path => Object.freeze(path))) }),
+      segments: Object.freeze(this.#segments),
+    };
+  }
+}
 export function clipSnapshot(full: ScopeSnapshot, coverage: TextSpan): ScopeSnapshot {
   const segments: number[] = [];
   for (let i = 0; i < full.segments.length; i += 3) {

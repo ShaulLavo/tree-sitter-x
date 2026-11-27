@@ -6,10 +6,12 @@ import { integer } from './edit-batch.ts';
 import type { TextSpan } from './edit-batch.ts';
 import { counter, sameOwner, sameWork } from './owner-state.ts';
 import type { OwnerKey, WorkKey, ViewId, InterestGeneration, ThemeGeneration } from './owner-state.ts';
-import { packIntervals, clipSnapshot, OutputStore, OutputBudgetError } from './scope-output.ts';
+import { packIntervals, clipSnapshot, spliceSnapshot, OutputStore, OutputBudgetError } from './scope-output.ts';
 import { collectSourceFacts } from './scope-framing.ts';
-import type { ScopeLease, ScopeSnapshot, Publication } from './scope-output.ts';
+import type { ScopeDictionary, ScopeLease, ScopeSnapshot, Publication } from './scope-output.ts';
+import type { InvalidationRecord } from './local-invalidation.ts';
 import type { ScopeInterval } from '../baselines/compose.ts';
+export type { InvalidationRecord } from './local-invalidation.ts';
 export type ScopeOwner = PilotDocument | MarkdownPilotDocument;
 export interface ScopeLimits {
   readonly views: number; readonly descriptors: number; readonly depth: number;
@@ -25,7 +27,9 @@ interface View {
   last: Extract<Publication['change'], { kind: 'replace' }> | undefined;
   output: ScopeLease | undefined; outcome: ScopeOutcome | undefined;
 }
-interface Work { readonly key: WorkKey; canceled: boolean; readonly interests: ReadonlyMap<ViewId, InterestGeneration>; readonly progress: { next: number; intervals: ScopeInterval[]; bytes: number } }
+interface CachedChildIntervals { readonly start: number; readonly end: number; readonly intervals: readonly ScopeInterval[] }
+interface WorkProgress { next: number; intervals: ScopeInterval[]; bytes: number; reusedChildren: number; rescopedChildren: number; readonly staged: Map<number, CachedChildIntervals> }
+interface Work { readonly key: WorkKey; canceled: boolean; readonly interests: ReadonlyMap<ViewId, InterestGeneration>; readonly progress: WorkProgress }
 function notifyPresentation(listener: (view: ViewId | null) => void, view: ViewId | null, errors: unknown[]): void {
   try { listener(view); } catch (error) { errors.push(error); }
 }
@@ -43,7 +47,10 @@ export class ScopeSession {
   readonly #unsubscribe: () => void;
   readonly #views = new Map<ViewId, View>();
   readonly #presentationListeners = new Set<(view: ViewId | null) => void>();
+  readonly #markdownChildCache = new Map<number, CachedChildIntervals>();
   #cache: ScopeLease | undefined;
+  #previousBase: ScopeLease | undefined;
+  #lastInvalidation: InvalidationRecord | undefined;
   #pending: OwnerKey | undefined;
   #active: Work | undefined;
   #disposed = false;
@@ -82,15 +89,25 @@ export class ScopeSession {
     if (!view || view.interest !== interest) return;
     view.wants = false;
     view.outcome = { kind: 'canceled', work: this.#active?.key ?? this.workKey(this.#owner.key()), reason: 'explicit' };
-    if (!this.interested()) { this.cancelActive(); this.#pending = undefined; }
+    if (!this.interested()) {
+      this.cancelActive();
+      this.#pending = undefined;
+      this.dropPreviousBase();
+    }
     this.presentationChanged(id);
   }
   detachView(id: ViewId): void {
     const view = this.#views.get(id); if (!view) return;
     this.#views.delete(id); view.output?.release();
-    if (!this.#views.size) {
+    if (!this.interested()) {
       this.cancelActive();
-      const cache = this.#cache; this.#pending = undefined; this.#cache = undefined; cache?.release();
+      this.#pending = undefined;
+      this.dropPreviousBase();
+    }
+    if (!this.#views.size) {
+      const cache = this.#cache; this.#cache = undefined;
+      this.#markdownChildCache.clear();
+      cache?.release();
     }
     this.presentationChanged(id);
   }
@@ -130,6 +147,7 @@ export class ScopeSession {
   }
   outcome(id: ViewId): ScopeOutcome | undefined { return this.#views.get(id)?.outcome; }
   retainedBytes(): number { return this.#outputs.bytes(); }
+  get lastInvalidation(): InvalidationRecord | undefined { return this.#lastInvalidation; }
   flushOne(): void {
     if (this.#disposed) return;
     const work = this.#active ?? this.dispatch();
@@ -148,7 +166,7 @@ export class ScopeSession {
   }
   private dispatch(): Work | undefined {
     if (!this.#pending || !this.interested() || this.#owner.observe().kind === 'updating') return undefined;
-    const work: Work = { key: this.workKey(this.#owner.key()), canceled: false, interests: new Map(Array.from(this.#views.values(), view => [view.id, view.interest])), progress: { next: 0, intervals: [], bytes: 0 } };
+    const work: Work = { key: this.workKey(this.#owner.key()), canceled: false, interests: new Map(Array.from(this.#views.values(), view => [view.id, view.interest])), progress: { next: 0, intervals: [], bytes: 0, reusedChildren: 0, rescopedChildren: 0, staged: new Map() } };
     this.#request = work.key.request; this.#active = work; this.#pending = undefined; return work;
   }
   private run(work: Work): boolean {
@@ -157,20 +175,23 @@ export class ScopeSession {
     if (!this.current(work)) { this.terminal(work); return true; }
     try {
       let snapshot = this.#cache?.snapshot;
-      if (!snapshot || !sameOwner(snapshot.owner, work.key)) snapshot = this.advance(work);
+      const computed = !snapshot || !sameOwner(snapshot.owner, work.key);
+      if (computed) snapshot = this.advance(work);
       if (!this.current(work)) { this.terminal(work); return true; }
       if (!snapshot) return false;
       if (!this.#cache || this.#cache.snapshot !== snapshot) {
         const admitted = this.#outputs.admitFull(snapshot), previous = this.#cache;
         this.#cache = admitted; previous?.release();
       }
+      if (computed && this.#owner instanceof MarkdownPilotDocument) this.commitMarkdownCache(work.progress.staged);
       this.#outputs.clearWorking(work);
-      work.progress.intervals = []; work.progress.bytes = 0;
+      work.progress.intervals = []; work.progress.bytes = 0; work.progress.staged.clear();
       for (const view of this.#views.values()) this.publish(view, work, snapshot);
       return true;
     } catch (error) { return this.runFailure(work, error); }
   }
   private runFailure(work: Work, error: unknown): true {
+    if (this.#owner instanceof MarkdownPilotDocument) this.#markdownChildCache.clear();
     if (!this.current(work)) { this.terminal(work); return true; }
     const diagnostic = error instanceof Error ? error.message : String(error);
     const reason = (error instanceof ScopeFailure || error instanceof NativeScopeError) ? error.reason : /budget/i.test(diagnostic) ? 'budget' : /allocation failed/.test(diagnostic) ? 'no-memory' : 'invalid';
@@ -178,11 +199,11 @@ export class ScopeSession {
   }
   private advance(work: Work): ScopeSnapshot | undefined {
     const owner = this.#owner;
-    if (owner instanceof PilotDocument) return this.compute(work, this.rootIntervals(owner));
+    if (owner instanceof PilotDocument) return this.computeRoot(work, owner);
     if (owner.injectionCoverage.length > this.#limits.descriptors) throw new ScopeFailure('unsupported', 'Injection descriptor limit');
     const progress = work.progress, count = owner.children.length;
     if (progress.next < count) {
-      const intervals = owner.scopeChild(progress.next++, this.#packs, this.#limits);
+      const intervals = this.advanceMarkdownChild(owner, progress);
       if (!this.current(work)) return undefined;
       const bytes = intervals.reduce((sum, interval) => sum + intervalBytes(interval), 0);
       if (progress.intervals.length + intervals.length > this.#limits.maxSegments) throw new ScopeFailure('budget', 'Partial child segment budget');
@@ -191,16 +212,91 @@ export class ScopeSession {
       progress.bytes += bytes;
     }
     if (progress.next < count) return undefined;
+    const change = owner.lastChange;
+    const mode = progress.reusedChildren > 0 ? 'local-range' : 'full-document';
+    this.#lastInvalidation = Object.freeze({
+      mode,
+      oldRange: Object.freeze({ from: 0, to: change?.oldLength ?? owner.source.length }),
+      newRange: Object.freeze({ from: 0, to: owner.source.length }),
+      sourceLength: owner.source.length,
+      reusedChildren: progress.reusedChildren,
+      rescopedChildren: progress.rescopedChildren,
+    });
     return this.compute(work, owner.composeScopes(progress.intervals));
+  }
+  private advanceMarkdownChild(owner: MarkdownPilotDocument, progress: WorkProgress): readonly ScopeInterval[] {
+    const index = progress.next++;
+    const identity = owner.childIdentity(index);
+    const cached = identity ? this.#markdownChildCache.get(identity.id) : undefined;
+    if (identity && cached && cached.end - cached.start === identity.end - identity.start) {
+      const delta = identity.start - cached.start;
+      const shifted = delta === 0 ? cached.intervals : cached.intervals.map(item => ({ from: item.from + delta, to: item.to + delta, scopes: item.scopes }));
+      progress.staged.set(identity.id, { start: identity.start, end: identity.end, intervals: shifted });
+      progress.reusedChildren++;
+      return shifted;
+    }
+    const intervals = owner.scopeChild(index, this.#packs, this.#limits);
+    if (identity) progress.staged.set(identity.id, { start: identity.start, end: identity.end, intervals });
+    progress.rescopedChildren++;
+    return intervals;
+  }
+  private commitMarkdownCache(staged: ReadonlyMap<number, CachedChildIntervals>): void {
+    this.#markdownChildCache.clear();
+    for (const [id, entry] of staged) this.#markdownChildCache.set(id, entry);
+  }
+  private computeRoot(work: Work, owner: PilotDocument): ScopeSnapshot {
+    const previous = this.#previousBase;
+    this.#previousBase = undefined;
+    let released = false;
+    const releasePrevious = () => {
+      if (released) return;
+      released = true;
+      previous?.release();
+    };
+    const change = owner.lastChange;
+    try {
+      const canLocal = !!previous && !!change && sameOwner(change.fromKey, previous.snapshot.owner) && sameOwner(change.toKey, work.key);
+      const window = canLocal ? owner.localWindow(change) : undefined;
+      if (window && previous) {
+        const pack = this.requirePack(owner.languageId);
+        const result = owner.borrow(pack.sameLanguage, borrowed => pack.run(borrowed, { start: window.newRange.from, end: window.newRange.to }, this.#limits));
+        if (result.status !== 0) throw new NativeScopeError(result.status, result.detail);
+        const packed = spliceSnapshot(previous.snapshot, window.oldRange, result, pack.scopes, owner.source.length, this.#limits.maxSegments);
+        releasePrevious();
+        this.#lastInvalidation = Object.freeze({
+          mode: 'local-range', oldRange: window.oldRange, newRange: window.newRange,
+          sourceLength: owner.source.length, reusedChildren: 0, rescopedChildren: 0,
+        });
+        return this.finishSnapshot(work, packed);
+      }
+    } finally {
+      releasePrevious();
+    }
+    const intervals = this.rootIntervals(owner);
+    this.#lastInvalidation = Object.freeze({
+      mode: 'full-document',
+      oldRange: Object.freeze({ from: 0, to: change?.oldLength ?? owner.source.length }),
+      newRange: Object.freeze({ from: 0, to: owner.source.length }),
+      sourceLength: owner.source.length, reusedChildren: 0, rescopedChildren: 0,
+    });
+    return this.compute(work, intervals);
+  }
+  private requirePack(languageId: string): NativePack {
+    const pack = this.#packs.get(languageId);
+    if (!pack) throw new ScopeFailure('unsupported', `Missing native pack ${languageId}`);
+    return pack;
   }
   private compute(work: Work, intervals: readonly ScopeInterval[]): ScopeSnapshot {
     if (!this.current(work)) throw new Error('Stale scope computation');
+    if (intervals.length > this.#limits.maxSegments) throw new ScopeFailure('budget', 'Composed scope segment budget');
+    if (intervals.reduce((sum, interval) => sum + intervalBytes(interval), 0) > this.#limits.retainedBytes) throw new ScopeFailure('budget', 'Scope construction byte budget');
+    return this.finishSnapshot(work, packIntervals(intervals, this.#owner.source.length));
+  }
+  private finishSnapshot(work: Work, packed: { dictionary: ScopeDictionary; segments: readonly number[] }): ScopeSnapshot {
+    if (!this.current(work)) throw new Error('Stale scope computation');
     const owner = this.#owner, key = owner.key(), source = owner.source;
     const generation = counter<'ResultGeneration'>(++this.#generation);
-    if (intervals.length > this.#limits.maxSegments) throw new ScopeFailure('budget', 'Composed scope segment budget');
     const available = this.#outputs.available();
-    if (intervals.reduce((sum, interval) => sum + intervalBytes(interval), 0) > this.#limits.retainedBytes) throw new ScopeFailure('budget', 'Scope construction byte budget');
-    const packed = packIntervals(intervals, source.length);
     const injections = owner instanceof MarkdownPilotDocument ? owner.injectionCoverage : [];
     const candidate = { ...packed, owner: key, work: work.key, generation,
       coverage: Object.freeze({ from: 0, to: source.length }), sourceLength: source.length, metadata: null, separators: [],
@@ -211,8 +307,7 @@ export class ScopeSession {
     return Object.freeze({ ...candidate, separators: sourceFacts.separators, sourceFacts });
   }
   private rootIntervals(owner: PilotDocument): readonly ScopeInterval[] {
-    const pack = this.#packs.get(owner.languageId);
-    if (!pack) throw new ScopeFailure('unsupported', `Missing native pack ${owner.languageId}`);
+    const pack = this.requirePack(owner.languageId);
     const result = owner.borrow(pack.sameLanguage, borrowed => pack.run(borrowed, { start: 0, end: owner.source.length }, this.#limits));
     if (result.status !== 0) throw new NativeScopeError(result.status, result.detail);
     return Array.from({ length: result.segments.length / 3 }, (_, index) => ({ from: result.segments[index * 3], to: result.segments[index * 3 + 1], scopes: result.paths[result.segments[index * 3 + 2]].map(id => pack.scopes[id]) }));
@@ -249,13 +344,31 @@ export class ScopeSession {
     for (const view of this.#views.values()) { if (view.wants) view.outcome = { kind: 'incomplete', work: work.key, reason, diagnostic: diagnostic.slice(0, 1024) }; }
   }
   private invalidate(): void {
-    if (this.#owner.observe().kind === 'closed') { this.dispose(); return; }
+    const kind = this.#owner.observe().kind;
+    if (kind === 'closed') { this.dispose(); return; }
     this.cancelActive();
     const cache = this.#cache; this.#cache = undefined;
     const outputs = Array.from(this.#views.values(), view => { const output = view.output; view.output = undefined; return output; });
-    this.#pending = this.interested() ? this.#owner.key() : undefined;
-    this.releaseScopeOutputs(outputs, cache);
+    const interested = this.interested();
+    this.#pending = interested ? this.#owner.key() : undefined;
+    let releaseCache = cache;
+    if (this.#owner instanceof PilotDocument && interested && (kind === 'updating' || kind === 'ready')) {
+      if (cache) {
+        const staleBase = this.#previousBase;
+        this.#previousBase = cache;
+        releaseCache = staleBase;
+      }
+    } else {
+      this.dropPreviousBase();
+      if (!interested || kind === 'unavailable') this.#markdownChildCache.clear();
+    }
+    this.releaseScopeOutputs(outputs, releaseCache);
     this.presentationChanged(null);
+  }
+  private dropPreviousBase(): void {
+    const base = this.#previousBase;
+    this.#previousBase = undefined;
+    base?.release();
   }
   private workKey(key: OwnerKey): WorkKey { return Object.freeze({ ...key, request: counter<'RequestId'>(this.#request + 1) }); }
   private interested(): boolean { for (const view of this.#views.values()) { if (view.wants) return true; } return false; }
@@ -269,16 +382,19 @@ export class ScopeSession {
     if (this.#disposed) return;
     this.#disposed = true; ScopeSession.#attached.delete(this.#owner); this.#unsubscribe();
     this.cancelActive();
-    const outputs = Array.from(this.#views.values(), view => view.output), cache = this.#cache;
-    this.#views.clear(); this.#cache = undefined; this.#pending = undefined;
+    const outputs = Array.from(this.#views.values(), view => view.output), cache = this.#cache, previousBase = this.#previousBase;
+    this.#views.clear(); this.#cache = undefined; this.#previousBase = undefined; this.#pending = undefined;
+    this.#markdownChildCache.clear();
     try { this.presentationChanged(null); }
-    finally {
-      this.#presentationListeners.clear();
-      try { this.releaseScopeOutputs(outputs, cache); } finally { this.releasePacks(); }
-    }
+    finally { this.releaseDisposed(outputs, cache, previousBase); }
   }
-  private releaseScopeOutputs(outputs: readonly (ScopeLease | undefined)[], cache: ScopeLease | undefined): void {
-    try { for (const output of outputs) output?.release(); } finally { cache?.release(); }
+  private releaseDisposed(outputs: readonly (ScopeLease | undefined)[], cache: ScopeLease | undefined, previousBase: ScopeLease | undefined): void {
+    this.#presentationListeners.clear();
+    try { this.releaseScopeOutputs(outputs, cache, previousBase); } finally { this.releasePacks(); }
+  }
+  private releaseScopeOutputs(outputs: readonly (ScopeLease | undefined)[], cache: ScopeLease | undefined, previousBase?: ScopeLease): void {
+    try { for (const output of outputs) output?.release(); }
+    finally { try { cache?.release(); } finally { previousBase?.release(); } }
   }
   private cancelActive(): void {
     const active = this.#active; this.#active = undefined;
