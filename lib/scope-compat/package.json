@@ -11,18 +11,22 @@
   },
   "exports": {
     ".": {
-      "types": "./js/index.ts",
-      "default": "./js/index.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./scope-compat.wasm": "./build/scope-compat.wasm",
     "./packs/*": "./packs/*"
   },
-  "types": "./js/index.ts",
+  "types": "./dist/index.d.ts",
   "files": [
-    "js",
+    "dist",
     "packs",
     "build/scope-compat.wasm"
   ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit"
+  },
   "peerDependencies": {
     "@shaulavo/web-tree-sitter-x": ">=0.28.0"
   },

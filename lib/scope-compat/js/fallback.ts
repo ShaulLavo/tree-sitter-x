@@ -1,3 +1,4 @@
+import { u32 } from './abi.ts';
 import { ScopeCompatError } from './types.ts';
 import type {
   FallbackHighlightOptions,
@@ -188,13 +189,15 @@ export function resolveZedPlusScopes(captureName: string, scopeSuffix = ''): rea
 interface CaptureSpan {
   readonly from: number;
   readonly to: number;
+  readonly origFrom: number;
+  readonly origTo: number;
   readonly pattern: number;
   readonly ordinal: number;
   readonly scopeIds: readonly number[];
 }
 
 function compareCapture(a: CaptureSpan, b: CaptureSpan): number {
-  return a.from - b.from || b.to - a.to || a.pattern - b.pattern || a.ordinal - b.ordinal;
+  return a.from - b.from || a.origFrom - b.origFrom || b.origTo - a.origTo || a.pattern - b.pattern || a.ordinal - b.ordinal;
 }
 
 function collectLineSeparators(source: string, window: ScopeWindow, boundaries: Set<number>): Map<number, number> {
@@ -209,8 +212,8 @@ function collectLineSeparators(source: string, window: ScopeWindow, boundaries: 
       cursor++;
       continue;
     }
-    if (code === 13) {
-      const end = cursor + 1 < window.end && source.charCodeAt(cursor + 1) === 10 ? cursor + 2 : cursor + 1;
+    if (code === 13 && cursor + 1 < source.length && source.charCodeAt(cursor + 1) === 10) {
+      const end = Math.min(window.end, cursor + 2);
       separators.set(cursor, end);
       boundaries.add(cursor);
       boundaries.add(end);
@@ -220,6 +223,16 @@ function collectLineSeparators(source: string, window: ScopeWindow, boundaries: 
     cursor++;
   }
   return separators;
+}
+
+function internScope(scope: string, scopes: string[], scopeIds: Map<string, number>): number {
+  let id = scopeIds.get(scope);
+  if (id === undefined) {
+    id = scopes.length;
+    scopes.push(scope);
+    scopeIds.set(scope, id);
+  }
+  return id;
 }
 
 function readRawRanges(
@@ -256,16 +269,7 @@ function buildCaptureSpans(
     const name = captureNames[i];
     if (!nameToOrdinal.has(name)) nameToOrdinal.set(name, i);
     const resolved = resolveZedPlusScopes(name, scopeSuffix);
-    const ids = resolved.map(scope => {
-      let id = scopeIds.get(scope);
-      if (id === undefined) {
-        id = scopes.length;
-        scopes.push(scope);
-        scopeIds.set(scope, id);
-      }
-      return id;
-    });
-    nameToScopeIds.set(name, ids);
+    nameToScopeIds.set(name, resolved.map(scope => internScope(scope, scopes, scopeIds)));
   }
   const spans: CaptureSpan[] = [];
   for (const capture of rawCaptures) {
@@ -278,6 +282,8 @@ function buildCaptureSpans(
     spans.push({
       from,
       to,
+      origFrom: bounds.startIndex,
+      origTo: bounds.endIndex,
       pattern: capture.patternIndex,
       ordinal: nameToOrdinal.get(capture.name) ?? 0,
       scopeIds: ids,
@@ -333,13 +339,14 @@ export function highlightTreeWithFallback(
   source: string,
   options: FallbackHighlightOptions,
 ): ScopeResult {
-  const sourceLength = source.length;
+  const sourceLength = u32(source.length);
   const window: ScopeWindow = options.window
-    ? Object.freeze({ start: options.window.start, end: options.window.end })
+    ? Object.freeze({ start: u32(options.window.start), end: u32(options.window.end) })
     : Object.freeze({ start: 0, end: sourceLength });
-  if (window.start < 0 || window.start > window.end || window.end > sourceLength) {
+  if (window.start > window.end || window.end > sourceLength) {
     throw new RangeError(`Invalid fallback window [${window.start}, ${window.end}) for length ${sourceLength}`);
   }
+  const matchLimit = options.matchLimit === undefined ? undefined : u32(options.matchLimit);
   if (!options.rootScope || /\s/.test(options.rootScope)) {
     throw new ScopeCompatError('Fallback rootScope must be a non-empty scope name without whitespace', 3, 6);
   }
@@ -352,7 +359,7 @@ export function highlightTreeWithFallback(
       scopes: Object.freeze([options.rootScope]),
     });
   }
-  const rawCaptures = readRawRanges(query, tree, window, options.matchLimit);
+  const rawCaptures = readRawRanges(query, tree, window, matchLimit);
   if (query.didExceedMatchLimit()) {
     throw new ScopeCompatError('Fallback query exceeded match limit', 2, 22, options.matchLimit ?? 0);
   }

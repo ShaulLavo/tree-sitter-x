@@ -118,11 +118,17 @@ function isConcreteColor(value: unknown): value is string {
   return trimmed.length > 0 && trimmed.toLowerCase() !== 'inherit';
 }
 
+interface ThemeDefaults {
+  foreground: number;
+  background: number;
+}
+
 function appendTokenRule(
   atoms: Map<string, number>,
   rules: NativeThemeRule[],
   ruleIndex: number,
   entry: VscodeTokenColor,
+  defaults: ThemeDefaults,
 ): void {
   const settings = entry.settings;
   if (!settings) return;
@@ -139,6 +145,9 @@ function appendTokenRule(
   for (const selector of selectors) {
     const parsed = parseSelector(selector);
     if (!parsed) continue;
+    const isGlobal = !parsed.tail && parsed.contexts.length === 0;
+    if (isGlobal && hasFg) defaults.foreground = fg;
+    if (isGlobal && hasBg) defaults.background = bg;
     rules.push({
       tail: parsed.tail ? internAtom(atoms, parsed.tail) : NONE,
       contexts: parsed.contexts.map(edge => ({ atom: internAtom(atoms, edge.atom), immediate: edge.immediate })),
@@ -190,8 +199,10 @@ export function buildThemePacket(
   const layers = Array.isArray(input) ? input : [input];
   if (layers.length === 0) throw new ScopeCompatError('At least one theme layer is required', 3, 100);
   const merged = mergeThemeLayers(layers);
-  const defaultForegroundRgba = parseColorRgba(merged.defaultForeground);
-  const defaultBackgroundRgba = parseColorRgba(merged.defaultBackground);
+  const defaults: ThemeDefaults = {
+    foreground: parseColorRgba(merged.defaultForeground),
+    background: parseColorRgba(merged.defaultBackground),
+  };
   const atoms = new Map<string, number>();
   const rules: NativeThemeRule[] = [{
     tail: NONE,
@@ -199,20 +210,20 @@ export function buildThemePacket(
     rule: 0,
     alternative: 0,
     present: 3,
-    foreground: defaultForegroundRgba,
-    background: defaultBackgroundRgba,
+    foreground: defaults.foreground,
+    background: defaults.background,
     fontMask: 0,
   }];
   let ruleIndex = 1;
   for (const entry of merged.tokenColors) {
     const before = rules.length;
-    appendTokenRule(atoms, rules, ruleIndex, entry);
+    appendTokenRule(atoms, rules, ruleIndex, entry, defaults);
     if (rules.length > before) ruleIndex++;
   }
   return {
     packet: encodeThemePacket(Array.from(atoms.keys()), rules, maxPacketBytes),
-    defaultForegroundRgba,
-    defaultBackgroundRgba,
+    defaultForegroundRgba: defaults.foreground,
+    defaultBackgroundRgba: defaults.background,
   };
 }
 

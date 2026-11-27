@@ -276,6 +276,9 @@ export function encodePathPacket(
   maxBytes: number,
 ): EncodedPathPacket {
   if (paths.length === 0) {
+    if (36 > maxBytes) {
+      throw new ScopeCompatError(`Path packet exceeds limit (36 > ${maxBytes})`, 2, 119, maxBytes);
+    }
     const empty = new Uint8Array(36);
     writeWords(new DataView(empty.buffer), 0, [0x31504853, 1, 36, 0, 0, 0, 0, 0, 0]);
     return { bytes: empty, pathIds: new Uint32Array(0), count: 0 };

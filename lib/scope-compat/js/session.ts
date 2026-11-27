@@ -130,13 +130,13 @@ function computeLocalWindow(
   newLength: number,
   change: SessionChange,
 ): { readonly oldRange: TextSpan; readonly newRange: TextSpan } | undefined {
-  if (!change.edits.length || newLength === 0) return undefined;
+  if (!change.edits.length || !Array.isArray(change.changedRanges) || newLength === 0) return undefined;
   const edits = editHull(change.edits, oldLength, newLength);
   if (!edits) return undefined;
   let newFrom = edits.from;
   let newTo = edits.to;
   const delta = edits.delta;
-  for (const range of change.changedRanges ?? []) {
+  for (const range of change.changedRanges) {
     const start = Math.max(0, Math.min(newLength, range.startIndex));
     const end = Math.max(start, Math.min(newLength, range.endIndex));
     if (start < newFrom) newFrom = start;
@@ -196,27 +196,43 @@ function spliceScopeResult(
   newRange: TextSpan,
   newLength: number,
 ): ScopeResult {
-  const paths: (readonly number[])[] = [];
-  const byKey = new Map<string, number>();
-  const oldMap = previous.paths.map(path => internResultPath(path, paths, byKey));
-  const localMap = local.paths.map(path => internResultPath(path, paths, byKey));
+  const paths: (readonly number[])[] = [Object.freeze([])];
+  const byKey = new Map<string, number>([['', 0]]);
+  const oldMap = new Int32Array(previous.paths.length).fill(-1);
+  const localMap = new Int32Array(local.paths.length).fill(-1);
+  const mapOld = (id: number): number => {
+    let mapped = oldMap[id];
+    if (mapped < 0) {
+      mapped = internResultPath(previous.paths[id], paths, byKey);
+      oldMap[id] = mapped;
+    }
+    return mapped;
+  };
+  const mapLocal = (id: number): number => {
+    let mapped = localMap[id];
+    if (mapped < 0) {
+      mapped = internResultPath(local.paths[id], paths, byKey);
+      localMap[id] = mapped;
+    }
+    return mapped;
+  };
   const out: number[] = [];
   const prevSeg = previous.segments;
   for (let i = 0; i < prevSeg.length; i += 3) {
     const from = prevSeg[i];
     if (from >= oldRange.from) break;
-    appendSegment(out, from, Math.min(prevSeg[i + 1], oldRange.from), oldMap[prevSeg[i + 2]]);
+    appendSegment(out, from, Math.min(prevSeg[i + 1], oldRange.from), mapOld(prevSeg[i + 2]));
   }
   const locSeg = local.segments;
   for (let i = 0; i < locSeg.length; i += 3) {
-    appendSegment(out, locSeg[i], locSeg[i + 1], localMap[locSeg[i + 2]]);
+    appendSegment(out, locSeg[i], locSeg[i + 1], mapLocal(locSeg[i + 2]));
   }
   const shift = newRange.to - oldRange.to;
   for (let i = 0; i < prevSeg.length; i += 3) {
     const to = prevSeg[i + 1];
     if (to <= oldRange.to) continue;
     const from = Math.max(prevSeg[i], oldRange.to);
-    appendSegment(out, from + shift, to + shift, oldMap[prevSeg[i + 2]]);
+    appendSegment(out, from + shift, to + shift, mapOld(prevSeg[i + 2]));
   }
   return Object.freeze({
     sourceLength: newLength,
@@ -258,7 +274,7 @@ export class ScopeHighlightSession {
     const hasError = Boolean(tree.rootNode.hasError);
     const previous = this.#current;
     const newLength = buffer.length;
-    const local = previous && change && !this.#hadError && !hasError
+    const local = this.#pack.localInvalidation && previous && change && !this.#hadError && !hasError
       ? computeLocalWindow(tree, this.#languageId, previous.sourceLength, newLength, change)
       : undefined;
     if (local && previous) {

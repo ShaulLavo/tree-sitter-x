@@ -4,12 +4,10 @@ export const FONT_STYLE_UNDERLINE = 4;
 export const FONT_STYLE_STRIKETHROUGH = 8;
 
 export interface TreeSitterLanguage {
-  readonly [0]?: number;
   readonly abiVersion?: number;
 }
 
 export interface TreeSitterTextBuffer {
-  readonly [0]?: number;
   readonly length: number;
   readonly read: unknown;
 }
@@ -24,9 +22,7 @@ export interface TreeSitterNode {
 }
 
 export interface TreeSitterTree {
-  readonly [0]?: number;
   readonly language: TreeSitterLanguage;
-  readonly textCallback: unknown;
   readonly rootNode: TreeSitterNode;
 }
 
@@ -63,7 +59,7 @@ export interface TreeSitterQuery {
 }
 
 export interface TreeSitterBinding {
-  loadExtension(module: WebAssembly.Module): Promise<Record<PropertyKey, unknown>>;
+  loadExtension(module: WebAssembly.Module): Promise<Record<string, unknown>>;
   heap(): Uint8Array;
 }
 
@@ -88,6 +84,7 @@ export interface PackDefinition {
   readonly rootScope: string;
   readonly scopeSuffix: string;
   readonly query: string;
+  readonly localInvalidation?: boolean;
 }
 
 export interface ScopeResult {
@@ -153,7 +150,7 @@ export interface TextEdit {
 
 export interface SessionChange {
   readonly edits: readonly TextEdit[];
-  readonly changedRanges?: readonly TreeSitterRange[];
+  readonly changedRanges: readonly TreeSitterRange[];
   readonly source?: string;
 }
 

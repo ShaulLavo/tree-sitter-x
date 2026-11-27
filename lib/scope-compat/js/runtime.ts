@@ -32,6 +32,16 @@ import type {
 
 const encoder = new TextEncoder();
 
+function internalAddress(target: object, label: string): number {
+  const pointer = address((target as Record<PropertyKey, unknown>)[0]);
+  if (!pointer) throw new Error(`Deleted ${label}`);
+  return pointer;
+}
+
+function internalProperty(target: object, key: PropertyKey): unknown {
+  return (target as Record<PropertyKey, unknown>)[key];
+}
+
 export class ScopePack {
   readonly #compat: ScopeCompat;
   #pointer: number;
@@ -39,6 +49,7 @@ export class ScopePack {
   readonly languageId: string;
   readonly rootScope: string;
   readonly scopeSuffix: string;
+  readonly localInvalidation: boolean;
   readonly scopes: readonly string[];
   readonly patternCount: number;
 
@@ -56,12 +67,18 @@ export class ScopePack {
     this.languageId = definition.languageId;
     this.rootScope = definition.rootScope;
     this.scopeSuffix = definition.scopeSuffix;
+    this.localInvalidation = Boolean(definition.localInvalidation);
     this.scopes = Object.freeze(Array.from(scopes));
     this.patternCount = patternCount;
   }
 
   get disposed(): boolean {
     return this.#pointer === 0;
+  }
+
+  /** @internal */
+  ownedBy(compat: ScopeCompat): boolean {
+    return this.#compat === compat;
   }
 
   /** @internal */
@@ -141,8 +158,7 @@ export class ScopeCompat implements ThemeHost {
   }
 
   compilePack(language: TreeSitterLanguage, definition: PackDefinition): ScopePack {
-    const langPtr = address(language[0]);
-    if (!langPtr) throw new Error('Deleted Tree-sitter Language');
+    const langPtr = internalAddress(language, 'Tree-sitter Language');
     const pointer = this.withString(definition.query, (qPtr, qLen) =>
       this.withString(definition.rootScope, (rPtr, rLen) =>
         this.withString(definition.scopeSuffix, (sPtr, sLen) =>
@@ -150,21 +166,7 @@ export class ScopeCompat implements ThemeHost {
     if (!pointer) throw new ScopeCompatError('Native pack allocation failed', 4, 0);
     let kept = false;
     try {
-      const status = this.number('scope_compat_pack_status', [pointer]);
-      if (status !== 0) {
-        const detail = this.number('scope_compat_pack_detail', [pointer]);
-        const value = this.number('scope_compat_pack_error_value', [pointer]);
-        const pattern = this.number('scope_compat_pack_error_pattern', [pointer]);
-        const offset = this.number('scope_compat_pack_error_offset', [pointer]);
-        const namePtr = this.number('scope_compat_pack_error_name', [pointer]);
-        const operator = readCString(this.heap(), namePtr, 256, true);
-        throw new ScopeCompatError(
-          `Pack compile failed (${definition.languageId}, ${operator || 'query'}): status ${status}, detail ${detail}, value ${value}, pattern ${pattern}, offset ${offset}`,
-          status,
-          detail,
-          value,
-        );
-      }
+      this.assertPackCompiled(pointer, definition.languageId);
       const scopeCount = this.number('scope_compat_pack_scope_count', [pointer]);
       const scopes = Array.from({ length: scopeCount }, (_, id) =>
         readCString(this.heap(), this.number('scope_compat_pack_scope_name', [pointer, id]), 256, false));
@@ -175,6 +177,36 @@ export class ScopeCompat implements ThemeHost {
     } finally {
       if (!kept) this.call('scope_compat_pack_delete', [pointer]);
     }
+  }
+
+  private assertPackCompiled(pointer: number, languageId: string): void {
+    const status = this.number('scope_compat_pack_status', [pointer]);
+    if (status === 0) return;
+    const detail = this.number('scope_compat_pack_detail', [pointer]);
+    const value = this.number('scope_compat_pack_error_value', [pointer]);
+    const pattern = this.number('scope_compat_pack_error_pattern', [pointer]);
+    const offset = this.number('scope_compat_pack_error_offset', [pointer]);
+    const namePtr = this.number('scope_compat_pack_error_name', [pointer]);
+    const operator = readCString(this.heap(), namePtr, 256, true);
+    throw new ScopeCompatError(
+      `Pack compile failed (${languageId}, ${operator || 'query'}): status ${status}, detail ${detail}, value ${value}, pattern ${pattern}, offset ${offset}`,
+      status,
+      detail,
+      value,
+    );
+  }
+
+  private assertThemeCompiled(handle: number): void {
+    const status = this.number('scope_compat_theme_status', [handle]);
+    if (status === 0) return;
+    const detail = this.number('scope_compat_theme_detail', [handle]);
+    const value = this.number('scope_compat_theme_detail_value', [handle]);
+    throw new ScopeCompatError(
+      `Theme compile failed (status ${status}, detail ${detail}, value ${value})`,
+      status,
+      detail,
+      value,
+    );
   }
 
   compileTheme(input: VscodeThemeInput | readonly VscodeThemeInput[], options?: CompileThemeOptions): ScopeTheme {
@@ -191,17 +223,7 @@ export class ScopeCompat implements ThemeHost {
       if (!handle) throw new ScopeCompatError('Native theme allocation failed', 4, 120);
       let kept = false;
       try {
-        const status = this.number('scope_compat_theme_status', [handle]);
-        if (status !== 0) {
-          const detail = this.number('scope_compat_theme_detail', [handle]);
-          const value = this.number('scope_compat_theme_detail_value', [handle]);
-          throw new ScopeCompatError(
-            `Theme compile failed (status ${status}, detail ${detail}, value ${value})`,
-            status,
-            detail,
-            value,
-          );
-        }
+        this.assertThemeCompiled(handle);
         const theme = new ScopeTheme(this, handle, built.defaultForegroundRgba, built.defaultBackgroundRgba);
         kept = true;
         return theme;
@@ -217,12 +239,12 @@ export class ScopeCompat implements ThemeHost {
     buffer: TreeSitterTextBuffer,
     options?: HighlightOptions,
   ): ScopeResult {
+    if (!pack.ownedBy(this)) throw new Error('ScopePack belongs to a different ScopeCompat instance');
     const packPtr = pack.pointer();
-    const treePtr = address(tree[0]);
-    const bufferPtr = address(buffer[0]);
-    if (!treePtr || !bufferPtr) throw new Error('Deleted Tree or TextBuffer');
+    const treePtr = internalAddress(tree, 'Tree');
+    const bufferPtr = internalAddress(buffer, 'TextBuffer');
     if (tree.language !== pack.language) throw new Error('Tree language does not match ScopePack language');
-    if (tree.textCallback !== buffer.read) throw new Error('Tree was not parsed from this TextBuffer');
+    if (internalProperty(tree, 'textCallback') !== buffer.read) throw new Error('Tree was not parsed from this TextBuffer');
     const sourceLength = u32(buffer.length);
     checkSourceSpan(this.heap(), bufferPtr, sourceLength);
     const window: ScopeWindow = options?.window
@@ -260,6 +282,7 @@ export class ScopeCompat implements ThemeHost {
   }
 
   createSession(pack: ScopePack, languageId = pack.languageId): ScopeHighlightSession {
+    if (!pack.ownedBy(this)) throw new Error('ScopePack belongs to a different ScopeCompat instance');
     return new ScopeHighlightSession(this, pack, languageId);
   }
 }
