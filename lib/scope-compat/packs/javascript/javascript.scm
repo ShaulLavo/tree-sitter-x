@@ -1,3 +1,9 @@
+; Arbitrary-depth member expressions in non-JSX JavaScript.
+((member_expression object: (identifier) @variable.other.object) (#set! priority "12"))
+((member_expression object: (member_expression property: (property_identifier) @variable.other.object.property)) (#set! priority "14"))
+((member_expression "." @punctuation.accessor property: (property_identifier) @variable.other.property) (#set! priority "10"))
+((member_expression (optional_chain) property: (property_identifier) @variable.other.property) (#set! priority "10"))
+
 ; Other malformed shapes remain experimental.
 ; Terminal open call/object/array with comma-terminated numeric elements. Anchor
 ; every role to adjacent siblings instead of classifying arbitrary ERROR names.
