@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include <stdio.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -5,6 +6,7 @@
 #include "tree_sitter/api.h"
 #include "./alloc.h"
 #include "./array.h"
+#include "./attributes.h"
 #include "./error_costs.h"
 #include "./get_changed_ranges.h"
 #include "./language.h"
@@ -18,66 +20,28 @@
 #include "./ts_assert.h"
 #include "./wasm_store.h"
 
-#ifdef TREE_SITTER_NO_DOT_GRAPHS
-#define LOG_ENABLED(self) ((self)->lexer.logger.log != NULL)
-#else
-#define LOG_ENABLED(self) ((self)->lexer.logger.log || (self)->dot_graph_file)
-#endif
-
-#define LOG(...)                                                                            \
-  if (LOG_ENABLED(self)) {                                                                  \
-    snprintf(self->lexer.debug_buffer, TREE_SITTER_SERIALIZATION_BUFFER_SIZE, __VA_ARGS__); \
-    ts_parser__log(self);                                                                   \
+#define LOG(...)                              \
+  if (TS_UNLIKELY(self->logging)) {           \
+    ts_parser__log_format(self, __VA_ARGS__); \
   }
 
-#define LOG_LOOKAHEAD(symbol_name, size)                      \
-  if (LOG_ENABLED(self)) {                                    \
-    char *buf = self->lexer.debug_buffer;                     \
-    const char *symbol = symbol_name;                         \
-    int off = snprintf(                                       \
-      buf,                                                    \
-      TREE_SITTER_SERIALIZATION_BUFFER_SIZE,                  \
-      "lexed_lookahead sym:"                                  \
-    );                                                        \
-    for (                                                     \
-      uint32_t i = 0;                                         \
-      symbol[i] != '\0'                                       \
-      && off < TREE_SITTER_SERIALIZATION_BUFFER_SIZE;         \
-      i++                                                     \
-    ) {                                                       \
-      switch (symbol[i]) {                                    \
-      case '\t': buf[off++] = '\\'; buf[off++] = 't'; break;  \
-      case '\n': buf[off++] = '\\'; buf[off++] = 'n'; break;  \
-      case '\v': buf[off++] = '\\'; buf[off++] = 'v'; break;  \
-      case '\f': buf[off++] = '\\'; buf[off++] = 'f'; break;  \
-      case '\r': buf[off++] = '\\'; buf[off++] = 'r'; break;  \
-      case '\\': buf[off++] = '\\'; buf[off++] = '\\'; break; \
-      default:   buf[off++] = symbol[i]; break;               \
-      }                                                       \
-    }                                                         \
-    snprintf(                                                 \
-      buf + off,                                              \
-      TREE_SITTER_SERIALIZATION_BUFFER_SIZE - off,            \
-      ", size:%u",                                            \
-      size                                                    \
-    );                                                        \
-    ts_parser__log(self);                                     \
+#define LOG_LOOKAHEAD(symbol_name, size)               \
+  if (TS_UNLIKELY(self->logging)) {                    \
+    ts_parser__log_lookahead(self, symbol_name, size); \
   }
 
 #ifdef TREE_SITTER_NO_DOT_GRAPHS
 #define LOG_STACK() ((void)0)
 #define LOG_TREE(tree) ((void)0)
 #else
-#define LOG_STACK()                                                              \
-  if (self->dot_graph_file) {                                                    \
-    ts_stack_print_dot_graph(self->stack, self->language, self->dot_graph_file); \
-    fputs("\n\n", self->dot_graph_file);                                         \
+#define LOG_STACK()                        \
+  if (TS_UNLIKELY(self->dot_graph_file)) { \
+    ts_parser__log_stack(self);            \
   }
 
-#define LOG_TREE(tree)                                                      \
-  if (self->dot_graph_file) {                                               \
-    ts_subtree_print_dot_graph(tree, self->language, self->dot_graph_file); \
-    fputs("\n", self->dot_graph_file);                                      \
+#define LOG_TREE(tree)                     \
+  if (TS_UNLIKELY(self->dot_graph_file)) { \
+    ts_parser__log_tree(self, tree);       \
   }
 #endif
 
@@ -130,6 +94,7 @@ struct TSParser {
   bool has_scanner_error;
   bool canceled_balancing;
   bool has_error;
+  bool logging;
 };
 
 typedef struct {
@@ -193,6 +158,57 @@ static void ts_parser__log(TSParser *self) {
   }
 #endif
 }
+
+static TS_COLD TS_PRINTF(2, 3) void ts_parser__log_format(
+  TSParser *self,
+  const char *format,
+  ...
+) {
+  va_list args;
+  va_start(args, format);
+  vsnprintf(self->lexer.debug_buffer, TREE_SITTER_SERIALIZATION_BUFFER_SIZE, format, args);
+  va_end(args);
+  ts_parser__log(self);
+}
+
+static TS_COLD void ts_parser__log_lookahead(TSParser *self, const char *symbol, uint32_t size) {
+  char *buf = self->lexer.debug_buffer;
+  int off = snprintf(buf, TREE_SITTER_SERIALIZATION_BUFFER_SIZE, "lexed_lookahead sym:");
+  for (uint32_t i = 0; symbol[i] != '\0'; i++) {
+    char escape;
+    switch (symbol[i]) {
+    case '\t': escape = 't'; break;
+    case '\n': escape = 'n'; break;
+    case '\v': escape = 'v'; break;
+    case '\f': escape = 'f'; break;
+    case '\r': escape = 'r'; break;
+    case '\\': escape = '\\'; break;
+    default:   escape = 0; break;
+    }
+    int length = escape ? 2 : 1;
+    if (off + length >= TREE_SITTER_SERIALIZATION_BUFFER_SIZE) break;
+    if (escape) {
+      buf[off++] = '\\';
+      buf[off++] = escape;
+    } else {
+      buf[off++] = symbol[i];
+    }
+  }
+  snprintf(buf + off, TREE_SITTER_SERIALIZATION_BUFFER_SIZE - off, ", size:%u", size);
+  ts_parser__log(self);
+}
+
+#ifndef TREE_SITTER_NO_DOT_GRAPHS
+static TS_COLD void ts_parser__log_stack(TSParser *self) {
+  ts_stack_print_dot_graph(self->stack, self->language, self->dot_graph_file);
+  fputs("\n\n", self->dot_graph_file);
+}
+
+static TS_COLD void ts_parser__log_tree(TSParser *self, Subtree tree) {
+  ts_subtree_print_dot_graph(tree, self->language, self->dot_graph_file);
+  fputs("\n", self->dot_graph_file);
+}
+#endif
 
 static bool ts_parser__breakdown_top_of_stack(
   TSParser *self,
@@ -507,13 +523,22 @@ static bool ts_parser__can_reuse_first_leaf(
 
   // If the token was created in a state with the same set of lookaheads, it is reusable.
   if (
+    // If the token is a keyword, an action for it means that lexing it in this state
+    // keeps it as a keyword.
     table_entry->action_count > 0 &&
     leaf_lex_mode.lex_state == current_lex_mode.lex_state &&
     leaf_lex_mode.external_lex_state == current_lex_mode.external_lex_state &&
-    leaf_lex_mode.reserved_word_set_id == current_lex_mode.reserved_word_set_id &&
     (
       leaf_symbol != self->language->keyword_capture_token ||
-      (!ts_subtree_is_keyword(tree) && ts_subtree_parse_state(tree) == state)
+      (
+        // Only the word token is lexed differently under other reserved words: its text becomes a
+        // keyword in states that have an action for that keyword or reserve it.
+        !ts_subtree_is_keyword(tree) &&
+        ts_subtree_parse_state(tree) == state &&
+        // A reused node is never marked as a keyword, and its first leaf may have been lexed in a
+        // state other than the node's, so compare the reserved words that leaf was lexed with.
+        leaf_lex_mode.reserved_word_set_id == current_lex_mode.reserved_word_set_id
+      )
     )
   ) return true;
 
@@ -2141,7 +2166,12 @@ TSLogger ts_parser_logger(const TSParser *self) {
 }
 
 void ts_parser_set_logger(TSParser *self, TSLogger logger) {
-  self->lexer.logger = logger;
+  ts_lexer_set_logger(&self->lexer, logger);
+#ifdef TREE_SITTER_NO_DOT_GRAPHS
+  self->logging = logger.log != NULL;
+#else
+  self->logging = logger.log || self->dot_graph_file;
+#endif
 }
 
 void ts_parser_print_dot_graphs(TSParser *self, int fd) {
@@ -2162,6 +2192,7 @@ void ts_parser_print_dot_graphs(TSParser *self, int fd) {
   } else {
     self->dot_graph_file = NULL;
   }
+  self->logging = self->lexer.logger.log || self->dot_graph_file;
 #endif
 }
 
