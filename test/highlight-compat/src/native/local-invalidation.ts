@@ -124,17 +124,15 @@ function expandAstWindow(tree: Foreign, languageId: string, source: string, span
 function deepestSafeContainer(root: Foreign, languageId: string, span: TextSpan): Foreign | undefined {
   const isJson = languageId === 'json';
   if (!isJson && !JS_TS_LANGUAGES.has(languageId)) return undefined;
-  const seenJsonKinds = new Set<string>();
   let node = root;
   let best: Foreign | undefined = isExpandable(isJson, nodeType(node)) ? node : undefined;
   for (let depth = 0; depth < MAX_DESCENT_DEPTH; depth++) {
     const next = containingNamedChild(node, span);
     if (!next) break;
-    const type = nodeType(next);
-    if (!canDescend(isJson, type, seenJsonKinds)) break;
-    if (isJson && (type === 'object' || type === 'array')) seenJsonKinds.add(type);
+    const parentType = nodeType(node), childType = nodeType(next);
+    if (!canDescend(isJson, parentType, childType)) break;
     node = next;
-    if (isExpandable(isJson, type)) best = node;
+    if (isExpandable(isJson, childType)) best = node;
   }
   return best;
 }
@@ -143,12 +141,9 @@ function isExpandable(isJson: boolean, type: string): boolean {
   return isJson ? JSON_EXPANDABLE.has(type) : JS_TS_EXPANDABLE.has(type);
 }
 
-function canDescend(isJson: boolean, type: string, seenJsonKinds: ReadonlySet<string>): boolean {
-  if (isJson) {
-    if (type === 'document' || type === 'pair') return true;
-    return (type === 'object' || type === 'array') && !seenJsonKinds.has(type);
-  }
-  return JS_TS_EXPANDABLE.has(type) || JS_TS_TRANSPARENT.has(type);
+function canDescend(isJson: boolean, parentType: string, childType: string): boolean {
+  if (isJson) return parentType === 'document' && (childType === 'object' || childType === 'array');
+  return JS_TS_EXPANDABLE.has(childType) || JS_TS_TRANSPARENT.has(childType);
 }
 
 function containingNamedChild(parent: Foreign, span: TextSpan): Foreign | undefined {

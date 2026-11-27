@@ -115,25 +115,28 @@ function tryReuseChild(candidate: ReusableChild, source: string, previousSource:
   const child = candidate.child;
   if (!remaining.has(child)) return undefined;
   if (previousSource.slice(child.range.start, child.range.end) !== source.slice(range.start, range.end)) return undefined;
-  return operation(() => {
-    remaining.delete(child);
-    try {
-      if (candidate.hasBeforeEdit) {
-        for (const step of schedule) invoke(child.tree, 'edit', [step.binding]);
-      }
-      const root = foreign(child.tree.rootNode);
-      const rootStart = root.startIndex, rootEnd = root.endIndex;
-      if (typeof rootStart !== 'number' || typeof rootEnd !== 'number' || !Number.isSafeInteger(rootStart) || !Number.isSafeInteger(rootEnd) || rootStart < range.start || rootEnd > range.end || rootStart > rootEnd) {
-        dropChildren([child]);
-        return undefined;
-      }
-      validateIncludedRange(child.tree, source, range);
-      return { ...child, range: Object.freeze({ languageId: child.range.languageId, start: range.start, end: range.end, rootStart, rootEnd }) };
-    } catch {
+  return operation(() => reuseChildTree(candidate, source, range, schedule, remaining));
+}
+function reuseChildTree(candidate: ReusableChild, source: string, range: ResolverRecord, schedule: readonly PreparedEdit[], remaining: Set<Child>): Child | undefined {
+  const child = candidate.child;
+  remaining.delete(child);
+  try {
+    if (candidate.hasBeforeEdit) applyTreeSchedule(child.tree, schedule);
+    const root = foreign(child.tree.rootNode);
+    const rootStart = root.startIndex, rootEnd = root.endIndex;
+    if (typeof rootStart !== 'number' || typeof rootEnd !== 'number' || !Number.isSafeInteger(rootStart) || !Number.isSafeInteger(rootEnd) || rootStart < range.start || rootEnd > range.end || rootStart > rootEnd) {
       dropChildren([child]);
       return undefined;
     }
-  });
+    validateIncludedRange(child.tree, source, range);
+    return { ...child, range: Object.freeze({ languageId: child.range.languageId, start: range.start, end: range.end, rootStart, rootEnd }) };
+  } catch {
+    dropChildren([child]);
+    return undefined;
+  }
+}
+function applyTreeSchedule(tree: Foreign, schedule: readonly PreparedEdit[]): void {
+  for (const step of schedule) invoke(tree, 'edit', [step.binding]);
 }
 
 function validateIncludedRange(tree: Foreign, source: string, range: ResolverRecord): void {
@@ -294,13 +297,14 @@ export class MarkdownPilotDocument {
       if (!current()) return { kind: 'closed', key };
       const stale = Array.from(remaining); remaining.clear();
       dropChildren(stale);
+      const committed = Object.freeze(update.children.splice(0));
       this.#parses += parsedChildren; this.#update = undefined; this.#operation = true;
       this.#lastChange = Object.freeze({
         oldLength: previousSource.length, newLength: prepared.source.length,
         oldTextSpans: prepared.oldTextSpans, newTextSpans: prepared.newTextSpans,
         reusedChildren, parsedChildren,
       });
-      this.#state.finish({ children: Object.freeze(update.children), decorations, diagnostics: Object.freeze(diagnostics), coverage: Object.freeze(coverage) });
+      this.#state.finish({ children: committed, decorations, diagnostics: Object.freeze(diagnostics), coverage: Object.freeze(coverage) });
       if (this.#closeRequested) return { kind: 'closed', key };
       return { kind: 'ready', key, oldTextSpans: prepared.oldTextSpans, newTextSpans: prepared.newTextSpans };
     } catch (error) {

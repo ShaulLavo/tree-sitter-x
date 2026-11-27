@@ -28,7 +28,7 @@ interface View {
   output: ScopeLease | undefined; outcome: ScopeOutcome | undefined;
 }
 interface CachedChildIntervals { readonly start: number; readonly end: number; readonly intervals: readonly ScopeInterval[] }
-interface WorkProgress { next: number; intervals: ScopeInterval[]; bytes: number; reusedChildren: number; rescopedChildren: number; readonly usedIds: Set<number> }
+interface WorkProgress { next: number; intervals: ScopeInterval[]; bytes: number; reusedChildren: number; rescopedChildren: number; readonly staged: Map<number, CachedChildIntervals> }
 interface Work { readonly key: WorkKey; canceled: boolean; readonly interests: ReadonlyMap<ViewId, InterestGeneration>; readonly progress: WorkProgress }
 function notifyPresentation(listener: (view: ViewId | null) => void, view: ViewId | null, errors: unknown[]): void {
   try { listener(view); } catch (error) { errors.push(error); }
@@ -99,11 +99,15 @@ export class ScopeSession {
   detachView(id: ViewId): void {
     const view = this.#views.get(id); if (!view) return;
     this.#views.delete(id); view.output?.release();
-    if (!this.#views.size) {
+    if (!this.interested()) {
       this.cancelActive();
-      const cache = this.#cache; this.#pending = undefined; this.#cache = undefined;
+      this.#pending = undefined;
+      this.dropPreviousBase();
+    }
+    if (!this.#views.size) {
+      const cache = this.#cache; this.#cache = undefined;
       this.#markdownChildCache.clear();
-      try { cache?.release(); } finally { this.dropPreviousBase(); }
+      cache?.release();
     }
     this.presentationChanged(id);
   }
@@ -162,7 +166,7 @@ export class ScopeSession {
   }
   private dispatch(): Work | undefined {
     if (!this.#pending || !this.interested() || this.#owner.observe().kind === 'updating') return undefined;
-    const work: Work = { key: this.workKey(this.#owner.key()), canceled: false, interests: new Map(Array.from(this.#views.values(), view => [view.id, view.interest])), progress: { next: 0, intervals: [], bytes: 0, reusedChildren: 0, rescopedChildren: 0, usedIds: new Set() } };
+    const work: Work = { key: this.workKey(this.#owner.key()), canceled: false, interests: new Map(Array.from(this.#views.values(), view => [view.id, view.interest])), progress: { next: 0, intervals: [], bytes: 0, reusedChildren: 0, rescopedChildren: 0, staged: new Map() } };
     this.#request = work.key.request; this.#active = work; this.#pending = undefined; return work;
   }
   private run(work: Work): boolean {
@@ -171,20 +175,23 @@ export class ScopeSession {
     if (!this.current(work)) { this.terminal(work); return true; }
     try {
       let snapshot = this.#cache?.snapshot;
-      if (!snapshot || !sameOwner(snapshot.owner, work.key)) snapshot = this.advance(work);
+      const computed = !snapshot || !sameOwner(snapshot.owner, work.key);
+      if (computed) snapshot = this.advance(work);
       if (!this.current(work)) { this.terminal(work); return true; }
       if (!snapshot) return false;
       if (!this.#cache || this.#cache.snapshot !== snapshot) {
         const admitted = this.#outputs.admitFull(snapshot), previous = this.#cache;
         this.#cache = admitted; previous?.release();
       }
+      if (computed && this.#owner instanceof MarkdownPilotDocument) this.commitMarkdownCache(work.progress.staged);
       this.#outputs.clearWorking(work);
-      work.progress.intervals = []; work.progress.bytes = 0;
+      work.progress.intervals = []; work.progress.bytes = 0; work.progress.staged.clear();
       for (const view of this.#views.values()) this.publish(view, work, snapshot);
       return true;
     } catch (error) { return this.runFailure(work, error); }
   }
   private runFailure(work: Work, error: unknown): true {
+    if (this.#owner instanceof MarkdownPilotDocument) this.#markdownChildCache.clear();
     if (!this.current(work)) { this.terminal(work); return true; }
     const diagnostic = error instanceof Error ? error.message : String(error);
     const reason = (error instanceof ScopeFailure || error instanceof NativeScopeError) ? error.reason : /budget/i.test(diagnostic) ? 'budget' : /allocation failed/.test(diagnostic) ? 'no-memory' : 'invalid';
@@ -205,7 +212,6 @@ export class ScopeSession {
       progress.bytes += bytes;
     }
     if (progress.next < count) return undefined;
-    this.pruneMarkdownCache(progress.usedIds);
     const change = owner.lastChange;
     const mode = progress.reusedChildren > 0 ? 'local-range' : 'full-document';
     this.#lastInvalidation = Object.freeze({
@@ -225,47 +231,47 @@ export class ScopeSession {
     if (identity && cached && cached.end - cached.start === identity.end - identity.start) {
       const delta = identity.start - cached.start;
       const shifted = delta === 0 ? cached.intervals : cached.intervals.map(item => ({ from: item.from + delta, to: item.to + delta, scopes: item.scopes }));
-      this.#markdownChildCache.set(identity.id, { start: identity.start, end: identity.end, intervals: shifted });
-      progress.usedIds.add(identity.id);
+      progress.staged.set(identity.id, { start: identity.start, end: identity.end, intervals: shifted });
       progress.reusedChildren++;
       return shifted;
     }
     const intervals = owner.scopeChild(index, this.#packs, this.#limits);
-    if (identity) {
-      this.#markdownChildCache.set(identity.id, { start: identity.start, end: identity.end, intervals });
-      progress.usedIds.add(identity.id);
-    }
+    if (identity) progress.staged.set(identity.id, { start: identity.start, end: identity.end, intervals });
     progress.rescopedChildren++;
     return intervals;
   }
-  private pruneMarkdownCache(usedIds: ReadonlySet<number>): void {
-    for (const id of Array.from(this.#markdownChildCache.keys())) {
-      if (!usedIds.has(id)) this.#markdownChildCache.delete(id);
-    }
+  private commitMarkdownCache(staged: ReadonlyMap<number, CachedChildIntervals>): void {
+    this.#markdownChildCache.clear();
+    for (const [id, entry] of staged) this.#markdownChildCache.set(id, entry);
   }
   private computeRoot(work: Work, owner: PilotDocument): ScopeSnapshot {
     const previous = this.#previousBase;
     this.#previousBase = undefined;
+    let released = false;
+    const releasePrevious = () => {
+      if (released) return;
+      released = true;
+      previous?.release();
+    };
     const change = owner.lastChange;
-    const canLocal = !!previous && !!change && sameOwner(change.fromKey, previous.snapshot.owner) && sameOwner(change.toKey, work.key);
-    const window = canLocal ? owner.localWindow(change) : undefined;
-    if (window && previous) {
-      let packed: { dictionary: ScopeDictionary; segments: readonly number[] };
-      try {
+    try {
+      const canLocal = !!previous && !!change && sameOwner(change.fromKey, previous.snapshot.owner) && sameOwner(change.toKey, work.key);
+      const window = canLocal ? owner.localWindow(change) : undefined;
+      if (window && previous) {
         const pack = this.requirePack(owner.languageId);
         const result = owner.borrow(pack.sameLanguage, borrowed => pack.run(borrowed, { start: window.newRange.from, end: window.newRange.to }, this.#limits));
         if (result.status !== 0) throw new NativeScopeError(result.status, result.detail);
-        packed = spliceSnapshot(previous.snapshot, window.oldRange, result, pack.scopes, owner.source.length, this.#limits.maxSegments);
-      } finally {
-        previous.release();
+        const packed = spliceSnapshot(previous.snapshot, window.oldRange, result, pack.scopes, owner.source.length, this.#limits.maxSegments);
+        releasePrevious();
+        this.#lastInvalidation = Object.freeze({
+          mode: 'local-range', oldRange: window.oldRange, newRange: window.newRange,
+          sourceLength: owner.source.length, reusedChildren: 0, rescopedChildren: 0,
+        });
+        return this.finishSnapshot(work, packed);
       }
-      this.#lastInvalidation = Object.freeze({
-        mode: 'local-range', oldRange: window.oldRange, newRange: window.newRange,
-        sourceLength: owner.source.length, reusedChildren: 0, rescopedChildren: 0,
-      });
-      return this.finishSnapshot(work, packed);
+    } finally {
+      releasePrevious();
     }
-    previous?.release();
     const intervals = this.rootIntervals(owner);
     this.#lastInvalidation = Object.freeze({
       mode: 'full-document',
@@ -380,15 +386,15 @@ export class ScopeSession {
     this.#views.clear(); this.#cache = undefined; this.#previousBase = undefined; this.#pending = undefined;
     this.#markdownChildCache.clear();
     try { this.presentationChanged(null); }
-    finally {
-      this.#presentationListeners.clear();
-      try {
-        try { this.releaseScopeOutputs(outputs, cache); } finally { previousBase?.release(); }
-      } finally { this.releasePacks(); }
-    }
+    finally { this.releaseDisposed(outputs, cache, previousBase); }
   }
-  private releaseScopeOutputs(outputs: readonly (ScopeLease | undefined)[], cache: ScopeLease | undefined): void {
-    try { for (const output of outputs) output?.release(); } finally { cache?.release(); }
+  private releaseDisposed(outputs: readonly (ScopeLease | undefined)[], cache: ScopeLease | undefined, previousBase: ScopeLease | undefined): void {
+    this.#presentationListeners.clear();
+    try { this.releaseScopeOutputs(outputs, cache, previousBase); } finally { this.releasePacks(); }
+  }
+  private releaseScopeOutputs(outputs: readonly (ScopeLease | undefined)[], cache: ScopeLease | undefined, previousBase?: ScopeLease): void {
+    try { for (const output of outputs) output?.release(); }
+    finally { try { cache?.release(); } finally { previousBase?.release(); } }
   }
   private cancelActive(): void {
     const active = this.#active; this.#active = undefined;

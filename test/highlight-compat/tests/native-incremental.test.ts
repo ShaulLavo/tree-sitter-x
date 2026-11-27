@@ -1,7 +1,7 @@
 import { it, expect } from 'vitest';
 import { PilotDocument } from '../src/native/owner.ts';
 import { MarkdownPilotDocument } from '../src/native/markdown.ts';
-import { ScopeSession } from '../src/native/incremental.ts';
+import { ScopeSession, DEFAULT_SCOPE_LIMITS } from '../src/native/incremental.ts';
 import { decodedSnapshot } from '../src/native/scope-output.ts';
 import { Component } from '../src/native/component.ts';
 import { loadLanguagePack } from '../src/native/packs.ts';
@@ -350,5 +350,91 @@ it('reuses untouched Markdown child trees and cached child scopes across localiz
   } finally {
     Object.defineProperty(Component.prototype, 'number', { configurable: true, writable: true, value: original });
     session.dispose(); owner.dispose(); for (const pack of packs.values()) pack.dispose();
+  }
+});
+
+it('handles nested JSON legacy_order, throwing Markdown ready listeners, budget-failed Markdown cache, and prior-base lease cleanup', async () => {
+  // 1. Nested JSON array inside object pair must preserve exact legacy_order scope stack
+  const jsonPack = await loadLanguagePack('json');
+  const nestedJson = '{"x":[[1],[2],[3],[4]],"padding":"0123456789"}';
+  const jsonOwner = await PilotDocument.open('json', nestedJson);
+  const jsonSession = ScopeSession.attach(jsonOwner, new Map([['json', jsonPack]]));
+  const jsonView = jsonSession.attachView({ from: 0, to: nestedJson.length });
+  try {
+    jsonSession.flushOne();
+    const pos = nestedJson.indexOf('1');
+    expect((await jsonOwner.applyEdits({ base: jsonOwner.key(), edits: [{ from: pos, to: pos + 1, insert: '9' }] })).kind).toBe('ready');
+    jsonSession.request(jsonView, { viewport: { from: 0, to: jsonOwner.source.length }, theme: 1 });
+    jsonSession.flushOne();
+    await assertSessionMatchesFresh('json', jsonSession, jsonView, jsonOwner, jsonPack);
+  } finally { jsonSession.dispose(); jsonOwner.dispose(); }
+
+  // 2. Detaching the last interested view while a canceled view remains drops #previousBase immediately
+  const leakOwner = await PilotDocument.open('json', '{"a":1,"b":2,"c":3,"d":4}');
+  const leakSession = ScopeSession.attach(leakOwner, new Map([['json', jsonPack]]));
+  try {
+    const v1 = leakSession.attachView({ from: 0, to: leakOwner.source.length });
+    const v2 = leakSession.attachView({ from: 0, to: leakOwner.source.length });
+    const i2 = leakSession.request(v2, { viewport: { from: 0, to: leakOwner.source.length }, theme: 1 });
+    leakSession.flushOne();
+    leakSession.cancel(v2, i2);
+    expect((await leakOwner.applyEdits({ base: leakOwner.key(), edits: [{ from: 5, to: 6, insert: '9' }] })).kind).toBe('ready');
+    leakSession.detachView(v1);
+    expect(leakSession.retainedBytes()).toBe(0);
+  } finally { leakSession.dispose(); leakOwner.dispose(); }
+
+  // 3. Throwing localWindow() still releases #previousBase cleanly
+  const errOwner = await PilotDocument.open('json', '{"a":1,"b":2,"c":3,"d":4}');
+  const errSession = ScopeSession.attach(errOwner, new Map([['json', jsonPack]]));
+  const originalLocalWindow = PilotDocument.prototype.localWindow;
+  try {
+    const view = errSession.attachView({ from: 0, to: errOwner.source.length });
+    errSession.flushOne();
+    expect((await errOwner.applyEdits({ base: errOwner.key(), edits: [{ from: 5, to: 6, insert: '9' }] })).kind).toBe('ready');
+    Object.defineProperty(PilotDocument.prototype, 'localWindow', { configurable: true, writable: true, value: () => { throw new Error('injected localWindow failure'); } });
+    errSession.flushOne();
+    expect(errSession.outcome(view)).toMatchObject({ kind: 'incomplete', reason: 'invalid' });
+    expect(errSession.retainedBytes()).toBe(0);
+  } finally {
+    Object.defineProperty(PilotDocument.prototype, 'localWindow', { configurable: true, writable: true, value: originalLocalWindow });
+    errSession.dispose(); errOwner.dispose();
+  }
+
+  // 4. Throwing Markdown ready listener rolls back cleanly to unavailable (never TypeError on frozen children)
+  const mdOwner = await MarkdownPilotDocument.open('```json\n1\n```\n');
+  const unsub = mdOwner.onCommit(() => { if (mdOwner.observe().kind === 'ready') throw new Error('ready listener failure'); });
+  try {
+    const at = mdOwner.source.indexOf('1');
+    const outcome = await mdOwner.applyEdits({ base: mdOwner.key(), edits: [{ from: at, to: at + 1, insert: '2' }] });
+    expect(outcome.kind).toBe('unavailable');
+    expect(mdOwner.observe().kind).toBe('unavailable');
+    expect(mdOwner.children).toHaveLength(0);
+  } finally { unsub(); mdOwner.dispose(); }
+
+  // 5. Failed Markdown budget pass does not commit cached child arrays
+  const budgetMd = await MarkdownPilotDocument.open('```json\n1\n```\n```json\n2\n```\n');
+  const budgetSession = ScopeSession.attach(budgetMd, new Map([['json', jsonPack]]), { ...DEFAULT_SCOPE_LIMITS, retainedBytes: 100 });
+  const originalNum = Component.prototype.number;
+  let calls = 0;
+  Object.defineProperty(Component.prototype, 'number', { configurable: true, writable: true, value: function(this: Component, name: string, args: readonly number[] = []) {
+    if (name === 'scope_compat_run') calls++;
+    return originalNum.call(this, name, args);
+  } });
+  try {
+    const view = budgetSession.attachView({ from: 0, to: budgetMd.source.length });
+    budgetSession.flushOne();
+    expect(budgetSession.outcome(view)).toMatchObject({ kind: 'incomplete', reason: 'budget' });
+    expect(budgetSession.retainedBytes()).toBe(0);
+    // Edit fence 2 so fence 1 is reused by MarkdownPilotDocument; since the prior pass failed, ScopeSession must NOT have cached fence 1
+    calls = 0;
+    const at = budgetMd.source.indexOf('2');
+    expect((await budgetMd.applyEdits({ base: budgetMd.key(), edits: [{ from: at, to: at + 1, insert: '3' }] })).kind).toBe('ready');
+    budgetSession.request(view, { viewport: { from: 0, to: budgetMd.source.length }, theme: 1 });
+    budgetSession.flushOne();
+    expect(calls).toBe(1);
+    expect(budgetSession.retainedBytes()).toBe(0);
+  } finally {
+    Object.defineProperty(Component.prototype, 'number', { configurable: true, writable: true, value: originalNum });
+    budgetSession.dispose(); budgetMd.dispose(); jsonPack.dispose();
   }
 });
