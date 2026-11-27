@@ -125,7 +125,7 @@ struct Generate {
     #[arg(long, short, value_name = "DIRECTORY")]
     pub output: Option<PathBuf>,
     /// Produce a report of the states for the given rule, use `-` to report every rule
-    #[arg(long, conflicts_with = "json", conflicts_with = "json_summary")]
+    #[arg(long, conflicts_with = "json_summary")]
     pub report_states_for_rule: Option<String>,
     /// Report conflicts in a JSON format
     #[arg(long, conflicts_with = "report_states_for_rule")]
@@ -229,7 +229,7 @@ struct Parse {
     #[arg(long = "cst", short = 'c')]
     pub output_cst: bool,
     /// Show parsing statistics
-    #[arg(long, short, conflicts_with = "json", conflicts_with = "json_summary")]
+    #[arg(long, short, conflicts_with = "json_summary")]
     pub stat: bool,
     /// Interrupt the parsing process by timeout (µs)
     #[arg(long)]
@@ -2186,5 +2186,22 @@ fn parse_range<T>(
         Ok(Some(make(start)..make(end)))
     } else {
         Ok(None)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use clap_complete::Shell;
+
+    use super::*;
+
+    #[test]
+    fn cli_definition_is_valid() {
+        let mut cli = Commands::augment_subcommands(Command::new("tree-sitter"));
+        cli.clone().debug_assert();
+
+        let mut completion = Vec::new();
+        generate(Shell::Zsh, &mut cli, "tree-sitter", &mut completion);
+        assert!(!completion.is_empty());
     }
 }

@@ -35,8 +35,12 @@ else()
                          -Wall -Wextra -Wshadow -Wpedantic
                          -Werror=incompatible-pointer-types
                          -Werror=strict-aliasing -Wstrict-aliasing=2)
-  if(NOT APPLE AND NOT WIN32)
-    target_compile_options(tree-sitter PRIVATE -fno-semantic-interposition)
+  if(NOT APPLE AND NOT WIN32 AND NOT EMSCRIPTEN AND NOT CMAKE_SYSTEM_NAME STREQUAL "WASI")
+    include(CheckCCompilerFlag)
+    check_c_compiler_flag("-Werror -fno-semantic-interposition" TS_HAVE_NO_SEMANTIC_INTERPOSITION)
+    if(TS_HAVE_NO_SEMANTIC_INTERPOSITION)
+      target_compile_options(tree-sitter PRIVATE -fno-semantic-interposition)
+    endif()
   endif()
 endif()
 
