@@ -427,17 +427,34 @@ function linkTitleSpan(source: string, start: number, limit: number): { readonly
   return paired ? { from, to } : undefined;
 }
 function appendLinkExtras(source: string, link: ResolverRecord, label: ResolverRecord | undefined, extra: ResolverRecord[]): void {
-  if (!label || !source.startsWith('](', label.end) || source[link.end - 1] !== ')') return;
-  const dest = linkDestinationSpan(source, label.end + 2, link.end - 1);
+  const labelEnd = label ? label.end : (source.startsWith('[](', link.start) ? link.start + 1 : -1);
+  if (labelEnd < 0 || !source.startsWith('](', labelEnd) || source[link.end - 1] !== ')') return;
+  const dest = linkDestinationSpan(source, labelEnd + 2, link.end - 1);
   if (!dest) return;
   if (dest.from < dest.to) extra.push(Object.freeze({ start: dest.from, end: dest.to, kind: 100, extra: 0 }));
   const title = linkTitleSpan(source, dest.after, link.end - 1);
   if (title) extra.push(Object.freeze({ start: title.from, end: title.to, kind: 102, extra: 0 }));
 }
+function closingHeadingMarker(source: string, start: number, lineEnd: number): { readonly from: number; readonly to: number; readonly textEnd: number } | undefined {
+  let to = lineEnd;
+  while (to > start && (source[to - 1] === ' ' || source[to - 1] === '\t')) to--;
+  let from = to;
+  while (from > start && source[from - 1] === '#') from--;
+  if (from === to) return undefined;
+  if (from > start && source[from - 1] !== ' ' && source[from - 1] !== '\t') return undefined;
+  let textEnd = from;
+  while (textEnd > start && (source[textEnd - 1] === ' ' || source[textEnd - 1] === '\t')) textEnd--;
+  return { from, to, textEnd };
+}
 function appendHeadingSection(source: string, heading: ResolverRecord, marker: ResolverRecord | undefined, extra: ResolverRecord[]): void {
   let end = heading.end;
   while (end > heading.start && (source[end - 1] === '\n' || source[end - 1] === '\r')) end--;
   const start = marker ? skipSpaces(source, marker.end, end) : heading.start;
+  const closing = marker ? closingHeadingMarker(source, start, end) : undefined;
+  if (closing) {
+    extra.push(Object.freeze({ start: closing.from, end: closing.to, kind: 32, extra: heading.extra }));
+    end = closing.textEnd;
+  }
   if (start < end) extra.push(Object.freeze({ start, end, kind: 101, extra: 0 }));
 }
 function extraDecorations(source: string, decorations: readonly ResolverRecord[]): ResolverRecord[] {
@@ -500,6 +517,14 @@ function pruneExpired(active: ResolverRecord[], from: number): void {
   }
   active.length = write;
 }
+function advanceActive(active: ResolverRecord[], mapped: readonly ResolverRecord[], index: number, from: number): number {
+  let cursor = index;
+  while (cursor < mapped.length && mapped[cursor].start <= from) {
+    if (mapped[cursor].end > from) active.push(mapped[cursor]);
+    cursor++;
+  }
+  return cursor;
+}
 function frame(source: string, decorations: readonly ResolverRecord[], children: readonly ScopeInterval[]): ScopeInterval[] {
   const mapped = decorations.concat(extraDecorations(source, decorations))
     .filter(record => record.start < record.end && decorationScopes(record).length > 0);
@@ -513,12 +538,7 @@ function frame(source: string, decorations: readonly ResolverRecord[], children:
   return points.slice(0, -1).map((from, index) => {
     const to = points[index + 1];
     pruneExpired(active, from);
-    let added = false;
-    while (decIndex < mapped.length && mapped[decIndex].start <= from) {
-      if (mapped[decIndex].end > from) { active.push(mapped[decIndex]); added = true; }
-      decIndex++;
-    }
-    if (added) active.sort(compareDecoration);
+    decIndex = advanceActive(active, mapped, decIndex, from);
     const terminator = source.slice(from, to) === '\n' || source.slice(from, to) === '\r\n';
     while (childIndex < sortedChildren.length && sortedChildren[childIndex].to <= from) childIndex++;
     const candidate = sortedChildren[childIndex];

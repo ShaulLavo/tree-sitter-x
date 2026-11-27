@@ -153,15 +153,21 @@ describe('Phase 5 Wave 1 core language packs', () => {
       expect(at(12)).not.toContain('punctuation.definition.entity.html');
       expect(at(12)).not.toContain('constant.character.entity.html');
     });
-    await check('shellscript', 'echo "hello"\n', at => {
+    await check('shellscript', 'echo "hello" ""\n', at => {
       expect(at(5)).toContain('punctuation.definition.string.begin.shell');
       expect(at(11)).toContain('punctuation.definition.string.end.shell');
       expect(at(11)).not.toContain('punctuation.definition.string.begin.shell');
+      expect(at(13)).toContain('punctuation.definition.string.begin.shell');
+      expect(at(14)).toContain('punctuation.definition.string.end.shell');
+      expect(at(14)).not.toContain('punctuation.definition.string.begin.shell');
     });
-    await check('go', 'package p\nconst s = "hello"\n', at => {
+    await check('go', 'package p\nconst s = "hello"\nvar a = ""\n', at => {
       expect(at(20)).toContain('punctuation.definition.string.begin.go');
       expect(at(26)).toContain('punctuation.definition.string.end.go');
       expect(at(26)).not.toContain('punctuation.definition.string.begin.go');
+      expect(at(36)).toContain('punctuation.definition.string.begin.go');
+      expect(at(37)).toContain('punctuation.definition.string.end.go');
+      expect(at(37)).not.toContain('punctuation.definition.string.begin.go');
     });
   });
 
@@ -196,8 +202,8 @@ describe('Phase 5 Wave 1 core language packs', () => {
     }
   });
 
-  it('scopes escaped-bracket Markdown links and optional link titles cleanly without quadratic blowup', async () => {
-    const edgeSource = '# Heading\n\n[A\\](B](https://a.test) and [A](https://a.test "Title") and [C](<https://c.test> "T")\n';
+  it('scopes escaped-bracket Markdown links, empty link labels, closing ATX markers, and optional link titles cleanly', async () => {
+    const edgeSource = '# Heading #\n\n## C#\n\n[A\\](B](https://a.test) and [A](https://a.test "Title") and [](https://empty.test "Empty") and [C](<https://c.test> "T")\n';
     const owner = await MarkdownPilotDocument.open(edgeSource);
     try {
       const intervals = owner.intervals(new Map());
@@ -205,6 +211,12 @@ describe('Phase 5 Wave 1 core language packs', () => {
       expect(at(0)).toContain('punctuation.definition.heading.markdown');
       expect(at(0)).not.toContain('entity.name.section.markdown');
       expect(at(2)).toContain('entity.name.section.markdown');
+      const closingHash = edgeSource.indexOf('#\n');
+      expect(at(closingHash)).toContain('punctuation.definition.heading.markdown');
+      expect(at(closingHash)).not.toContain('entity.name.section.markdown');
+      const csharpHash = edgeSource.indexOf('C#') + 1;
+      expect(at(csharpHash)).toContain('entity.name.section.markdown');
+      expect(at(csharpHash)).not.toContain('punctuation.definition.heading.markdown');
       const escapedLabel = edgeSource.indexOf('(B');
       expect(at(escapedLabel)).toContain('string.other.link.title.markdown');
       expect(at(escapedLabel)).not.toContain('markup.underline.link.markdown');
@@ -213,6 +225,10 @@ describe('Phase 5 Wave 1 core language packs', () => {
       const titlePos = edgeSource.indexOf('"Title"');
       expect(at(titlePos)).toContain('string.other.link.description.title.markdown');
       expect(at(titlePos)).not.toContain('markup.underline.link.markdown');
+      const emptyUrl = edgeSource.indexOf('https://empty.test');
+      expect(at(emptyUrl)).toContain('markup.underline.link.markdown');
+      const emptyTitle = edgeSource.indexOf('"Empty"');
+      expect(at(emptyTitle)).toContain('string.other.link.description.title.markdown');
       const angleUrl = edgeSource.indexOf('https://c.test');
       expect(at(angleUrl)).toContain('markup.underline.link.markdown');
     } finally { owner.dispose(); }

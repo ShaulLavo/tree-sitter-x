@@ -94,8 +94,13 @@
 
 ; Strings & heredocs
 (string) @string.quoted.double
-(string . "\"" @punctuation.definition.string.begin)
-(string "\"" @punctuation.definition.string.end .)
+((string . "\"" @punctuation.definition.string.begin) @_s (#not-eq? @_s "\"\""))
+((string "\"" @punctuation.definition.string.end .) @_s (#not-eq? @_s "\"\""))
+((string) @_s
+ (#eq? @_s "\"\"")
+ (#make-span! "string.quoted.double" @_s @_s "start" "0" @_s "end" "0")
+ (#make-span! "punctuation.definition.string.begin" @_s @_s "start" "0" @_s "start" "1")
+ (#make-span! "punctuation.definition.string.end" @_s @_s "end" "-1" @_s "end" "0"))
 ((raw_string) @_s
  (#make-span! "string.quoted.single" @_s @_s "start" "0" @_s "end" "0")
  (#make-span! "punctuation.definition.string.begin" @_s @_s "start" "0" @_s "start" "1")

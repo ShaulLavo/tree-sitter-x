@@ -75,8 +75,13 @@
 (imaginary_literal) @constant.numeric.imaginary
 
 (interpreted_string_literal) @string.quoted.double
-(interpreted_string_literal . "\"" @punctuation.definition.string.begin)
-(interpreted_string_literal "\"" @punctuation.definition.string.end .)
+((interpreted_string_literal . "\"" @punctuation.definition.string.begin) @_s (#not-eq? @_s "\"\""))
+((interpreted_string_literal "\"" @punctuation.definition.string.end .) @_s (#not-eq? @_s "\"\""))
+((interpreted_string_literal) @_s
+ (#eq? @_s "\"\"")
+ (#make-span! "string.quoted.double" @_s @_s "start" "0" @_s "end" "0")
+ (#make-span! "punctuation.definition.string.begin" @_s @_s "start" "0" @_s "start" "1")
+ (#make-span! "punctuation.definition.string.end" @_s @_s "end" "-1" @_s "end" "0"))
 (raw_string_literal) @string.quoted.raw
 (rune_literal) @string.quoted.rune
 (escape_sequence) @constant.character.escape
