@@ -208,6 +208,62 @@ async function verifyBundledTheme(compat: ScopeCompat, themeId: string, sample: 
   }
 }
 
+async function assertNoForbiddenImports(relativeDir: string, forbidden: RegExp): Promise<void> {
+  const fullDir = resolve(repositoryRoot, relativeDir);
+  const files = (await readdir(fullDir)).filter(name => /\.(?:[jt]s|d\.ts)$/.test(name));
+  expect(files.length).toBeGreaterThanOrEqual(8);
+  for (const file of files) {
+    const text = await readFile(resolve(fullDir, file), 'utf8');
+    expect(text, `${relativeDir}/${file}`).not.toMatch(forbidden);
+  }
+}
+
+interface EditState {
+  source: string;
+  tree: PublicTree;
+}
+
+function applyTreeEdit(
+  binding: PublicBinding,
+  parser: PublicParser,
+  buffer: PublicTextBuffer,
+  state: EditState,
+  from: number,
+  to: number,
+  insert: string,
+): PublicRange[] {
+  const lineStart = state.source.lastIndexOf('\n', from - 1) + 1;
+  const row = state.source.slice(0, from).split('\n').length - 1;
+  state.tree.edit(new binding.Edit({
+    startIndex: from,
+    oldEndIndex: to,
+    newEndIndex: from + insert.length,
+    startPosition: { row, column: from - lineStart },
+    oldEndPosition: { row, column: to - lineStart },
+    newEndPosition: { row, column: from - lineStart + insert.length },
+  }));
+  buffer.edit(from, to, insert);
+  state.source = `${state.source.slice(0, from)}${insert}${state.source.slice(to)}`;
+  const nextTree = parser.parse(buffer, state.tree);
+  if (!nextTree) throw new Error('Reparse returned null');
+  const changedRanges = state.tree.getChangedRanges(nextTree);
+  state.tree.delete();
+  state.tree = nextTree;
+  return changedRanges;
+}
+
+function assertScopesMatchAtOffsets(actual: ScopeResult, expected: ScopeResult, length: number, step: number): void {
+  for (let offset = 0; offset < length; offset += step) {
+    expect(scopeAtOffset(actual, offset)).toEqual(scopeAtOffset(expected, offset));
+  }
+}
+
+function assertReferencedPathsOnly(result: ScopeResult): void {
+  const referenced = new Set<number>([0]);
+  for (let i = 2; i < result.segments.length; i += 3) referenced.add(result.segments[i]);
+  expect(referenced.size).toBe(result.paths.length);
+}
+
 describe('Phase 6 public zero-Shiki consumer SDK (@shaulavo/tree-sitter-scope-compat)', () => {
   it('contains zero Shiki, Oniguruma, vscode-textmate, or Node-only imports in js/, dist/, and package.json', async () => {
     const pkgRaw = await readFile(resolve(repositoryRoot, 'lib/scope-compat/package.json'), 'utf8');
@@ -215,15 +271,8 @@ describe('Phase 6 public zero-Shiki consumer SDK (@shaulavo/tree-sitter-scope-co
     expect(pkg.dependencies).toBeUndefined();
     expect(pkgRaw).not.toMatch(/shiki|oniguruma|vscode-textmate|vscode-oniguruma/i);
     const forbidden = /\b(?:shiki|vscode-textmate|vscode-oniguruma|oniguruma|node:)\b/i;
-    for (const dir of ['lib/scope-compat/js', 'lib/scope-compat/dist']) {
-      const fullDir = resolve(repositoryRoot, dir);
-      const files = (await readdir(fullDir)).filter(name => /\.(?:[jt]s|d\.ts)$/.test(name));
-      expect(files.length).toBeGreaterThanOrEqual(8);
-      for (const file of files) {
-        const text = await readFile(resolve(fullDir, file), 'utf8');
-        expect(text, `${dir}/${file}`).not.toMatch(forbidden);
-      }
-    }
+    await assertNoForbiddenImports('lib/scope-compat/js', forbidden);
+    await assertNoForbiddenImports('lib/scope-compat/dist', forbidden);
   });
 
   it('imports cleanly by package name from node_modules in Node without type-stripping errors', async () => {
@@ -376,11 +425,12 @@ describe('Phase 6 public zero-Shiki consumer SDK (@shaulavo/tree-sitter-scope-co
       tokenColors: [
         { settings: { foreground: '#123456', background: '#222222' } },
         { scope: [''], settings: { foreground: '#ab12cd' } },
-        { scope: '   ', settings: { background: '#334455' } },
+        { scope: ' ,keyword', settings: { foreground: '#fedcba', fontStyle: 'italic' } },
+        { scope: 'keyword, ', settings: { background: '#334455' } },
       ],
     });
     try {
-      expect(overriddenDefault.defaultForegroundRgba).toBe(parseColorRgba('#ab12cd'));
+      expect(overriddenDefault.defaultForegroundRgba).toBe(parseColorRgba('#fedcba'));
       expect(overriddenDefault.defaultBackgroundRgba).toBe(parseColorRgba('#334455'));
       const resolved = overriddenDefault.resolve({
         sourceLength: 1,
@@ -390,8 +440,9 @@ describe('Phase 6 public zero-Shiki consumer SDK (@shaulavo/tree-sitter-scope-co
         scopes: ['source.ts'],
       });
       expect(styleAtOffset(resolved, 0)).toMatchObject({
-        fg: parseColorRgba('#ab12cd'),
+        fg: parseColorRgba('#fedcba'),
         bg: parseColorRgba('#334455'),
+        font: FONT_STYLE_ITALIC,
       });
       expect(() => overriddenDefault.resolve({
         sourceLength: 0,
@@ -416,70 +467,40 @@ describe('Phase 6 public zero-Shiki consumer SDK (@shaulavo/tree-sitter-scope-co
       query: '(identifier) @variable.other.readwrite',
     });
     const lines = Array.from({ length: 80 }, (_, i) => `export function fn${i}(x: number): number { return x + ${i}; }`);
-    let source = `${lines.join('\n')}\n`;
-    const buffer = new binding.TextBuffer(source);
+    const initialSource = `${lines.join('\n')}\n`;
+    const buffer = new binding.TextBuffer(initialSource);
     const parser = new binding.Parser();
     parser.setLanguage(await loadLanguage(binding, 'typescript'));
-    let tree = parser.parse(buffer);
-    if (!tree) throw new Error('Parse returned null');
+    const initialTree = parser.parse(buffer);
+    if (!initialTree) throw new Error('Parse returned null');
+    const state: EditState = { source: initialSource, tree: initialTree };
     const session = compat.createSession(pack);
     const customSession = compat.createSession(customPack);
     try {
-      const initial = session.update(tree, buffer);
-      customSession.update(tree, buffer);
+      const initial = session.update(state.tree, buffer);
+      customSession.update(state.tree, buffer);
       expect(session.lastInvalidation?.mode).toBe('full-document');
 
-      const applyEdit = (from: number, to: number, insert: string) => {
-        const lineStart = source.lastIndexOf('\n', from - 1) + 1;
-        const row = source.slice(0, from).split('\n').length - 1;
-        const startPosition = { row, column: from - lineStart };
-        const oldEndPosition = { row, column: to - lineStart };
-        const newEndPosition = { row, column: from - lineStart + insert.length };
-        tree!.edit(new binding.Edit({
-          startIndex: from,
-          oldEndIndex: to,
-          newEndIndex: from + insert.length,
-          startPosition,
-          oldEndPosition,
-          newEndPosition,
-        }));
-        buffer.edit(from, to, insert);
-        source = `${source.slice(0, from)}${insert}${source.slice(to)}`;
-        const nextTree = parser.parse(buffer, tree);
-        if (!nextTree) throw new Error('Reparse returned null');
-        const changedRanges = tree!.getChangedRanges(nextTree);
-        tree!.delete();
-        tree = nextTree;
-        return changedRanges;
-      };
-
-      // Edit 1: replace number 40 with string "40"
-      const pos = source.indexOf('return x + 40;') + 'return x + '.length;
-      const ranges1 = applyEdit(pos, pos + 2, '"40"');
-      const inc1 = session.update(tree, buffer, { edits: [{ from: pos, to: pos + 2, insertLength: 4 }], changedRanges: ranges1, source });
+      const pos = state.source.indexOf('return x + 40;') + 'return x + '.length;
+      const ranges1 = applyTreeEdit(binding, parser, buffer, state, pos, pos + 2, '"40"');
+      const inc1 = session.update(state.tree, buffer, { edits: [{ from: pos, to: pos + 2, insertLength: 4 }], changedRanges: ranges1, source: state.source });
       expect(session.lastInvalidation?.mode).toBe('local-range');
       expect(scopeAtOffset(inc1, pos)).toContain('string.quoted.double.ts');
 
-      // Custom pack without localInvalidation contract always falls back to full-document
-      customSession.update(tree, buffer, { edits: [{ from: pos, to: pos + 2, insertLength: 4 }], changedRanges: ranges1, source });
+      customSession.update(state.tree, buffer, { edits: [{ from: pos, to: pos + 2, insertLength: 4 }], changedRanges: ranges1, source: state.source });
       expect(customSession.lastInvalidation?.mode).toBe('full-document');
 
-      // Edit 2: revert string "40" back to number 40 — unused string paths must not remain
-      const ranges2 = applyEdit(pos, pos + 4, '40');
-      const inc2 = session.update(tree, buffer, { edits: [{ from: pos, to: pos + 4, insertLength: 2 }], changedRanges: ranges2, source });
+      const ranges2 = applyTreeEdit(binding, parser, buffer, state, pos, pos + 4, '40');
+      const inc2 = session.update(state.tree, buffer, { edits: [{ from: pos, to: pos + 4, insertLength: 2 }], changedRanges: ranges2, source: state.source });
       expect(session.lastInvalidation?.mode).toBe('local-range');
-      const fresh = compat.highlightTree(pack, tree, buffer);
+      const fresh = compat.highlightTree(pack, state.tree, buffer);
       expect(inc2.paths.length).toBeLessThanOrEqual(fresh.paths.length);
       expect(inc2.paths.length).toBeLessThanOrEqual(initial.paths.length);
-      const referenced = new Set<number>([0]);
-      for (let i = 2; i < inc2.segments.length; i += 3) referenced.add(inc2.segments[i]);
-      expect(referenced.size).toBe(inc2.paths.length);
+      assertReferencedPathsOnly(inc2);
       expect(inc2.paths.every(p => !p.some(id => inc2.scopes[id] === 'string.quoted.double.ts'))).toBe(true);
-      for (let offset = 0; offset < source.length; offset += 17) {
-        expect(scopeAtOffset(inc2, offset)).toEqual(scopeAtOffset(fresh, offset));
-      }
+      assertScopesMatchAtOffsets(inc2, fresh, state.source.length, 17);
     } finally {
-      tree.delete();
+      state.tree.delete();
       parser.delete();
       buffer.delete();
       customPack.dispose();

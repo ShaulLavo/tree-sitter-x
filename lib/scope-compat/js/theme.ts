@@ -93,10 +93,9 @@ function parseSelector(selector: string): {
 }
 
 function extractSelectors(scope: VscodeTokenColor['scope']): readonly string[] {
-  if (scope === undefined) return [''];
+  if (scope === undefined || scope === '') return [''];
   if (typeof scope === 'string') {
-    const stripped = scope.trim().replace(/^,+|,+$/g, '');
-    if (!stripped) return [''];
+    const stripped = scope.replace(/^,+/, '').replace(/,+$/, '');
     return stripped.split(',').map(item => item.trim());
   }
   const result: string[] = [];
