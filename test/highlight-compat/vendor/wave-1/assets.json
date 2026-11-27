@@ -1,0 +1,58 @@
+[
+  {
+    "languageId": "css",
+    "kind": "wasm",
+    "path": "tree-sitter-css/tree-sitter-css.wasm",
+    "sha256": "8a23977fe271357cce6f254ef88c9bebf3854602d8046605aef6a45c02135c59",
+    "manifestPath": "editor/packages/tree-sitter-languages/node_modules/tree-sitter-css/tree-sitter-css.wasm"
+  },
+  {
+    "languageId": "html",
+    "kind": "wasm",
+    "path": "tree-sitter-html/tree-sitter-html.wasm",
+    "sha256": "c48fcd82c7ea8bf943180088ba7f28c48b2bb5287874179168bf9d31e394cf85",
+    "manifestPath": "editor/packages/tree-sitter-languages/node_modules/tree-sitter-html/tree-sitter-html.wasm"
+  },
+  {
+    "languageId": "shellscript",
+    "kind": "wasm",
+    "path": "tree-sitter-bash/tree-sitter-bash.wasm",
+    "sha256": "8292919c88a0f7d3fb31d0cd0253ca5a9531bc1ede82b0537f2c63dd8abe6a7a",
+    "manifestPath": "editor/packages/tree-sitter-languages/node_modules/tree-sitter-bash/tree-sitter-bash.wasm"
+  },
+  {
+    "languageId": "rust",
+    "kind": "wasm",
+    "path": "tree-sitter-rust/tree-sitter-rust.wasm",
+    "sha256": "f65f354215611fd94ad34134b3427eb3d58cbb745df7b6509ba722184db73d57",
+    "manifestPath": "editor/packages/tree-sitter-languages/node_modules/tree-sitter-rust/tree-sitter-rust.wasm"
+  },
+  {
+    "languageId": "python",
+    "kind": "wasm",
+    "path": "tree-sitter-python/tree-sitter-python.wasm",
+    "sha256": "16108b50df4ee9a30168794252ab55e7c93bfc5765d7fa0aa3e335752c515f47",
+    "manifestPath": "editor/packages/tree-sitter-languages/node_modules/tree-sitter-python/tree-sitter-python.wasm"
+  },
+  {
+    "languageId": "go",
+    "kind": "wasm",
+    "path": "tree-sitter-go/tree-sitter-go.wasm",
+    "sha256": "9504573f352b20be7f2f1911754d710622aedc15afff16d5ed8fb5645681aee7",
+    "manifestPath": "editor/packages/tree-sitter-languages/node_modules/tree-sitter-go/tree-sitter-go.wasm"
+  },
+  {
+    "languageId": "yaml",
+    "kind": "wasm",
+    "path": "@tree-sitter-grammars/tree-sitter-yaml/tree-sitter-yaml.wasm",
+    "sha256": "e752dc21c3591df9b45692fe417d101f45d1828c28c44d79005f4066dc7e4e91",
+    "manifestPath": "editor/packages/tree-sitter-languages/node_modules/@tree-sitter-grammars/tree-sitter-yaml/tree-sitter-yaml.wasm"
+  },
+  {
+    "languageId": "toml",
+    "kind": "wasm",
+    "path": "@tree-sitter-grammars/tree-sitter-toml/tree-sitter-toml.wasm",
+    "sha256": "1ac6a83826c35a68857f8325e00c78f6bcbef4eb6db3931a6cf3041f76e5e09f",
+    "manifestPath": "editor/packages/tree-sitter-languages/node_modules/@tree-sitter-grammars/tree-sitter-toml/tree-sitter-toml.wasm"
+  }
+]

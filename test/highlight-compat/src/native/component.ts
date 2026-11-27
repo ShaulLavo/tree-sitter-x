@@ -8,6 +8,7 @@ import type { Borrowed } from './borrow.ts';
 import { Runtime, foreign, invoke, release } from './runtime.ts';
 import type { Foreign } from './runtime.ts';
 import { parserLanguageId, vendorAssets } from '../baselines/assets.ts';
+import { wave1Asset } from './wave1-assets.ts';
 
 export interface QueryFile { readonly path: string; readonly query: string }
 export interface PackSpec {
@@ -167,7 +168,8 @@ export class Component {
     const names = Array.from({ length: count }, (_, id) => this.string('scope_compat_pack_scope_name', [pointer, id]));
     if (names[0] !== spec.rootScope || names.some(name => !name || /\s/.test(name))) throw new Error('Invalid native scope names');
     const parserId = parserLanguageId(spec.languageId);
-    const parser = vendorAssets().find(asset => asset.languageId === parserId && asset.kind === 'wasm');
+    const parser = vendorAssets().find(asset => asset.languageId === parserId && asset.kind === 'wasm')
+      ?? wave1Asset(parserId);
     if (!parser) throw new Error('Missing parser identity');
     const patterns = this.number('scope_compat_pack_pattern_count', [pointer]);
     const orderPolicy = selectedOrderPolicy(this.runtime, language, query, patterns);

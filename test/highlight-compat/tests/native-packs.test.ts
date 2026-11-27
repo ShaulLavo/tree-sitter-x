@@ -202,8 +202,8 @@ describe('explicit native language variants', () => {
   });
 
   it('keeps unimplemented variants deferred', async () => {
-    await expect(loadLanguagePack('python')).rejects.toThrow('distinct variant');
-    await expect(loadLanguagePack('rust')).rejects.toThrow('distinct variant');
+    await expect(loadLanguagePack('zig')).rejects.toThrow('distinct variant');
+    await expect(loadLanguagePack('elixir')).rejects.toThrow('distinct variant');
   });
   it.each(['typescript', 'tsx'] as const)('adds zero scope parses for the actual %s pack after a positive baseline control', async language => {
     const runtime = await Runtime.load(), prototype = foreign(foreign(runtime.binding.Parser).prototype);

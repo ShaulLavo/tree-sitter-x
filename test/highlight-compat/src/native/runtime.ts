@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { parserLanguageId, parserUrl, vendorAssets } from '../baselines/assets.ts';
+import { wave1Asset, wave1ParserUrl } from './wave1-assets.ts';
 import { digest } from './component-inputs.ts';
 
 export type Foreign = Record<PropertyKey, unknown>;
@@ -51,9 +52,12 @@ export class Runtime {
     return pending;
   }
   private async loadLanguage(id: string): Promise<Foreign> {
-    const bytes = await readFile(parserUrl(id));
-    const asset = vendorAssets().find(asset => asset.languageId === id && asset.kind === 'wasm');
-    if (!asset || digest(bytes) !== asset.sha256) throw new Error(`Parser identity mismatch: ${id}`);
+    const pilotAsset = vendorAssets().find(asset => asset.languageId === id && asset.kind === 'wasm');
+    const asset = pilotAsset ?? wave1Asset(id);
+    const url = pilotAsset ? parserUrl(id) : wave1ParserUrl(id);
+    if (!asset || !url) throw new Error(`Missing parser asset: ${id}`);
+    const bytes = await readFile(url);
+    if (digest(bytes) !== asset.sha256) throw new Error(`Parser identity mismatch: ${id}`);
     return foreign(await invoke(foreign(this.binding.Language), 'load', [bytes]));
   }
 }

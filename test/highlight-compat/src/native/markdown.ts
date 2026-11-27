@@ -385,14 +385,41 @@ function outerOnly(input: AppendChild, reason: string): void {
   input.diagnostics.push(reason); input.coverage.push(Object.freeze({ from: input.range.start, to: input.range.end, language: null, reason }));
 }
 
+function extraDecorations(source: string, decorations: readonly ResolverRecord[]): ResolverRecord[] {
+  const extra: ResolverRecord[] = [];
+  for (const record of decorations) {
+    if (record.kind !== 16) continue;
+    const text = source.slice(record.start, record.end);
+    const open = text.indexOf(']('), close = text.lastIndexOf(')');
+    if (open >= 0 && close > open + 2) {
+      extra.push(Object.freeze({ start: record.start + open + 2, end: record.start + close, kind: 100, extra: 0 }));
+    }
+  }
+  return extra;
+}
 function decorationScopes(record: ResolverRecord): readonly string[] {
+  if (record.kind === 1) return ['meta.paragraph.markdown'];
+  if (record.kind === 2) return ['markup.heading.markdown', `heading.${record.extra}.markdown`, 'entity.name.section.markdown'];
+  if (record.kind === 3) return ['meta.separator.markdown'];
   if (record.kind === 4 && record.extra === 1) return ['markup.fenced_code.block.markdown'];
+  if (record.kind === 5) return ['markup.quote.markdown'];
+  if (record.kind === 6) return [record.extra === 1 ? 'markup.list.numbered.markdown' : 'markup.list.unnumbered.markdown'];
+  if (record.kind === 12) return ['markup.italic.markdown'];
+  if (record.kind === 13) return ['markup.bold.markdown'];
+  if (record.kind === 14) return ['markup.strikethrough.markdown'];
+  if (record.kind === 15) return ['markup.inline.raw.string.markdown'];
+  if (record.kind === 16) return ['meta.link.inline.markdown'];
+  if (record.kind === 32) return ['punctuation.definition.heading.markdown'];
+  if (record.kind === 33) return ['punctuation.definition.list.begin.markdown'];
+  if (record.kind === 34) return ['punctuation.definition.quote.begin.markdown'];
   if (record.kind === 35) return ['punctuation.definition.markdown'];
   if (record.kind === 36) return ['fenced_code.block.language.markdown'];
+  if (record.kind === 39) return ['string.other.link.title.markdown'];
+  if (record.kind === 100) return ['markup.underline.link.markdown'];
   return [];
 }
 function frame(source: string, decorations: readonly ResolverRecord[], children: readonly ScopeInterval[]): ScopeInterval[] {
-  const mapped = decorations.filter(record => decorationScopes(record).length > 0);
+  const mapped = decorations.concat(extraDecorations(source, decorations)).filter(record => decorationScopes(record).length > 0);
   const sortedChildren = children.toSorted((a, b) => a.from - b.from || a.to - b.to);
   const ends = mapped.flatMap(record => [record.start, record.end]).concat(sortedChildren.flatMap(child => [child.from, child.to]),
     sourceLines(source).flatMap(line => [line.start, line.start + line.text.length, line.next]), [0, source.length]);
