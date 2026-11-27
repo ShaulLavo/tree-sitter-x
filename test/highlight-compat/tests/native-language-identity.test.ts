@@ -153,7 +153,10 @@ it.each(identities)('guards the real replay path for $language with its experime
 });
 
 it('grows root availability without growing Markdown fence membership', async () => {
-  expect(packs.NATIVE_LANGUAGES).toEqual(['json', 'typescript', 'tsx', 'javascript', 'jsx']);
+  expect(packs.NATIVE_LANGUAGES).toEqual([
+    'json', 'typescript', 'tsx', 'javascript', 'jsx',
+    'css', 'html', 'shellscript', 'rust', 'python', 'go', 'yaml', 'toml',
+  ]);
   const owner = await MarkdownPilotDocument.open(['javascript', 'js', 'jsx', 'node'].map(id => `\`\`\`${id}\nvalue\n\`\`\`\n`).join(''));
   try { expect(owner.children).toHaveLength(0); expect(owner.injectionCoverage.every(item => item.language === null)).toBe(true); }
   finally { owner.dispose(); }

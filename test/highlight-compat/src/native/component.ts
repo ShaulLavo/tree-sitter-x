@@ -8,6 +8,7 @@ import type { Borrowed } from './borrow.ts';
 import { Runtime, foreign, invoke, release } from './runtime.ts';
 import type { Foreign } from './runtime.ts';
 import { parserLanguageId, vendorAssets } from '../baselines/assets.ts';
+import { resolveWave1Alias, wave1Asset } from './wave1-assets.ts';
 
 export interface QueryFile { readonly path: string; readonly query: string }
 export interface PackSpec {
@@ -146,12 +147,14 @@ export class Component {
   }
 
   async loadPack(spec: PackSpec): Promise<NativePack> {
-    const language = await this.runtime.language(spec.languageId);
-    const query = spec.files.map(file => file.query).join('\n');
-    const pointer = this.withBytes(query, (q, ql) => this.withBytes(spec.rootScope, (r, rl) =>
-      this.withBytes(spec.suffix, (s, sl) => this.number('scope_compat_pack_new', [languageAddress(language), q, ql, r, rl, s, sl]))));
+    const canonicalId = resolveWave1Alias(spec.languageId);
+    const normalizedSpec = canonicalId === spec.languageId ? spec : { ...spec, languageId: canonicalId };
+    const language = await this.runtime.language(normalizedSpec.languageId);
+    const query = normalizedSpec.files.map(file => file.query).join('\n');
+    const pointer = this.withBytes(query, (q, ql) => this.withBytes(normalizedSpec.rootScope, (r, rl) =>
+      this.withBytes(normalizedSpec.suffix, (s, sl) => this.number('scope_compat_pack_new', [languageAddress(language), q, ql, r, rl, s, sl]))));
     if (!pointer) throw new Error('Native pack header allocation failed');
-    try { return this.readPack(pointer, language, spec, query); }
+    try { return this.readPack(pointer, language, normalizedSpec, query); }
     catch (error) { this.call('scope_compat_pack_delete', [pointer]); throw error; }
   }
 
@@ -166,8 +169,10 @@ export class Component {
     if (!count || count > this.runtime.heap().length / 4) throw new Error('Invalid native scope count');
     const names = Array.from({ length: count }, (_, id) => this.string('scope_compat_pack_scope_name', [pointer, id]));
     if (names[0] !== spec.rootScope || names.some(name => !name || /\s/.test(name))) throw new Error('Invalid native scope names');
-    const parserId = parserLanguageId(spec.languageId);
-    const parser = vendorAssets().find(asset => asset.languageId === parserId && asset.kind === 'wasm');
+    const canonicalId = resolveWave1Alias(spec.languageId);
+    const parserId = parserLanguageId(canonicalId);
+    const parser = vendorAssets().find(asset => asset.languageId === parserId && asset.kind === 'wasm')
+      ?? wave1Asset(parserId);
     if (!parser) throw new Error('Missing parser identity');
     const patterns = this.number('scope_compat_pack_pattern_count', [pointer]);
     const orderPolicy = selectedOrderPolicy(this.runtime, language, query, patterns);

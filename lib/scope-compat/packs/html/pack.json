@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "languageId": "html",
+  "packVersion": "wave1-1",
+  "rootScope": "text.html.basic",
+  "scopeSuffix": ".html",
+  "embeddedScope": "meta.embedded.block.html",
+  "parser": {
+    "asset": "tree-sitter-html/tree-sitter-html.wasm",
+    "sha256": "c48fcd82c7ea8bf943180088ba7f28c48b2bb5287874179168bf9d31e394cf85"
+  },
+  "queries": [
+    "html.scm"
+  ]
+}

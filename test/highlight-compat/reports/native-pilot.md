@@ -81,16 +81,16 @@ Scope tables use the unchanged raw, product and shiki-api reference scopes; shik
 | json | shiki-api | original | native | 6/6 | 0.15% | 0.04% | 41.39% | 30/20055 | 8/20032 |
 | json | shiki-api | original | baseline:captures | 6/6 | 0.06% | 0.00% | 14.51% | 13/20055 | 0/20032 |
 | json | shiki-api | original | baseline:vscode-ts | 0/6 | N/A | N/A | N/A | 0/0 | 0/0 |
-| markdown | raw | original | native | 1/1 | 31.94% | 23.08% | 31.94% | 23/72 | 12/52 |
+| markdown | raw | original | native | 1/1 | 43.06% | 36.54% | 43.06% | 31/72 | 19/52 |
 | markdown | raw | original | baseline:captures | 0/1 | N/A | N/A | N/A | 0/0 | 0/0 |
 | markdown | raw | original | baseline:vscode-ts | 0/1 | N/A | N/A | N/A | 0/0 | 0/0 |
-| markdown | product | original | native | 1/1 | 31.94% | 23.08% | 31.94% | 23/72 | 12/52 |
+| markdown | product | original | native | 1/1 | 43.06% | 36.54% | 43.06% | 31/72 | 19/52 |
 | markdown | product | original | baseline:captures | 0/1 | N/A | N/A | N/A | 0/0 | 0/0 |
 | markdown | product | original | baseline:vscode-ts | 0/1 | N/A | N/A | N/A | 0/0 | 0/0 |
-| markdown | shiki-api | original | native | 1/1 | 31.94% | 23.08% | 31.94% | 23/72 | 12/52 |
+| markdown | shiki-api | original | native | 1/1 | 43.06% | 36.54% | 43.06% | 31/72 | 19/52 |
 | markdown | shiki-api | original | baseline:captures | 0/1 | N/A | N/A | N/A | 0/0 | 0/0 |
 | markdown | shiki-api | original | baseline:vscode-ts | 0/1 | N/A | N/A | N/A | 0/0 | 0/0 |
-| markdown | product:warm | original | native | 1/1 | 77.78% | 71.15% | 77.78% | 56/72 | 37/52 |
+| markdown | product:warm | original | native | 1/1 | 88.89% | 84.62% | 88.89% | 64/72 | 44/52 |
 | markdown | product:warm | original | baseline:captures | 0/1 | N/A | N/A | N/A | 0/0 | 0/0 |
 | markdown | product:warm | original | baseline:vscode-ts | 0/1 | N/A | N/A | N/A | 0/0 | 0/0 |
 | tsx | raw | original | native | 4/4 | 99.81% | 99.85% | 77.25% | 20081/20120 | 20049/20080 |
@@ -236,28 +236,28 @@ Scope tables use the unchanged raw, product and shiki-api reference scopes; shik
 | json | product | original | native | vesper | 99.97% | 99.98% | 90.99% | 20049/20055 | 20028/20032 |
 | json | product | original | baseline:captures | vesper | 99.94% | 99.94% | 88.24% | 20043/20055 | 20020/20032 |
 | json | product | original | baseline:vscode-ts | vesper | N/A | N/A | N/A | 0/0 | 0/0 |
-| markdown | raw | original | native | dracula | 61.11% | 48.08% | 61.11% | 44/72 | 25/52 |
+| markdown | raw | original | native | dracula | 72.22% | 61.54% | 72.22% | 52/72 | 32/52 |
 | markdown | raw | original | baseline:captures | dracula | N/A | N/A | N/A | 0/0 | 0/0 |
 | markdown | raw | original | baseline:vscode-ts | dracula | N/A | N/A | N/A | 0/0 | 0/0 |
-| markdown | raw | original | native | github-dark | 61.11% | 48.08% | 61.11% | 44/72 | 25/52 |
+| markdown | raw | original | native | github-dark | 72.22% | 61.54% | 72.22% | 52/72 | 32/52 |
 | markdown | raw | original | baseline:captures | github-dark | N/A | N/A | N/A | 0/0 | 0/0 |
 | markdown | raw | original | baseline:vscode-ts | github-dark | N/A | N/A | N/A | 0/0 | 0/0 |
-| markdown | raw | original | native | light-plus | 43.06% | 38.46% | 43.06% | 31/72 | 20/52 |
+| markdown | raw | original | native | light-plus | 54.17% | 51.92% | 54.17% | 39/72 | 27/52 |
 | markdown | raw | original | baseline:captures | light-plus | N/A | N/A | N/A | 0/0 | 0/0 |
 | markdown | raw | original | baseline:vscode-ts | light-plus | N/A | N/A | N/A | 0/0 | 0/0 |
-| markdown | raw | original | native | vesper | 62.50% | 50.00% | 62.50% | 45/72 | 26/52 |
+| markdown | raw | original | native | vesper | 73.61% | 63.46% | 73.61% | 53/72 | 33/52 |
 | markdown | raw | original | baseline:captures | vesper | N/A | N/A | N/A | 0/0 | 0/0 |
 | markdown | raw | original | baseline:vscode-ts | vesper | N/A | N/A | N/A | 0/0 | 0/0 |
-| markdown | product | original | native | dracula | 61.11% | 48.08% | 61.11% | 44/72 | 25/52 |
+| markdown | product | original | native | dracula | 72.22% | 61.54% | 72.22% | 52/72 | 32/52 |
 | markdown | product | original | baseline:captures | dracula | N/A | N/A | N/A | 0/0 | 0/0 |
 | markdown | product | original | baseline:vscode-ts | dracula | N/A | N/A | N/A | 0/0 | 0/0 |
-| markdown | product | original | native | github-dark | 61.11% | 48.08% | 61.11% | 44/72 | 25/52 |
+| markdown | product | original | native | github-dark | 72.22% | 61.54% | 72.22% | 52/72 | 32/52 |
 | markdown | product | original | baseline:captures | github-dark | N/A | N/A | N/A | 0/0 | 0/0 |
 | markdown | product | original | baseline:vscode-ts | github-dark | N/A | N/A | N/A | 0/0 | 0/0 |
-| markdown | product | original | native | light-plus | 43.06% | 38.46% | 43.06% | 31/72 | 20/52 |
+| markdown | product | original | native | light-plus | 54.17% | 51.92% | 54.17% | 39/72 | 27/52 |
 | markdown | product | original | baseline:captures | light-plus | N/A | N/A | N/A | 0/0 | 0/0 |
 | markdown | product | original | baseline:vscode-ts | light-plus | N/A | N/A | N/A | 0/0 | 0/0 |
-| markdown | product | original | native | vesper | 62.50% | 50.00% | 62.50% | 45/72 | 26/52 |
+| markdown | product | original | native | vesper | 73.61% | 63.46% | 73.61% | 53/72 | 33/52 |
 | markdown | product | original | baseline:captures | vesper | N/A | N/A | N/A | 0/0 | 0/0 |
 | markdown | product | original | baseline:vscode-ts | vesper | N/A | N/A | N/A | 0/0 | 0/0 |
 | tsx | raw | original | native | dracula | 99.99% | 100.00% | 98.13% | 20117/20120 | 20079/20080 |
@@ -380,16 +380,12 @@ Scope tables use the unchanged raw, product and shiki-api reference scopes; shik
 | json | shiki-api | original | other | 6 | 6 |
 | json | shiki-api | original | extra-scope | 10 | 20000 |
 | markdown | raw | original | leaf | 2 | 6 |
-| markdown | raw | original | missing-scope | 3 | 8 |
 | markdown | raw | original | extra-scope | 29 | 35 |
 | markdown | product | original | leaf | 2 | 6 |
-| markdown | product | original | missing-scope | 3 | 8 |
 | markdown | product | original | extra-scope | 29 | 35 |
 | markdown | shiki-api | original | leaf | 2 | 6 |
-| markdown | shiki-api | original | missing-scope | 3 | 8 |
 | markdown | shiki-api | original | extra-scope | 29 | 35 |
 | markdown | product:warm | original | leaf | 5 | 5 |
-| markdown | product:warm | original | missing-scope | 3 | 8 |
 | markdown | product:warm | original | ancestor | 1 | 1 |
 | markdown | product:warm | original | other | 2 | 2 |
 | tsx | raw | original | ancestor | 25 | 38 |
@@ -900,16 +896,6 @@ Native: source.json meta.structure.dictionary.json punctuation.definition.struct
 - [0, 20000) meta.structure.dictionary.json, pattern 0, @meta.structure.dictionary, priority 0, kept, lib/scope-compat/packs/json/json.scm:1
 - [0, 1) punctuation.definition.structure.json, pattern 10, @punctuation.definition.structure, priority 0, kept, lib/scope-compat/packs/json/json.scm:12
 
-### markdown / raw / original / missing-scope
-
-original/fences:1:1, [0, 1), excerpt "#"
-
-Reference: text.html.markdown markup.heading.markdown heading.1.markdown punctuation.definition.heading.markdown
-
-Native: text.html.markdown
-
-No child-pack interval covers this mismatch. The remaining path comes from the Markdown parent and resolver fence frame.
-
 ### markdown / raw / original / leaf
 
 original/fences:3:4, [13, 15), excerpt "ts"
@@ -929,16 +915,6 @@ Reference: text.html.markdown markup.fenced_code.block.markdown
 Native: text.html.markdown markup.fenced_code.block.markdown meta.embedded.block.typescript meta.var.expr.ts
 
 - [16, 27) meta.var.expr.ts, pattern 15, interval ordinal 0, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:23
-
-### markdown / product / original / missing-scope
-
-original/fences:1:1, [0, 1), excerpt "#"
-
-Reference: text.html.markdown markup.heading.markdown heading.1.markdown punctuation.definition.heading.markdown
-
-Native: text.html.markdown
-
-No child-pack interval covers this mismatch. The remaining path comes from the Markdown parent and resolver fence frame.
 
 ### markdown / product / original / leaf
 
@@ -960,16 +936,6 @@ Native: text.html.markdown markup.fenced_code.block.markdown meta.embedded.block
 
 - [16, 27) meta.var.expr.ts, pattern 15, interval ordinal 0, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:23
 
-### markdown / shiki-api / original / missing-scope
-
-original/fences:1:1, [0, 1), excerpt "#"
-
-Reference: text.html.markdown markup.heading.markdown heading.1.markdown punctuation.definition.heading.markdown
-
-Native: text.html.markdown
-
-No child-pack interval covers this mismatch. The remaining path comes from the Markdown parent and resolver fence frame.
-
 ### markdown / shiki-api / original / leaf
 
 original/fences:3:4, [13, 15), excerpt "ts"
@@ -989,16 +955,6 @@ Reference: text.html.markdown markup.fenced_code.block.markdown
 Native: text.html.markdown markup.fenced_code.block.markdown meta.embedded.block.typescript meta.var.expr.ts
 
 - [16, 27) meta.var.expr.ts, pattern 15, interval ordinal 0, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:23
-
-### markdown / product:warm / original / missing-scope
-
-original/fences:1:1, [0, 1), excerpt "#"
-
-Reference: text.html.markdown markup.heading.markdown heading.1.markdown punctuation.definition.heading.markdown
-
-Native: text.html.markdown
-
-No child-pack interval covers this mismatch. The remaining path comes from the Markdown parent and resolver fence frame.
 
 ### markdown / product:warm / original / leaf
 
@@ -1250,13 +1206,13 @@ Native: source.ts meta.var.expr.ts
 | Fixture | Reference | Region | Matching / units | Non-whitespace matching / units |
 | --- | --- | --- | ---: | ---: |
 | original/fences | raw | recognized fence content | 4/39 | 0/27 |
-| original/fences | raw | markdown parent outside the pilot | 19/33 | 12/25 |
+| original/fences | raw | markdown parent outside the pilot | 27/33 | 19/25 |
 | original/fences | product | recognized fence content | 4/39 | 0/27 |
-| original/fences | product | markdown parent outside the pilot | 19/33 | 12/25 |
+| original/fences | product | markdown parent outside the pilot | 27/33 | 19/25 |
 | original/fences | shiki-api | recognized fence content | 4/39 | 0/27 |
-| original/fences | shiki-api | markdown parent outside the pilot | 19/33 | 12/25 |
+| original/fences | shiki-api | markdown parent outside the pilot | 27/33 | 19/25 |
 | original/fences | product:warm | recognized fence content | 31/39 | 19/27 |
-| original/fences | product:warm | markdown parent outside the pilot | 25/33 | 18/25 |
+| original/fences | product:warm | markdown parent outside the pilot | 33/33 | 25/25 |
 
 - original/fences: {"resolverSetText":1,"childParses":2} ; child ranges [{"languageId":"typescript","start":16,"end":41,"rootStart":16,"rootEnd":41},{"languageId":"json","start":54,"end":68,"rootStart":54,"rootEnd":68}].
 

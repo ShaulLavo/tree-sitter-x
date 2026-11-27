@@ -1,0 +1,23 @@
+# CI deployment manifest
+---
+name: release-pipeline
+version: 2.5
+enabled: true
+fallback: null
+
+defaults: &default_env
+  region: "us-east-1"
+  retries: 3
+  timeout: 30.5
+
+services:
+  - name: api
+    env: *default_env
+    ports: [8080, 8443]
+    labels: { tier: backend, critical: false }
+  - name: worker
+    command: 'run --verbose'
+    notes: |
+      Multiline deployment note
+      kept verbatim.
+...

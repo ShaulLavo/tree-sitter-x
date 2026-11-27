@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "languageId": "toml",
+  "packVersion": "wave1-1",
+  "rootScope": "source.toml",
+  "scopeSuffix": ".toml",
+  "embeddedScope": "meta.embedded.block.toml",
+  "parser": {
+    "asset": "@tree-sitter-grammars/tree-sitter-toml/tree-sitter-toml.wasm",
+    "sha256": "1ac6a83826c35a68857f8325e00c78f6bcbef4eb6db3931a6cf3041f76e5e09f"
+  },
+  "queries": [
+    "toml.scm"
+  ]
+}

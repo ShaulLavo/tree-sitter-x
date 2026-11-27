@@ -8,6 +8,7 @@ import { Runtime, invoke, release, foreign } from './runtime.ts';
 import type { Foreign } from './runtime.ts';
 import { computeLocalWindow, extractChangedRanges, nodeHasError } from './local-invalidation.ts';
 import type { LocalWindow, OwnerChange } from './local-invalidation.ts';
+import { resolveWave1Alias } from './wave1-assets.ts';
 
 function releasePair(first: Foreign | undefined, second: Foreign | undefined): void {
   try { if (first) release(first); } finally { if (second) release(second); }
@@ -43,8 +44,9 @@ export class PilotDocument {
 
   static async open(languageId: string, source: string, limits: NumericLimits = BINDING_LIMITS): Promise<PilotDocument> {
     prepareEdits(source, [], limits);
+    const canonicalId = resolveWave1Alias(languageId);
     const runtime = await Runtime.load();
-    const language = await runtime.language(languageId);
+    const language = await runtime.language(canonicalId);
     let buffer: Foreign | undefined, parser: Foreign | undefined, tree: Foreign | undefined;
     try {
       buffer = runtime.construct('TextBuffer', [source]);
@@ -53,7 +55,7 @@ export class PilotDocument {
       const parsed = invoke(parser, 'parse', [buffer]);
       if (!parsed) throw new Error('Native owner parse returned no tree');
       tree = foreign(parsed);
-      return new PilotDocument(languageId, source, runtime, language, buffer, parser, tree, limits);
+      return new PilotDocument(canonicalId, source, runtime, language, buffer, parser, tree, limits);
     } catch (error) {
       unwind(tree, parser, buffer);
       throw error;

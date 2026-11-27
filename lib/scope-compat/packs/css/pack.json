@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "languageId": "css",
+  "packVersion": "wave1-1",
+  "rootScope": "source.css",
+  "scopeSuffix": ".css",
+  "embeddedScope": "meta.embedded.block.css",
+  "parser": {
+    "asset": "tree-sitter-css/tree-sitter-css.wasm",
+    "sha256": "8a23977fe271357cce6f254ef88c9bebf3854602d8046605aef6a45c02135c59"
+  },
+  "queries": [
+    "css.scm"
+  ]
+}

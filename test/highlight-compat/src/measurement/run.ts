@@ -50,25 +50,27 @@ async function lane(options: Options, lane: Lane) {
 }
 
 export async function runMeasurement(options: Options) {
-  if (!nativeLanguage(options.language)) throw new Error(`Unsupported measurement language: ${options.language}; available native root IDs: ${NATIVE_LANGUAGES.join(', ')}.`);
-  if (!integer(options.repetitions) || options.lanes.length === 0) throw new Error('At least one repetition and lane required');
-  integer(options.warmups);
-  if (options.lanes.some(lane => !LANES.includes(lane))) throw new Error('Unknown measurement lane');
+  const resolved = nativeLanguage(options.language);
+  if (!resolved) throw new Error(`Unsupported measurement language: ${options.language}; available native root IDs: ${NATIVE_LANGUAGES.join(', ')}.`);
+  const canonical = resolved === options.language ? options : { ...options, language: resolved };
+  if (!integer(canonical.repetitions) || canonical.lanes.length === 0) throw new Error('At least one repetition and lane required');
+  integer(canonical.warmups);
+  if (canonical.lanes.some(lane => !LANES.includes(lane))) throw new Error('Unknown measurement lane');
   const identity = await sourceIdentity();
-  const controls = await runWorker({ ...options, lane: 'end-to-end-adapter', repetitions: 1, warmups: 0 }, true);
+  const controls = await runWorker({ ...canonical, lane: 'end-to-end-adapter', repetitions: 1, warmups: 0 }, true);
   if (controls.data.status !== 'passed') throw new Error('Observer controls did not pass');
   const lanes: Awaited<ReturnType<typeof lane>>[] = [];
-  for (const selected of options.lanes) lanes.push(await lane(options, selected));
+  for (const selected of canonical.lanes) lanes.push(await lane(canonical, selected));
   const hashes = new Set(lanes.flatMap(lane => lane.runs.flatMap(run => samples(run.data.samples).map(sample => record(sample.work).outputSha256))));
   if (hashes.size !== 1) throw new Error('Lanes did not produce equivalent full-document output');
   const after = await sourceIdentity();
   if (identity.contentSha256 !== after.contentSha256 || identity.head !== after.head) throw new Error('Source changed during measurement');
   return { schema: 'scope-compat/measurement@1', adapter: 'full-pass-reference', purpose: 'internal partial-prototype diagnostics',
     acceptance: 'No performance benefit, budget acceptance, promotion or cutover claim.',
-    source: identity, input: { label: options.sourceLabel, utf16Units: options.source.length,
-      utf16leSha256: digest(Buffer.from(options.source, 'utf16le')), utf8Sha256: digest(Buffer.from(options.source)), utf8Bytes: Buffer.byteLength(options.source),
-      lines: options.source.split('\n').length, bucket: Buffer.byteLength(options.source) < 1024 * 1024 ? 'sub-megabyte' : 'megabyte-or-larger' },
-    environment: await environment(), catalog: await catalog(options.language), limits: LIMITS,
+    source: identity, input: { label: canonical.sourceLabel, utf16Units: canonical.source.length,
+      utf16leSha256: digest(Buffer.from(canonical.source, 'utf16le')), utf8Sha256: digest(Buffer.from(canonical.source)), utf8Bytes: Buffer.byteLength(canonical.source),
+      lines: canonical.source.split('\n').length, bucket: Buffer.byteLength(canonical.source) < 1024 * 1024 ? 'sub-megabyte' : 'megabyte-or-larger' },
+    environment: await environment(), catalog: await catalog(canonical.language), limits: LIMITS,
     observations: { allocationScope: 'Requested live bytes/blocks crossing observed runtime malloc/calloc/realloc/free exports, including core calls routed by the existing test hook. Internal runtime allocations and JS ownership attribution are incomplete.',
       peaks: 'Routed requested-byte high water since instrumentation began, not a whole-process or stage peak.',
       capacity: 'Wasm linear-memory capacity is retained high water, not live memory.',
