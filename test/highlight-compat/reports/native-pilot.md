@@ -2,13 +2,13 @@
 
 Limited experiment. This report is candidate evidence and never a golden. Phase 2 acceptance remains OPEN until safety/schema CI and every strict improvement cell pass. No performance benefit or consumer cutover is claimed.
 
-Stable report input identity: b8b9c54b633ea36fbf3487fb62f34e77b11101f2b065a1cef8e6f9ceb1a0b86c. Identity uses runtime/artifact/input content hashes and never moving Git HEAD.
+Stable report input identity: bf567a0d398b865c4825475b21a0967df0e494f093a4c8335cf8d446377dc1ff. Identity uses runtime/artifact/input content hashes and never moving Git HEAD.
 
 ## Identities
 
 - json: {"componentSha256":"94efc88752468b1f5246c449b10f05c61dd6e10b05d5c471f3f37d1350b407c8","sourceDigest":"55a3aed35752e87ab5263d1a5168db9d123630cebb4899baaeaa55996b23678e","runtimeSha256":"c99c9d5aece8a52e7fe01232950ec19f8bc644d6d22adf06aeb615794c999175","abi":"1","packId":"json","packVersion":"pilot-1","querySha256":"2a7d911634197084f96a7ebc6f149f8bc29012b45943268d0939d049d0fbaccf","languageId":"json","parserLanguageId":"json","parserSha256":"d2119fb98d5912719b13f9458574f8608d2d29dfbe45f6be1f860ea1fe2a2405","composition":"scope-compat-compose-1+contained-span-order-1","predicateDialect":"eq/any-of/make-range/priority;text-class-ascii-1;prefix-utf16-1;make-span-utf16-1;source-gap-utf16-max2-1","selectedOrderPolicy":"legacy-1"}
-- typescript: {"componentSha256":"94efc88752468b1f5246c449b10f05c61dd6e10b05d5c471f3f37d1350b407c8","sourceDigest":"55a3aed35752e87ab5263d1a5168db9d123630cebb4899baaeaa55996b23678e","runtimeSha256":"c99c9d5aece8a52e7fe01232950ec19f8bc644d6d22adf06aeb615794c999175","abi":"1","packId":"typescript","packVersion":"pilot-1","querySha256":"09d5f7e6545203752a8d50ccc4edb0b5bdb3a75349666fbe1a14bc8e6e27043d","languageId":"typescript","parserLanguageId":"typescript","parserSha256":"778025db5a8be0e70f8ccc3671e486dfeddd048c25d9e8a70c26de2e1bf6f97d","composition":"scope-compat-compose-1+contained-span-order-1","predicateDialect":"eq/any-of/make-range/priority;text-class-ascii-1;prefix-utf16-1;make-span-utf16-1;source-gap-utf16-max2-1","selectedOrderPolicy":"contained-span-order-1"}
-- tsx: {"componentSha256":"94efc88752468b1f5246c449b10f05c61dd6e10b05d5c471f3f37d1350b407c8","sourceDigest":"55a3aed35752e87ab5263d1a5168db9d123630cebb4899baaeaa55996b23678e","runtimeSha256":"c99c9d5aece8a52e7fe01232950ec19f8bc644d6d22adf06aeb615794c999175","abi":"1","packId":"tsx","packVersion":"pilot-1","querySha256":"7055181def514a9e384e58135604f71effcf52d6c45ef47f9e9e25316cec5582","languageId":"tsx","parserLanguageId":"tsx","parserSha256":"79e5da75ea62855a0cd67177685f0164eac87d5f630b3cbe1e0a099751ad30f8","composition":"scope-compat-compose-1+contained-span-order-1","predicateDialect":"eq/any-of/make-range/priority;text-class-ascii-1;prefix-utf16-1;make-span-utf16-1;source-gap-utf16-max2-1","selectedOrderPolicy":"contained-span-order-1"}
+- typescript: {"componentSha256":"94efc88752468b1f5246c449b10f05c61dd6e10b05d5c471f3f37d1350b407c8","sourceDigest":"55a3aed35752e87ab5263d1a5168db9d123630cebb4899baaeaa55996b23678e","runtimeSha256":"c99c9d5aece8a52e7fe01232950ec19f8bc644d6d22adf06aeb615794c999175","abi":"1","packId":"typescript","packVersion":"pilot-1","querySha256":"2b36d01204eb660e4fa246d4f9b48bacd2dcb0381bee94b137a4937ee51b0ec0","languageId":"typescript","parserLanguageId":"typescript","parserSha256":"778025db5a8be0e70f8ccc3671e486dfeddd048c25d9e8a70c26de2e1bf6f97d","composition":"scope-compat-compose-1+contained-span-order-1","predicateDialect":"eq/any-of/make-range/priority;text-class-ascii-1;prefix-utf16-1;make-span-utf16-1;source-gap-utf16-max2-1","selectedOrderPolicy":"contained-span-order-1"}
+- tsx: {"componentSha256":"94efc88752468b1f5246c449b10f05c61dd6e10b05d5c471f3f37d1350b407c8","sourceDigest":"55a3aed35752e87ab5263d1a5168db9d123630cebb4899baaeaa55996b23678e","runtimeSha256":"c99c9d5aece8a52e7fe01232950ec19f8bc644d6d22adf06aeb615794c999175","abi":"1","packId":"tsx","packVersion":"pilot-1","querySha256":"ec3c3aa46209f89608e9765ebb43d2b5202ab0801474087941175b45a746c0bc","languageId":"tsx","parserLanguageId":"tsx","parserSha256":"79e5da75ea62855a0cd67177685f0164eac87d5f630b3cbe1e0a099751ad30f8","composition":"scope-compat-compose-1+contained-span-order-1","predicateDialect":"eq/any-of/make-range/priority;text-class-ascii-1;prefix-utf16-1;make-span-utf16-1;source-gap-utf16-max2-1","selectedOrderPolicy":"contained-span-order-1"}
 - markdown: {"LICENSE":"1cf2a3936adda9351dc283c619665a77b48d094cb9c63f68ec7ca60dd7355f18","NOTICE.md":"fc739a000b9c57359150b65a90795c0e4f639349bc13ae06cfeca3a8d04f418a","tree-sitter-markdown.wasm":"27d067c772acc4adce2c79217aaec5168914338246ad5d8ecaf4bd9d0d0548d5","tree-sitter-md.wasm":"a62768930dddde0a5d9cf49cd35f583d83e9b4aedb34de0f047fcd7879df5159","licenses/cloudlibc.txt":"c8b789cf5a746611e6300a0cc7750dbf92b61912a709d04e639245f7290656d0","licenses/cmark-gfm.txt":"c22e885f33b821bddb24cf007145e5540655b6c0f403e49e6c76a93c28e6d9a9","licenses/cmark.txt":"c22e885f33b821bddb24cf007145e5540655b6c0f403e49e6c76a93c28e6d9a9","licenses/dlmalloc.txt":"0205ac38409bb02178268367a550adf1968b34ce8e21041259505e2038540379","licenses/icu.txt":"6a18c5fac70d7860b57f5b72b4e2c9a1ba6b3d2741eef7ff9767c5379364f10d","licenses/llvm.txt":"a6c48161a09acc75a0e25503bab66a731eb5fba5392ed4bb4743e4ba5085327a","licenses/markdown-cjk-friendly.txt":"2556e6c4c696ca913376e7937b5e4125226296aafa74106a3e9b097172cf6d99","licenses/micromark-extension-gfm-strikethrough.txt":"536804b3adbff17dbbb9ed0d2bf9655b78f07640278581e37e3d7475282d5e61","licenses/micromark.txt":"dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb","licenses/musl.txt":"b870108ec5e7790e9f9919064f1b9421d62d5f9b0e6c230c6adf7ea2da62e97b","licenses/tree-sitter-markdown.txt":"52ec8a1bf8256511e2a92613e0bb41ffefba3897f16fa958d7bb28c466dd4804","licenses/tree-sitter.txt":"c5cfb43042b6b72045f4ba997834d0a7786d2793d91680868b5815b39f14fc78","licenses/wasi-libc.txt":"23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"}
 - markdownCommit: f02e277a34375f326572b4ade2602f44ac769005
 - markdownManifest: 5ad738fbb9bd385bf2dfbb24b2ca12d348133a92a48601329130ff8d210f5c65
@@ -45,13 +45,13 @@ Scope tables use the unchanged raw, product and shiki-api reference scopes; shik
 | javascript | shiki-api | real | native | 0/7 | 0.00% | 0.00% | 0.00% | 0/7297 | 0/5601 |
 | javascript | shiki-api | real | baseline:captures | 7/7 | 5.21% | 0.00% | 6.19% | 380/7297 | 0/5601 |
 | javascript | shiki-api | real | baseline:vscode-ts | 0/7 | N/A | N/A | N/A | 0/0 | 0/0 |
-| typescript | raw | real | native | 7/7 | 58.71% | 56.91% | 72.61% | 3490/5944 | 2541/4465 |
+| typescript | raw | real | native | 7/7 | 58.73% | 56.91% | 72.97% | 3491/5944 | 2541/4465 |
 | typescript | raw | real | baseline:captures | 7/7 | 8.40% | 0.00% | 7.04% | 499/5944 | 0/4465 |
 | typescript | raw | real | baseline:vscode-ts | 7/7 | 8.87% | 0.63% | 7.20% | 527/5944 | 28/4465 |
-| typescript | product | real | native | 7/7 | 58.71% | 56.91% | 72.61% | 3490/5944 | 2541/4465 |
+| typescript | product | real | native | 7/7 | 58.73% | 56.91% | 72.97% | 3491/5944 | 2541/4465 |
 | typescript | product | real | baseline:captures | 7/7 | 8.40% | 0.00% | 7.04% | 499/5944 | 0/4465 |
 | typescript | product | real | baseline:vscode-ts | 7/7 | 8.87% | 0.63% | 7.20% | 527/5944 | 28/4465 |
-| typescript | shiki-api | real | native | 7/7 | 58.71% | 56.91% | 72.61% | 3490/5944 | 2541/4465 |
+| typescript | shiki-api | real | native | 7/7 | 58.73% | 56.91% | 72.97% | 3491/5944 | 2541/4465 |
 | typescript | shiki-api | real | baseline:captures | 7/7 | 8.40% | 0.00% | 7.04% | 499/5944 | 0/4465 |
 | typescript | shiki-api | real | baseline:vscode-ts | 7/7 | 8.87% | 0.63% | 7.20% | 527/5944 | 28/4465 |
 | tsx | raw | real | native | 1/1 | 97.86% | 100.00% | 97.86% | 137/140 | 114/114 |
@@ -340,17 +340,17 @@ Scope tables use the unchanged raw, product and shiki-api reference scopes; shik
 | Language | Reference | Lane | Category | Runs | Units |
 | --- | --- | --- | --- | ---: | ---: |
 | typescript | raw | real | leaf | 18 | 24 |
-| typescript | raw | real | missing-scope | 851 | 1768 |
+| typescript | raw | real | missing-scope | 850 | 1767 |
 | typescript | raw | real | extra-scope | 30 | 53 |
 | typescript | raw | real | ancestor | 133 | 255 |
 | typescript | raw | real | other | 159 | 354 |
 | typescript | product | real | leaf | 18 | 24 |
-| typescript | product | real | missing-scope | 851 | 1768 |
+| typescript | product | real | missing-scope | 850 | 1767 |
 | typescript | product | real | extra-scope | 30 | 53 |
 | typescript | product | real | ancestor | 133 | 255 |
 | typescript | product | real | other | 159 | 354 |
 | typescript | shiki-api | real | leaf | 18 | 24 |
-| typescript | shiki-api | real | missing-scope | 851 | 1768 |
+| typescript | shiki-api | real | missing-scope | 850 | 1767 |
 | typescript | shiki-api | real | extra-scope | 30 | 53 |
 | typescript | shiki-api | real | ancestor | 133 | 255 |
 | typescript | shiki-api | real | other | 159 | 354 |
@@ -421,7 +421,7 @@ Reference: source.ts punctuation.terminator.statement.ts
 Native: source.ts meta.type.declaration.ts punctuation.terminator.statement.ts
 
 - [76, 108) meta.type.declaration.ts, pattern 40, interval ordinal 28, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:123
-- [107, 108) punctuation.terminator.statement.ts, pattern 221, interval ordinal 139, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:559
+- [107, 108) punctuation.terminator.statement.ts, pattern 216, interval ordinal 139, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:547
 
 ### typescript / raw / real / missing-scope
 
@@ -444,7 +444,7 @@ Native: source.ts meta.function.ts meta.parameters.ts punctuation.separator.comm
 
 - [932, 994) meta.function.ts, pattern 23, interval ordinal 17, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:106
 - [944, 966) meta.parameters.ts, pattern 29, interval ordinal 20, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:112
-- [954, 955) punctuation.separator.comma.ts, pattern 222, interval ordinal 140, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:560
+- [954, 955) punctuation.separator.comma.ts, pattern 217, interval ordinal 140, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:548
 
 ### typescript / product / real / extra-scope
 
@@ -455,7 +455,7 @@ Reference: source.ts punctuation.terminator.statement.ts
 Native: source.ts meta.type.declaration.ts punctuation.terminator.statement.ts
 
 - [76, 108) meta.type.declaration.ts, pattern 40, interval ordinal 28, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:123
-- [107, 108) punctuation.terminator.statement.ts, pattern 221, interval ordinal 139, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:559
+- [107, 108) punctuation.terminator.statement.ts, pattern 216, interval ordinal 139, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:547
 
 ### typescript / product / real / missing-scope
 
@@ -478,7 +478,7 @@ Native: source.ts meta.function.ts meta.parameters.ts punctuation.separator.comm
 
 - [932, 994) meta.function.ts, pattern 23, interval ordinal 17, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:106
 - [944, 966) meta.parameters.ts, pattern 29, interval ordinal 20, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:112
-- [954, 955) punctuation.separator.comma.ts, pattern 222, interval ordinal 140, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:560
+- [954, 955) punctuation.separator.comma.ts, pattern 217, interval ordinal 140, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:548
 
 ### typescript / shiki-api / real / extra-scope
 
@@ -489,7 +489,7 @@ Reference: source.ts punctuation.terminator.statement.ts
 Native: source.ts meta.type.declaration.ts punctuation.terminator.statement.ts
 
 - [76, 108) meta.type.declaration.ts, pattern 40, interval ordinal 28, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:123
-- [107, 108) punctuation.terminator.statement.ts, pattern 221, interval ordinal 139, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:559
+- [107, 108) punctuation.terminator.statement.ts, pattern 216, interval ordinal 139, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:547
 
 ### typescript / shiki-api / real / missing-scope
 
@@ -512,7 +512,7 @@ Native: source.ts meta.function.ts meta.parameters.ts punctuation.separator.comm
 
 - [932, 994) meta.function.ts, pattern 23, interval ordinal 17, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:106
 - [944, 966) meta.parameters.ts, pattern 29, interval ordinal 20, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:112
-- [954, 955) punctuation.separator.comma.ts, pattern 222, interval ordinal 140, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:560
+- [954, 955) punctuation.separator.comma.ts, pattern 217, interval ordinal 140, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:548
 
 ### typescript / raw / real / other
 
@@ -522,7 +522,7 @@ Reference: source.ts meta.objectliteral.ts meta.object.member.ts meta.object-lit
 
 Native: source.ts variable.other.property.ts
 
-- [174, 175) variable.other.property.ts, pattern 231, interval ordinal 53, priority 0, kept, lib/scope-compat/packs/typescript/typescript.scm:6
+- [174, 175) variable.other.property.ts, pattern 226, interval ordinal 53, priority 0, kept, lib/scope-compat/packs/typescript/typescript.scm:6
 
 ### typescript / raw / real / ancestor
 
@@ -534,7 +534,7 @@ Native: source.ts meta.definition.function.ts meta.type.parameters.ts punctuatio
 
 - [85, 115) meta.definition.function.ts, pattern 27, interval ordinal 18, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:110
 - [96, 105) meta.type.parameters.ts, pattern 36, interval ordinal 25, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:119
-- [96, 97) punctuation.definition.typeparameters.begin.ts, pattern 219, interval ordinal 137, priority 25, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:557
+- [96, 97) punctuation.definition.typeparameters.begin.ts, pattern 214, interval ordinal 137, priority 25, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:545
 
 ### typescript / product / real / other
 
@@ -544,7 +544,7 @@ Reference: source.ts meta.objectliteral.ts meta.object.member.ts meta.object-lit
 
 Native: source.ts variable.other.property.ts
 
-- [174, 175) variable.other.property.ts, pattern 231, interval ordinal 53, priority 0, kept, lib/scope-compat/packs/typescript/typescript.scm:6
+- [174, 175) variable.other.property.ts, pattern 226, interval ordinal 53, priority 0, kept, lib/scope-compat/packs/typescript/typescript.scm:6
 
 ### typescript / product / real / ancestor
 
@@ -556,7 +556,7 @@ Native: source.ts meta.definition.function.ts meta.type.parameters.ts punctuatio
 
 - [85, 115) meta.definition.function.ts, pattern 27, interval ordinal 18, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:110
 - [96, 105) meta.type.parameters.ts, pattern 36, interval ordinal 25, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:119
-- [96, 97) punctuation.definition.typeparameters.begin.ts, pattern 219, interval ordinal 137, priority 25, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:557
+- [96, 97) punctuation.definition.typeparameters.begin.ts, pattern 214, interval ordinal 137, priority 25, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:545
 
 ### typescript / shiki-api / real / other
 
@@ -566,7 +566,7 @@ Reference: source.ts meta.objectliteral.ts meta.object.member.ts meta.object-lit
 
 Native: source.ts variable.other.property.ts
 
-- [174, 175) variable.other.property.ts, pattern 231, interval ordinal 53, priority 0, kept, lib/scope-compat/packs/typescript/typescript.scm:6
+- [174, 175) variable.other.property.ts, pattern 226, interval ordinal 53, priority 0, kept, lib/scope-compat/packs/typescript/typescript.scm:6
 
 ### typescript / shiki-api / real / ancestor
 
@@ -578,7 +578,7 @@ Native: source.ts meta.definition.function.ts meta.type.parameters.ts punctuatio
 
 - [85, 115) meta.definition.function.ts, pattern 27, interval ordinal 18, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:110
 - [96, 105) meta.type.parameters.ts, pattern 36, interval ordinal 25, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:119
-- [96, 97) punctuation.definition.typeparameters.begin.ts, pattern 219, interval ordinal 137, priority 25, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:557
+- [96, 97) punctuation.definition.typeparameters.begin.ts, pattern 214, interval ordinal 137, priority 25, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:545
 
 ### tsx / raw / real / missing-scope
 
@@ -1047,8 +1047,8 @@ Reference: source.tsx meta.var.expr.tsx meta.tag.without-attributes.tsx punctuat
 Native: source.tsx meta.var.expr.tsx meta.tag.tsx punctuation.definition.tag.begin.tsx
 
 - [0, 24) meta.var.expr.tsx, pattern 14, interval ordinal 0, priority 0, kept, lib/scope-compat/packs/tsx/../shared/typescript-common.scm:22
-- [10, 24) meta.tag.tsx, pattern 227, interval ordinal 145, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:2
-- [10, 11) punctuation.definition.tag.begin.tsx, pattern 230, interval ordinal 147, priority 25, kept, lib/scope-compat/packs/tsx/tsx.scm:5
+- [10, 24) meta.tag.tsx, pattern 222, interval ordinal 145, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:2
+- [10, 11) punctuation.definition.tag.begin.tsx, pattern 225, interval ordinal 147, priority 25, kept, lib/scope-compat/packs/tsx/tsx.scm:5
 
 ### tsx / product / original / ancestor
 
@@ -1059,8 +1059,8 @@ Reference: source.tsx meta.var.expr.tsx meta.tag.without-attributes.tsx punctuat
 Native: source.tsx meta.var.expr.tsx meta.tag.tsx punctuation.definition.tag.begin.tsx
 
 - [0, 24) meta.var.expr.tsx, pattern 14, interval ordinal 0, priority 0, kept, lib/scope-compat/packs/tsx/../shared/typescript-common.scm:22
-- [10, 24) meta.tag.tsx, pattern 227, interval ordinal 145, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:2
-- [10, 11) punctuation.definition.tag.begin.tsx, pattern 230, interval ordinal 147, priority 25, kept, lib/scope-compat/packs/tsx/tsx.scm:5
+- [10, 24) meta.tag.tsx, pattern 222, interval ordinal 145, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:2
+- [10, 11) punctuation.definition.tag.begin.tsx, pattern 225, interval ordinal 147, priority 25, kept, lib/scope-compat/packs/tsx/tsx.scm:5
 
 ### tsx / shiki-api / original / ancestor
 
@@ -1071,8 +1071,8 @@ Reference: source.tsx meta.var.expr.tsx meta.tag.without-attributes.tsx punctuat
 Native: source.tsx meta.var.expr.tsx meta.tag.tsx punctuation.definition.tag.begin.tsx
 
 - [0, 24) meta.var.expr.tsx, pattern 14, interval ordinal 0, priority 0, kept, lib/scope-compat/packs/tsx/../shared/typescript-common.scm:22
-- [10, 24) meta.tag.tsx, pattern 227, interval ordinal 145, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:2
-- [10, 11) punctuation.definition.tag.begin.tsx, pattern 230, interval ordinal 147, priority 25, kept, lib/scope-compat/packs/tsx/tsx.scm:5
+- [10, 24) meta.tag.tsx, pattern 222, interval ordinal 145, priority 0, kept, lib/scope-compat/packs/tsx/tsx.scm:2
+- [10, 11) punctuation.definition.tag.begin.tsx, pattern 225, interval ordinal 147, priority 25, kept, lib/scope-compat/packs/tsx/tsx.scm:5
 
 ### tsx / raw / original / missing-scope
 
@@ -1130,8 +1130,8 @@ Reference: (empty)
 
 Native: source.tsx comment.line.double-slash.tsx punctuation.definition.comment.tsx
 
-- [0, 20000) comment.line.double-slash.tsx, pattern 138, interval ordinal 1, priority 0, kept, lib/scope-compat/packs/tsx/../shared/typescript-common.scm:452
-- [0, 2) punctuation.definition.comment.tsx, pattern 138, interval ordinal 2, priority 0, kept, lib/scope-compat/packs/tsx/../shared/typescript-common.scm:452
+- [0, 20000) comment.line.double-slash.tsx, pattern 133, interval ordinal 1, priority 0, kept, lib/scope-compat/packs/tsx/../shared/typescript-common.scm:440
+- [0, 2) punctuation.definition.comment.tsx, pattern 133, interval ordinal 2, priority 0, kept, lib/scope-compat/packs/tsx/../shared/typescript-common.scm:440
 
 ### typescript / raw / original / missing-scope
 
@@ -1171,7 +1171,7 @@ Reference: source.ts comment.block.ts punctuation.definition.comment.ts
 
 Native: source.ts comment.block.ts
 
-- [0, 17) comment.block.ts, pattern 140, interval ordinal 2, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:461
+- [0, 17) comment.block.ts, pattern 135, interval ordinal 2, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:449
 
 ### typescript / raw / original / extra-scope
 
@@ -1182,8 +1182,8 @@ Reference: source.ts constant.numeric.decimal.ts
 Native: source.ts meta.var.expr.ts constant.numeric.decimal.ts
 
 - [0, 14) meta.var.expr.ts, pattern 14, interval ordinal 0, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:22
-- [13, 14) constant.numeric.decimal.ts, pattern 126, interval ordinal 71, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:438
-- [13, 14) constant.numeric.ts, pattern 133, interval ordinal 75, priority 0, exclusive, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:445
+- [13, 14) constant.numeric.decimal.ts, pattern 121, interval ordinal 71, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:426
+- [13, 14) constant.numeric.ts, pattern 128, interval ordinal 75, priority 0, exclusive, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:433
 
 ### typescript / shiki-api / original / extra-scope
 
@@ -1193,8 +1193,8 @@ Reference: (empty)
 
 Native: source.ts comment.line.double-slash.ts punctuation.definition.comment.ts
 
-- [0, 20000) comment.line.double-slash.ts, pattern 138, interval ordinal 1, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:452
-- [0, 2) punctuation.definition.comment.ts, pattern 138, interval ordinal 2, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:452
+- [0, 20000) comment.line.double-slash.ts, pattern 133, interval ordinal 1, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:440
+- [0, 2) punctuation.definition.comment.ts, pattern 133, interval ordinal 2, priority 0, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:440
 
 ### typescript / product / original / other
 
@@ -1208,7 +1208,7 @@ Native: source.ts meta.var.expr.ts meta.var-single-variable.expr.ts meta.definit
 - [20009, 20011) meta.var-single-variable.expr.ts, pattern 19, interval ordinal 0, priority 20, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:92
 - [20009, 20010) meta.definition.variable.ts, pattern 19, interval ordinal 1, priority 20, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:92
 - [20009, 20010) variable.other.readwrite.ts, pattern 19, interval ordinal 5, priority 20, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:92
-- [20009, 20010) variable.other.readwrite.ts, pattern 230, interval ordinal 5, priority 0, exclusive, lib/scope-compat/packs/typescript/typescript.scm:5
+- [20009, 20010) variable.other.readwrite.ts, pattern 225, interval ordinal 5, priority 0, exclusive, lib/scope-compat/packs/typescript/typescript.scm:5
 
 ### typescript / product / original / leaf
 
@@ -1232,7 +1232,7 @@ Native: source.ts meta.var.expr.ts meta.var-single-variable.expr.ts meta.definit
 - [20009, 20011) meta.var-single-variable.expr.ts, pattern 19, interval ordinal 0, priority 20, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:92
 - [20009, 20010) meta.definition.variable.ts, pattern 19, interval ordinal 1, priority 20, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:92
 - [20009, 20010) variable.other.readwrite.ts, pattern 19, interval ordinal 5, priority 20, kept, lib/scope-compat/packs/typescript/../shared/typescript-common.scm:92
-- [20009, 20010) variable.other.readwrite.ts, pattern 230, interval ordinal 5, priority 0, exclusive, lib/scope-compat/packs/typescript/typescript.scm:5
+- [20009, 20010) variable.other.readwrite.ts, pattern 225, interval ordinal 5, priority 0, exclusive, lib/scope-compat/packs/typescript/typescript.scm:5
 
 ### typescript / shiki-api / original / leaf
 

@@ -301,20 +301,10 @@
 (pair) @meta.object.member
 ((object (pair) @_member . "," @_comma) @_object
  (#make-span! "meta.object.member" @_object @_member "end" "0" @_comma "start" "0"))
-((object (pair) @_member . "}" @_close) @_object
- (#source-gap? @_member @_close " ")
- (#make-span! "meta.object.member" @_object @_member "end" "0" @_close "start" "0"))
-((object (pair) @_member . "}" @_close) @_object
- (#source-gap? @_member @_close "  ")
- (#make-span! "meta.object.member" @_object @_member "end" "0" @_close "start" "0"))
-((object (pair) @_member . "}" @_close) @_object
- (#source-gap? @_member @_close "\t")
- (#make-span! "meta.object.member" @_object @_member "end" "0" @_close "start" "0"))
-((object (pair) @_member . "}" @_close) @_object
- (#source-gap? @_member @_close "\n")
- (#make-span! "meta.object.member" @_object @_member "end" "0" @_close "start" "0"))
-((object (pair) @_member . "}" @_close) @_object
- (#source-gap? @_member @_close "\r\n")
+((object _ @_member . "}" @_close) @_object
+ (#not-any-of? @_member "{" ",")
+ (#not-starts-with? @_member "//")
+ (#not-starts-with? @_member "/*")
  (#make-span! "meta.object.member" @_object @_member "end" "0" @_close "start" "0"))
 [(arguments (array) @meta.array.literal)
  (array (array) @meta.array.literal)

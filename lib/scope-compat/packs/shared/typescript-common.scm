@@ -123,9 +123,7 @@
 (type_alias_declaration) @meta.type.declaration
 (enum_declaration) @meta.enum.declaration
 (new_expression) @new.expr
-((public_field_definition . name: (_) @_name) @_field
- (#make-span! "meta.field.declaration" @_field @_name "start" "0" @_field "end" "0"))
-((public_field_definition [(decorator) (accessibility_modifier) "static" "readonly" "override" "abstract" "declare" "accessor"] . name: (_) @_name) @_field
+((public_field_definition . [(decorator) (accessibility_modifier) (comment) "static" "readonly" "override" "abstract" "declare" "accessor"]* . name: (_) @_name) @_field
  (#make-span! "meta.field.declaration" @_field @_name "start" "0" @_field "end" "0"))
 ((property_signature name: (_) @_name) @_prop
  (#make-span! "meta.field.declaration" @_prop @_name "start" "0" @_prop "end" "0"))
@@ -149,20 +147,10 @@
 (pair) @meta.object.member
 ((object (pair) @_member . "," @_comma) @_object
  (#make-span! "meta.object.member" @_object @_member "end" "0" @_comma "start" "0"))
-((object (pair) @_member . "}" @_close) @_object
- (#source-gap? @_member @_close " ")
- (#make-span! "meta.object.member" @_object @_member "end" "0" @_close "start" "0"))
-((object (pair) @_member . "}" @_close) @_object
- (#source-gap? @_member @_close "  ")
- (#make-span! "meta.object.member" @_object @_member "end" "0" @_close "start" "0"))
-((object (pair) @_member . "}" @_close) @_object
- (#source-gap? @_member @_close "\t")
- (#make-span! "meta.object.member" @_object @_member "end" "0" @_close "start" "0"))
-((object (pair) @_member . "}" @_close) @_object
- (#source-gap? @_member @_close "\n")
- (#make-span! "meta.object.member" @_object @_member "end" "0" @_close "start" "0"))
-((object (pair) @_member . "}" @_close) @_object
- (#source-gap? @_member @_close "\r\n")
+((object _ @_member . "}" @_close) @_object
+ (#not-any-of? @_member "{" ",")
+ (#not-starts-with? @_member "//")
+ (#not-starts-with? @_member "/*")
  (#make-span! "meta.object.member" @_object @_member "end" "0" @_close "start" "0"))
 
 ; --- Function, method, class, type, and property definitions ---
