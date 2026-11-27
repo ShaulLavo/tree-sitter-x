@@ -29,11 +29,11 @@ export const STYLE_PROJECTION = 'harness-resolved-style-v1;comparison-opaque-rgb
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url))
 const WORKER_URL = new URL('./native/wave-worker.ts', import.meta.url)
 const PACKS: Readonly<Record<string, string>> = {
-  'javascript/javascript.scm': '7bd77e696f9cdb014839835a5321752d21ad432efcc958b97866a347d0dcc0e3',
+  'javascript/javascript.scm': '541131773f4def22deb925e232b13d480d4779865fe88bfed7165c07f3390023',
   'javascript/pack.json': 'e41bbf21860722954cedaa62833c8a5d67772e532e54719b17d285a8bbaac09f',
-  'jsx/jsx.scm': '0d3668b77fe2607bff63d835c61f390dce6ca856edd67825bc333994692ddcfd',
+  'jsx/jsx.scm': '1e53b3d224aeff04003a47f5092807acc6819a083b30da823d0dbb696c232ac0',
   'jsx/pack.json': 'ff97d18ff6dd0f7bfe8e06b2c4a81a4915c522b3d77cb4816d480e0a75847ada',
-  'shared/javascript-common.scm': 'ef69cf83165e0bc39ca18ae2ece03fccdfc6bf948c3a086842665cf9ff5a4dfb',
+  'shared/javascript-common.scm': '8030d80271c5cf8ba8a7857f96e699ffd8ed1e56237a91dae1364a21a0b2bcf8',
 }
 export const hash = (bytes: string | Uint8Array): string => createHash('sha256').update(bytes).digest('hex')
 export function need(value: unknown, message: string): asserts value { if (!value) throw new Error(message) }

@@ -95,6 +95,31 @@ describe('explicit native language variants', () => {
   });
   it.each(['typescript', 'tsx'] as const)('loads %s and completes its unchanged corpus', checkCorpus);
 
+  it('preserves high-impact TypeScript and TSX TextMate scopes (type params, annotations, return types, comments, const, satisfies, accessor)', async () => {
+    const source = '// note\ninterface Box<const T extends string> { readonly a: T | void; }\nconst x = { k: 1 } as const satisfies Record<string, number>;\nfunction f<T>(p: T): T { return p; }\nclass C { accessor v = 1; }\n';
+    const pack = await loadLanguagePack('typescript');
+    const owner = await PilotDocument.open('typescript', source);
+    try {
+      const result = nativeScopes(pack, owner);
+      expect(scopesAt(pack, result, 0)).toEqual(['source.ts', 'comment.line.double-slash.ts', 'punctuation.definition.comment.ts']);
+      expect(scopesAt(pack, result, source.indexOf('interface'))).toContain('storage.type.interface.ts');
+      expect(scopesAt(pack, result, source.indexOf('Box'))).toContain('entity.name.type.interface.ts');
+      expect(scopesAt(pack, result, source.indexOf('<const'))).toContain('punctuation.definition.typeparameters.begin.ts');
+      expect(scopesAt(pack, result, source.indexOf('const T'))).toContain('storage.modifier.ts');
+      expect(scopesAt(pack, result, source.indexOf('extends'))).toContain('storage.modifier.ts');
+      expect(scopesAt(pack, result, source.indexOf('a:'))).toContain('variable.object.property.ts');
+      expect(scopesAt(pack, result, source.indexOf(': T |'))).toContain('keyword.operator.type.annotation.ts');
+      expect(scopesAt(pack, result, source.indexOf('| void'))).toContain('keyword.operator.type.ts');
+      expect(scopesAt(pack, result, source.indexOf('void'))).toContain('support.type.primitive.ts');
+      expect(scopesAt(pack, result, source.indexOf('x ='))).toEqual(['source.ts', 'meta.var.expr.ts', 'meta.var-single-variable.expr.ts', 'meta.definition.variable.ts', 'variable.other.constant.ts']);
+      expect(scopesAt(pack, result, source.indexOf('as const') + 3)).toContain('entity.name.type.ts');
+      expect(scopesAt(pack, result, source.indexOf('satisfies'))).toContain('keyword.control.satisfies.ts');
+      expect(scopesAt(pack, result, source.indexOf('): T') + 3)).toEqual(['source.ts', 'meta.function.ts', 'meta.return.type.ts', 'entity.name.type.ts']);
+      expect(scopesAt(pack, result, source.indexOf('return'))).toContain('keyword.control.flow.ts');
+      expect(scopesAt(pack, result, source.indexOf('accessor'))).toContain('storage.type.property.ts');
+    } finally { owner.dispose(); pack.dispose(); }
+  });
+
   it('keeps unimplemented variants deferred', async () => {
     await expect(loadLanguagePack('python')).rejects.toThrow('distinct variant');
     await expect(loadLanguagePack('rust')).rejects.toThrow('distinct variant');

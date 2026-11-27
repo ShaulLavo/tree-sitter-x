@@ -35,12 +35,13 @@
 (arrow_function body: (jsx_element)) @meta.arrow
 
 ; Terminal incomplete tag attribute containing an open call and one numeric arg.
-((program . (ERROR . "const" @storage.type . (identifier) @meta.definition.variable @variable.other.constant
+((program . (ERROR . "const" @storage.type . (identifier) @variable.other.constant
   "=" @keyword.operator.assignment . "<" @punctuation.definition.tag.begin . (identifier) @_name
   . (identifier) @entity.other.attribute-name "=" @_assign . "{" @punctuation.section.embedded.begin
   . (identifier) @entity.name.function . "(" @meta.brace.round . (number) . "," .) @_error .) @_program
  (#make-span! "meta.var.expr" @_program @storage.type "start" "0" @_program "end" "0")
- (#make-span! "meta.var-single-variable.expr" @_error @meta.definition.variable "start" "0" @keyword.operator.assignment "start" "0")
+ (#make-span! "meta.var-single-variable.expr" @_error @variable.other.constant "start" "0" @keyword.operator.assignment "start" "0")
+ (#make-span! "meta.definition.variable" @_error @variable.other.constant "start" "0" @variable.other.constant "end" "0")
  (#make-span! "meta.tag" @_program @punctuation.definition.tag.begin "start" "0" @_program "end" "0")
  (#make-span! "meta.tag.attributes" @_program @_name "end" "0" @_program "end" "0")
  (#make-span! "entity.name.tag" @_name @_name "start" "0" @_name "end" "0")
@@ -59,13 +60,14 @@
  (#make-span! "support.class.component" @_name @_name "start" "0" @_name "end" "0"))
 
 ; Unterminated JSX attribute strings retain lexical ancestors across physical LF.
-((program . (ERROR . "const" @storage.type . (identifier) @meta.definition.variable @variable.other.constant
+((program . (ERROR . "const" @storage.type . (identifier) @variable.other.constant
   "=" @keyword.operator.assignment . "<" @punctuation.definition.tag.begin . (identifier) @_name
   . (identifier) @entity.other.attribute-name "=" @_assign
   . "\"" @punctuation.definition.string.begin . (string_fragment) @_fragment .) @_error .) @_program
  (#source-gap? @punctuation.definition.string.begin @_fragment "")
  (#make-span! "meta.var.expr" @_program @storage.type "start" "0" @_program "end" "0")
- (#make-span! "meta.var-single-variable.expr" @_error @meta.definition.variable "start" "0" @keyword.operator.assignment "start" "0")
+ (#make-span! "meta.var-single-variable.expr" @_error @variable.other.constant "start" "0" @keyword.operator.assignment "start" "0")
+ (#make-span! "meta.definition.variable" @_error @variable.other.constant "start" "0" @variable.other.constant "end" "0")
  (#make-span! "meta.tag" @_program @punctuation.definition.tag.begin "start" "0" @_program "end" "0")
  (#make-span! "meta.tag.attributes" @_program @_name "end" "0" @_program "end" "0")
  (#make-span! "entity.name.tag" @_name @_name "start" "0" @_name "end" "0")
