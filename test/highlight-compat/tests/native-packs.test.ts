@@ -172,8 +172,14 @@ describe('explicit native language variants', () => {
       expect(scopesAt(tsxPack, result, tsxSource.indexOf('menu?.item'))).toEqual(['source.tsx', 'meta.var.expr.tsx', 'variable.other.object.property.tsx']);
       expect(scopesAt(tsxPack, result, tsxSource.indexOf('item;\nconst opt3'))).toEqual(['source.tsx', 'meta.var.expr.tsx', 'variable.other.property.tsx']);
       expect(scopesAt(tsxPack, result, tsxSource.indexOf('getUi().menu?.item') + 14)).toEqual(['source.tsx', 'meta.var.expr.tsx', 'variable.other.property.tsx']);
-      expect(scopesAt(tsxPack, result, tsxSource.indexOf('section?.item'))).toEqual(['source.tsx', 'meta.var.expr.tsx', 'variable.other.object.property.tsx']);
-      expect(scopesAt(tsxPack, result, tsxSource.indexOf('item;\nobj?.run'))).toEqual(['source.tsx', 'meta.var.expr.tsx', 'variable.other.property.tsx']);
+      const opt4 = tsxSource.indexOf('ui.menu.section?.item');
+      expect(scopesAt(tsxPack, result, opt4)).toEqual(['source.tsx', 'meta.var.expr.tsx', 'variable.other.object.tsx']);
+      expect(scopesAt(tsxPack, result, opt4 + 2)).toEqual(['source.tsx', 'meta.var.expr.tsx', 'punctuation.accessor.tsx']);
+      expect(scopesAt(tsxPack, result, opt4 + 3)).toEqual(['source.tsx', 'meta.var.expr.tsx', 'variable.other.object.property.tsx']);
+      expect(scopesAt(tsxPack, result, opt4 + 7)).toEqual(['source.tsx', 'meta.var.expr.tsx', 'punctuation.accessor.tsx']);
+      expect(scopesAt(tsxPack, result, opt4 + 8)).toEqual(['source.tsx', 'meta.var.expr.tsx', 'variable.other.object.property.tsx']);
+      expect(scopesAt(tsxPack, result, opt4 + 15)).toEqual(['source.tsx', 'meta.var.expr.tsx', 'punctuation.accessor.optional.tsx']);
+      expect(scopesAt(tsxPack, result, opt4 + 17)).toEqual(['source.tsx', 'meta.var.expr.tsx', 'variable.other.property.tsx']);
       expect(scopesAt(tsxPack, result, tsxSource.indexOf('run()'))).toEqual(['source.tsx', 'meta.function-call.tsx', 'entity.name.function.tsx']);
       const trailingAt = tsxSource.indexOf('a: 1,');
       expect(scopesAt(tsxPack, result, trailingAt)).toEqual(['source.tsx', 'meta.var.expr.tsx', 'meta.objectliteral.tsx', 'meta.object.member.tsx', 'meta.object-literal.key.tsx']);
