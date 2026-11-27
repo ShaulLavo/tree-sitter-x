@@ -7,16 +7,16 @@
 (named_imports) @meta.block
 (import_statement "import" @keyword.control.import)
 (import_statement "from" @keyword.control.from)
-(import_specifier name: (identifier) @variable.other.readwrite "as" @keyword.control.as alias: (identifier) @variable.other.readwrite.alias)
+((import_specifier name: (identifier) @variable.other.readwrite "as" @keyword.control.as alias: (identifier) @variable.other.readwrite.alias) (#set! priority "20"))
 ((import_specifier name: (identifier) @variable.other.readwrite.alias !alias) (#set! priority "20"))
-(import_clause (identifier) @variable.other.readwrite.alias)
-(namespace_import "*" @constant.language.import-export-all "as" @keyword.control.as (identifier) @variable.other.readwrite.alias)
+((import_clause (identifier) @variable.other.readwrite.alias) (#set! priority "20"))
+((namespace_import "*" @constant.language.import-export-all "as" @keyword.control.as (identifier) @variable.other.readwrite.alias) (#set! priority "20"))
 (export_statement "export" @keyword.control.export)
 (export_statement "default" @keyword.control.default)
 (export_statement "from" @keyword.control.from)
-(export_specifier name: (identifier) @variable.other.readwrite "as" @keyword.control.as alias: (identifier) @variable.other.readwrite.alias)
+((export_specifier name: (identifier) @variable.other.readwrite "as" @keyword.control.as alias: (identifier) @variable.other.readwrite.alias) (#set! priority "20"))
 ((export_specifier name: (identifier) @variable.other.readwrite !alias) (#set! priority "20"))
-(namespace_export "*" @constant.language.import-export-all "as" @keyword.control.as (identifier) @variable.other.readwrite.alias)
+((namespace_export "*" @constant.language.import-export-all "as" @keyword.control.as (identifier) @variable.other.readwrite.alias) (#set! priority "20"))
 
 ; Variable declaration frames (exclude trailing comments, terminators, and double-framing on exports).
 ([(program (lexical_declaration (variable_declarator) @_last .) @_decl)
@@ -231,7 +231,9 @@
 ; Member expressions that cannot occur inside JSX tag names.
 (member_expression object: [(this) (super) (call_expression) (subscript_expression) (parenthesized_expression) (non_null_expression) (new_expression) (await_expression)] ["." @punctuation.accessor (optional_chain)] property: (property_identifier) @variable.other.property)
 (member_expression object: (identifier) @variable.other.object (optional_chain) property: (property_identifier) @variable.other.property)
-(member_expression object: (member_expression property: (property_identifier) @variable.other.object.property) (optional_chain) property: (property_identifier) @variable.other.property)
+((member_expression object: (member_expression object: (identifier) @variable.other.object (optional_chain) property: (property_identifier) @variable.other.object.property) "." @punctuation.accessor property: (property_identifier) @variable.other.property) (#set! priority "14"))
+((member_expression object: (member_expression object: (identifier) @variable.other.object "." @punctuation.accessor property: (property_identifier) @variable.other.object.property) (optional_chain) property: (property_identifier) @variable.other.property) (#set! priority "14"))
+((member_expression object: (member_expression object: (identifier) @variable.other.object (optional_chain) property: (property_identifier) @variable.other.object.property) (optional_chain) property: (property_identifier) @variable.other.property) (#set! priority "14"))
 (call_expression function: (member_expression object: (member_expression object: (identifier) @variable.other.object ["." @punctuation.accessor (optional_chain)] property: (property_identifier) @variable.other.object.property) ["." @punctuation.accessor (optional_chain)] property: (property_identifier) @entity.name.function))
 (new_expression constructor: (member_expression object: (member_expression object: (identifier) @variable.other.object ["." @punctuation.accessor (optional_chain)] property: (property_identifier) @variable.other.object.property) ["." @punctuation.accessor (optional_chain)] property: (property_identifier) @entity.name.function))
 

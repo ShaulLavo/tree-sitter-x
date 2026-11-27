@@ -96,7 +96,7 @@ describe('explicit native language variants', () => {
   it.each(['typescript', 'tsx'] as const)('loads %s and completes its unchanged corpus', checkCorpus);
 
   it('preserves high-impact TypeScript and TSX TextMate scopes and exact-stack edge cases', async () => {
-    const tsSource = '// note\n//\n/**/\ninterface Box<const T extends string> { readonly a: T | void; }\nexport const x = { a: 1, b: 2, c: 3 } as const satisfies Record<string, number>;\nconst trailing = { a: 1, };\nconst spaced = { a: 1   };\nconst multiline = { a: 1\n  };\nconst shorthand = { a   };\nconst spreadObj = { ...a   };\nconst value = ui.menu.item;\nobj?.run();\nfor (let i = 0; i < 1; i++) {}\nif (ready) var result = 1;\nswitch (x) { case 1: const scoped = 1 /* c */; }\nfunction f<T>(p: T): T { return p; }\nclass C { accessor v = 1; accessor = 2; @first @second value = 7; @dec /* c */ other = 8; }\nconst obj = { constructor() {}   };\nlet NaN = 0; const Infinity = 1; function NaN() {}\nconst realNan = NaN;\nthrow NaN;\nconst spread = [...Infinity];\n';
+    const tsSource = '// note\n//\n/**/\nimport * as module from "pkg";\nexport * as NaN from "pkg";\ninterface Box<const T extends string> { readonly a: T | void; }\nexport const x = { a: 1, b: 2, c: 3 } as const satisfies Record<string, number>;\nconst trailing = { a: 1, };\nconst spaced = { a: 1   };\nconst multiline = { a: 1\n  };\nconst shorthand = { a   };\nconst spreadObj = { ...a   };\nconst value = ui.menu.item;\nconst opt1 = ui?.menu.item;\nconst opt2 = ui.menu?.item;\nobj?.run();\nfor (let i = 0; i < 1; i++) {}\nif (ready) var result = 1;\nswitch (x) { case 1: const scoped = 1 /* c */; }\nfunction f<T>(p: T): T { return p; }\nclass C { accessor v = 1; accessor = 2; @first @second value = 7; @dec /* c */ other = 8; }\nconst obj = { constructor() {}   };\nlet NaN = 0; const Infinity = 1; function NaN() {}\nconst realNan = NaN;\nthrow NaN;\nconst spread = [...Infinity];\n';
     const tsPack = await loadLanguagePack('typescript');
     const tsOwner = await PilotDocument.open('typescript', tsSource);
     try {
@@ -104,6 +104,8 @@ describe('explicit native language variants', () => {
       expect(scopesAt(tsPack, result, 0)).toEqual(['source.ts', 'comment.line.double-slash.ts', 'punctuation.definition.comment.ts']);
       expect(scopesAt(tsPack, result, tsSource.indexOf('//\n'))).toEqual(['source.ts', 'comment.line.double-slash.ts', 'punctuation.definition.comment.ts']);
       expect(scopesAt(tsPack, result, tsSource.indexOf('/**/'))).toEqual(['source.ts', 'comment.block.ts', 'punctuation.definition.comment.ts']);
+      expect(scopesAt(tsPack, result, tsSource.indexOf('module from'))).toEqual(['source.ts', 'meta.import.ts', 'variable.other.readwrite.alias.ts']);
+      expect(scopesAt(tsPack, result, tsSource.indexOf('NaN from'))).toEqual(['source.ts', 'variable.other.readwrite.alias.ts']);
       expect(scopesAt(tsPack, result, tsSource.indexOf('interface'))).toContain('storage.type.interface.ts');
       expect(scopesAt(tsPack, result, tsSource.indexOf('Box'))).toContain('entity.name.type.interface.ts');
       expect(scopesAt(tsPack, result, tsSource.indexOf('<const'))).toContain('punctuation.definition.typeparameters.begin.ts');
@@ -151,7 +153,7 @@ describe('explicit native language variants', () => {
       expect(scopesAt(tsPack, result, tsSource.indexOf('...Infinity') + 3)).toEqual(['source.ts', 'meta.var.expr.ts', 'meta.array.literal.ts', 'constant.language.infinity.ts']);
     } finally { tsOwner.dispose(); tsPack.dispose(); }
 
-    const tsxSource = 'const el = <UI.Button />;\nconst nested = <UI.Menu.Item />;\nconst p = <Promise.then />;\nconst nanTag = <NaN.Menu.Item />;\nconst value = ui.menu.item;\nobj?.run();\nconst trailing = { a: 1, };\nconst spaced = { a: 1   };\nconst multiline = { a: 1\n  };\nconst methodObj = { a() {}   };\nconst shorthand = { a   };\nconst spreadObj = { ...a   };\nclass C { accessor = 2; @first @second value = 7; @dec /* c */ other = 8; }\nconst shown = <div>{NaN}</div>;\nthrow NaN;\nconst spread = [...Infinity];\n';
+    const tsxSource = 'const el = <UI.Button />;\nconst nested = <UI.Menu.Item />;\nconst p = <Promise.then />;\nconst nanTag = <NaN.Menu.Item />;\nconst value = ui.menu.item;\nconst opt1 = ui?.menu.item;\nconst opt2 = ui.menu?.item;\nobj?.run();\nconst trailing = { a: 1, };\nconst spaced = { a: 1   };\nconst multiline = { a: 1\n  };\nconst methodObj = { a() {}   };\nconst shorthand = { a   };\nconst spreadObj = { ...a   };\nclass C { accessor = 2; @first @second value = 7; @dec /* c */ other = 8; }\nconst shown = <div>{NaN}</div>;\nthrow NaN;\nconst spread = [...Infinity];\n';
     const tsxPack = await loadLanguagePack('tsx');
     const tsxOwner = await PilotDocument.open('tsx', tsxSource);
     try {
@@ -163,6 +165,12 @@ describe('explicit native language variants', () => {
       expect(scopesAt(tsxPack, result, tsxSource.indexOf('.menu'))).toEqual(['source.tsx', 'meta.var.expr.tsx', 'punctuation.accessor.tsx']);
       expect(scopesAt(tsxPack, result, tsxSource.indexOf('menu.item'))).toEqual(['source.tsx', 'meta.var.expr.tsx', 'variable.other.object.property.tsx']);
       expect(scopesAt(tsxPack, result, tsxSource.indexOf('item;'))).toEqual(['source.tsx', 'meta.var.expr.tsx', 'variable.other.property.tsx']);
+      expect(scopesAt(tsxPack, result, tsxSource.indexOf('ui?.menu'))).toEqual(['source.tsx', 'meta.var.expr.tsx', 'variable.other.object.tsx']);
+      expect(scopesAt(tsxPack, result, tsxSource.indexOf('menu.item;\nconst opt2'))).toEqual(['source.tsx', 'meta.var.expr.tsx', 'variable.other.object.property.tsx']);
+      expect(scopesAt(tsxPack, result, tsxSource.indexOf('item;\nconst opt2'))).toEqual(['source.tsx', 'meta.var.expr.tsx', 'variable.other.property.tsx']);
+      expect(scopesAt(tsxPack, result, tsxSource.indexOf('ui.menu?.'))).toEqual(['source.tsx', 'meta.var.expr.tsx', 'variable.other.object.tsx']);
+      expect(scopesAt(tsxPack, result, tsxSource.indexOf('menu?.item'))).toEqual(['source.tsx', 'meta.var.expr.tsx', 'variable.other.object.property.tsx']);
+      expect(scopesAt(tsxPack, result, tsxSource.indexOf('item;\nobj?.run'))).toEqual(['source.tsx', 'meta.var.expr.tsx', 'variable.other.property.tsx']);
       expect(scopesAt(tsxPack, result, tsxSource.indexOf('run()'))).toEqual(['source.tsx', 'meta.function-call.tsx', 'entity.name.function.tsx']);
       const trailingAt = tsxSource.indexOf('a: 1,');
       expect(scopesAt(tsxPack, result, trailingAt)).toEqual(['source.tsx', 'meta.var.expr.tsx', 'meta.objectliteral.tsx', 'meta.object.member.tsx', 'meta.object-literal.key.tsx']);
