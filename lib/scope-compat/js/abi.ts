@@ -101,7 +101,9 @@ export function readCString(heap: Uint8Array, pointer: number, maximum = 256, di
   const bytes = heap.subarray(pointer, pointer + available);
   const end = bytes.indexOf(0);
   if (end < 0) throw new RangeError('Unterminated native string');
-  return (diagnostic ? diagnosticDecoder : decoder).decode(bytes.subarray(0, end));
+  // Copy out of Wasm memory because WebAssembly.Memory.toResizableBuffer() returns a resizable
+  // ArrayBuffer, which TextDecoder.decode() rejects in browsers.
+  return (diagnostic ? diagnosticDecoder : decoder).decode(bytes.slice(0, end));
 }
 
 export function validateScopeLayout(heap: Uint8Array, pointer: number): void {

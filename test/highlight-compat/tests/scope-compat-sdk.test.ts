@@ -515,6 +515,12 @@ describe('Phase 6 public zero-Shiki consumer SDK (@shaulavo/tree-sitter-scope-co
     expect(resolveZedPlusScopes('type.struct', '.rs')).toEqual(['entity.name.type.struct.rs']);
     expect(resolveZedPlusScopes('_internal_helper')).toEqual([]);
     expect(resolveZedPlusScopes('unknown.custom.capture')).toEqual([]);
+    expect(resolveZedPlusScopes('text.title', '.markdown')).toEqual(['markup.heading.markdown', 'entity.name.section.markdown']);
+    expect(resolveZedPlusScopes('text.strong', '.markdown')).toEqual(['markup.bold.markdown']);
+    expect(resolveZedPlusScopes('text.emphasis', '.markdown')).toEqual(['markup.italic.markdown']);
+    expect(resolveZedPlusScopes('text.literal', '.markdown')).toEqual(['markup.inline.raw.string.markdown']);
+    expect(resolveZedPlusScopes('text.uri', '.markdown')).toEqual(['markup.underline.link.markdown']);
+    expect(resolveZedPlusScopes('text.reference', '.markdown')).toEqual(['string.other.link.title.markdown']);
 
     const { binding, compat } = await loadSdk();
     const beforeAllocs = compat.liveAllocations();
@@ -665,5 +671,28 @@ describe('Phase 6 public zero-Shiki consumer SDK (@shaulavo/tree-sitter-scope-co
       pack.dispose();
     }
     expect(compat.liveAllocations()).toBe(beforeAllocs);
+  });
+
+  it('decodes native C strings from resizable ArrayBuffer heaps without passing resizable views to TextDecoder', async () => {
+    const { readCString } = await import('../../../lib/scope-compat/dist/abi.js');
+    const resizable = new ArrayBuffer(64, { maxByteLength: 128 });
+    expect(resizable.resizable).toBe(true);
+    const view = new Uint8Array(resizable);
+    const encoded = new TextEncoder().encode('keyword.control.ts\0');
+    view.set(encoded, 8);
+    const decodeSpy = vi.spyOn(TextDecoder.prototype, 'decode');
+    try {
+      expect(readCString(view, 8)).toBe('keyword.control.ts');
+      expect(readCString(view, 8, 256, true)).toBe('keyword.control.ts');
+      expect(decodeSpy).toHaveBeenCalledTimes(2);
+      for (const [input] of decodeSpy.mock.calls) {
+        expect(ArrayBuffer.isView(input)).toBe(true);
+        const buffer = (input as ArrayBufferView).buffer;
+        expect(buffer).toBeInstanceOf(ArrayBuffer);
+        expect((buffer as ArrayBuffer).resizable).toBe(false);
+      }
+    } finally {
+      decodeSpy.mockRestore();
+    }
   });
 });
