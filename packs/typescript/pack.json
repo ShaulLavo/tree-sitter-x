@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "languageId": "typescript",
+  "packVersion": "pilot-1",
+  "rootScope": "source.ts",
+  "scopeSuffix": ".ts",
+  "embeddedScope": "meta.embedded.block.typescript",
+  "parser": {
+    "asset": "tree-sitter-typescript/tree-sitter-typescript.wasm",
+    "sha256": "778025db5a8be0e70f8ccc3671e486dfeddd048c25d9e8a70c26de2e1bf6f97d"
+  },
+  "queries": [
+    "../shared/typescript-common.scm",
+    "typescript.scm"
+  ]
+}

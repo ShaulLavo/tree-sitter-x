@@ -1,0 +1,171 @@
+{
+  "abi": 1,
+  "wasm": {
+    "sha256": "94efc88752468b1f5246c449b10f05c61dd6e10b05d5c471f3f37d1350b407c8",
+    "size": 38537
+  },
+  "compiler": "clang version 23.1.0-wasi-sdk (https://github.com/llvm/llvm-project 895aa2c896ada719451be2e3673c83da8ddf1141)\nTarget: wasm32-unknown-wasip1\nThread model: posix\nInstalledDir: /home/shaul/.cache/tree-sitter/wasi-sdk/bin\nConfiguration file: /home/shaul/.cache/tree-sitter/wasi-sdk/bin/clang.cfg\n",
+  "flags": [
+    "--target=wasm32-wasip1",
+    "-O2",
+    "-std=c11",
+    "-Wall",
+    "-Wextra",
+    "-Wpedantic",
+    "-Werror",
+    "-fvisibility=hidden",
+    "-fPIC",
+    "-shared",
+    "-nostdlib",
+    "-Wl,--no-entry",
+    "-Ilib/include",
+    "-Ilib/scope-compat/include",
+    "-Wl,--allow-undefined-file=lib/scope-compat/build/allowed-imports.txt"
+  ],
+  "inputs": [
+    {
+      "path": "Cargo.lock",
+      "sha256": "04cb9c4f11c0a9a5c802d1c89108cdf4630e7732e2561c8750e89872a3eb324e"
+    },
+    {
+      "path": "Cargo.toml",
+      "sha256": "d554f9437b0b3d10c1bc757f1d0b958790617ede9c1183a478bf2493353f790d"
+    },
+    {
+      "path": "crates/loader/wasi-sdk-version",
+      "sha256": "4ba43f48df0b0ef8b5c74590acca60edcc08c7ff513f338c9a0e6a4cb5752827"
+    },
+    {
+      "path": "crates/xtask/Cargo.toml",
+      "sha256": "d74da24ed4267f6d0df494aad158b2851565727a7e662873cdf1ef7fcb16749a"
+    },
+    {
+      "path": "crates/xtask/src/benchmark.rs",
+      "sha256": "4ae509838154b0bf3818e51c8ce4a21c7002885e47cdf965c2abb8c3db314414"
+    },
+    {
+      "path": "crates/xtask/src/build_wasm.rs",
+      "sha256": "af1e3206a50c4e4162216be34d32e0a75f4a4d73e80306825f01b54f6d7c186c"
+    },
+    {
+      "path": "crates/xtask/src/bump.rs",
+      "sha256": "1a65dcb6820b0755cf1c7c89c4a73bde203d374285ddb73225a77625009c6f91"
+    },
+    {
+      "path": "crates/xtask/src/check_regex_error_kinds.rs",
+      "sha256": "93d1b87464c5daf3b743236d8a7f05347367db722b2de8a81968f5e0c33e9c48"
+    },
+    {
+      "path": "crates/xtask/src/check_wasm_exports.rs",
+      "sha256": "c08f74f805f0c7c3797ccb0c81f3331566d26c10403a162497ebe48a5fa91572"
+    },
+    {
+      "path": "crates/xtask/src/clippy.rs",
+      "sha256": "6ac3846027cd35a1de83fb8f6ae8247a14a42ef3b6f253378aa743a0b083297a"
+    },
+    {
+      "path": "crates/xtask/src/fetch.rs",
+      "sha256": "80948ec96ba775bfab563a4382cbdb4638a199749f5521ecece62f66c7ae962c"
+    },
+    {
+      "path": "crates/xtask/src/generate.rs",
+      "sha256": "598b7c52ebac60157a17eeac29cc29424dedda1104fd7da63ef74209ef95fe86"
+    },
+    {
+      "path": "crates/xtask/src/main.rs",
+      "sha256": "b29e6689a6797045309b8586b9e24c19430a179a82f1d20fd3ce135f0c5c62fe"
+    },
+    {
+      "path": "crates/xtask/src/test.rs",
+      "sha256": "9fa40a9b9d9ab6bfcda807b8362fa29004622e138bfc032d852fa0c2a7e43714"
+    },
+    {
+      "path": "crates/xtask/src/test_schema.rs",
+      "sha256": "c3cda692782cb305a852601e9f5fcda8ed740000e75148e80be2bf8e233cad48"
+    },
+    {
+      "path": "crates/xtask/src/upgrade_wasmtime.rs",
+      "sha256": "218cb10e652c1402efc98eb44fd6c1708065b91778e8cdeafe41359e7fa31b86"
+    },
+    {
+      "path": "lib/binding_web/lib/exports.txt",
+      "sha256": "5ca6ea00306449f380b3519b9e3c6cf7d93256b698322c8c919620fa9cc8fa6a"
+    },
+    {
+      "path": "lib/binding_web/lib/extra-exports.txt",
+      "sha256": "131c80d56a1aa868b08970c8e5fdf1c1571631922ab754dfa06511b257b8ee47"
+    },
+    {
+      "path": "lib/include/tree_sitter/api.h",
+      "sha256": "ddef8095491063813cc21d4ec149d9afccb0988557d37b0d4c82947d5ea006c5"
+    },
+    {
+      "path": "lib/scope-compat/imports.txt",
+      "sha256": "e44b81d99eb025acf5eefbef91e63ae0cf35ee2f29ec0e268dfd5e4f5de28465"
+    },
+    {
+      "path": "lib/scope-compat/include/scope_compat.h",
+      "sha256": "2f501ecba5ea802a37b8c1c6a1838afe81932dcb6b8d703dc7c5d2464db0b255"
+    },
+    {
+      "path": "lib/scope-compat/include/scope_compat_theme.h",
+      "sha256": "24a685cb4761a2a470b277ec395291e1160354476a009d4950f9ae5639c934c5"
+    },
+    {
+      "path": "lib/scope-compat/src/alloc.c",
+      "sha256": "0512d582f5f4f428a28e5f8cf4df11585470802c177f2035a2a1052d1a7bb731"
+    },
+    {
+      "path": "lib/scope-compat/src/alloc.h",
+      "sha256": "99bd90b77f4c8b123aa868e39aab189407dac9fca122ffba163cb1e2b0aca961"
+    },
+    {
+      "path": "lib/scope-compat/src/collect.c",
+      "sha256": "7043a966d94c7d2c39cdbf4527be5a1b9fa13bb7d28667c6317f224fb883aef3"
+    },
+    {
+      "path": "lib/scope-compat/src/compose.c",
+      "sha256": "5d3e2b5d265beacd82bd407393b07af8ae134d46a0f5a9ecc6f56959defdeddf"
+    },
+    {
+      "path": "lib/scope-compat/src/exports.c",
+      "sha256": "1a67164bb627c7d62debdea8cee4e19cdc808973d330fe3e0131b10fc104b9ea"
+    },
+    {
+      "path": "lib/scope-compat/src/internal.h",
+      "sha256": "f976eab8687109c3ac478746f291c5055a8e6b35c9b7f91b3973466d176012c7"
+    },
+    {
+      "path": "lib/scope-compat/src/pack.c",
+      "sha256": "3480cdfbaf963a1f6ba7a4ad0cc954e01558ab7983888536046e8c42520b68e4"
+    },
+    {
+      "path": "lib/scope-compat/src/predicate.c",
+      "sha256": "44feeea448aa432fdeb3f7bf779a9e94355677b2dabceeb01ddf519884b816f0"
+    },
+    {
+      "path": "lib/scope-compat/src/theme.c",
+      "sha256": "66b507519319fb59e67adf85b0ad0c6b84937e1e54eab9d9d955d5b17ca568fe"
+    },
+    {
+      "path": "lib/scope-compat/src/theme_compile.c",
+      "sha256": "f0423f3be9670240cc7e127a145bcdebd98a96c9e3ad9df49d9c9602758dcaa5"
+    },
+    {
+      "path": "lib/scope-compat/src/theme_internal.h",
+      "sha256": "ff8201ced9804896e4e90159ef8c677ac272cc60e86502574544b0e39ab2764c"
+    },
+    {
+      "path": "lib/scope-compat/src/theme_match.c",
+      "sha256": "e4eebdcb2d3a9c87291dce12323932e4df19af9f3fb1d9dd81383b8cf9caa0ef"
+    },
+    {
+      "path": "lib/scope-compat/src/theme_packet.c",
+      "sha256": "bbc017ef48ec8ce2c33902cf725fc0482de9bcd0ca102e34a8ebdeb16e2050c9"
+    },
+    {
+      "path": "lib/src/wasm-stdlib/imports.txt",
+      "sha256": "4fb97410d22925f88857d9adfecc2b955c08819e7d55de4e460d417bf1a2215d"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "languageId": "rust",
+  "packVersion": "wave1-1",
+  "rootScope": "source.rust",
+  "scopeSuffix": ".rust",
+  "embeddedScope": "meta.embedded.block.rust",
+  "parser": {
+    "asset": "tree-sitter-rust/tree-sitter-rust.wasm",
+    "sha256": "f65f354215611fd94ad34134b3427eb3d58cbb745df7b6509ba722184db73d57"
+  },
+  "queries": [
+    "rust.scm"
+  ]
+}

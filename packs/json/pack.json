@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "languageId": "json",
+  "packVersion": "pilot-1",
+  "rootScope": "source.json",
+  "scopeSuffix": ".json",
+  "embeddedScope": "meta.embedded.block.json",
+  "parser": {
+    "asset": "tree-sitter-json/tree-sitter-json.wasm",
+    "sha256": "d2119fb98d5912719b13f9458574f8608d2d29dfbe45f6be1f860ea1fe2a2405"
+  },
+  "queries": ["json.scm"]
+}
