@@ -1,4 +1,4 @@
-import type { ResolveThemeOptions, ScopeResult, StyledResult, VscodeThemeInput } from './types.js';
+import type { ResolveThemeOptions, ScopeResult, StyledResult, VscodeThemeInput } from './types.ts';
 export interface CompiledThemePacket {
     readonly packet: Uint8Array;
     readonly defaultForegroundRgba: number;

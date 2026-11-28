@@ -1,5 +1,5 @@
-import { DEFAULT_THEME_OUTPUT_BYTES, DEFAULT_THEME_PACKET_BYTES, DEFAULT_THEME_RESOLVE_STEPS, NONE, decodeThemeResult, encodePathPacket, encodeThemePacket, } from './abi.js';
-import { ScopeCompatError } from './types.js';
+import { DEFAULT_THEME_OUTPUT_BYTES, DEFAULT_THEME_PACKET_BYTES, DEFAULT_THEME_RESOLVE_STEPS, NONE, decodeThemeResult, encodePathPacket, encodeThemePacket, } from "./abi.js";
+import { ScopeCompatError } from "./types.js";
 const FALLBACK_COLORS = Object.freeze({
     dark: Object.freeze({ foreground: '#bbbbbb', background: '#1e1e1e' }),
     light: Object.freeze({ foreground: '#333333', background: '#fffffe' }),

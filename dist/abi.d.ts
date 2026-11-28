@@ -1,4 +1,4 @@
-import type { ScopeWindow } from './types.js';
+import type { ScopeWindow } from './types.ts';
 export declare const NONE = 4294967295;
 export declare const DEFAULT_THEME_PACKET_BYTES: number;
 export declare const DEFAULT_THEME_COMPILE_STEPS = 4000000;

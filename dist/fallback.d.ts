@@ -1,4 +1,4 @@
-import type { FallbackHighlightOptions, ScopeResult, TreeSitterQuery, TreeSitterTree } from './types.js';
+import type { FallbackHighlightOptions, ScopeResult, TreeSitterQuery, TreeSitterTree } from './types.ts';
 /**
  * Universal Zed-plus Tree-sitter capture-to-TextMate scope stack map.
  * Covers standard Zed, Neovim, Helix, and upstream Tree-sitter highlights.scm captures

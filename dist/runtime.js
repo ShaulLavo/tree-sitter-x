@@ -1,7 +1,7 @@
-import { DEFAULT_THEME_COMPILE_STEPS, DEFAULT_THEME_CONTEXT_RULES, DEFAULT_THEME_OWNED_BYTES, DEFAULT_THEME_PACKET_BYTES, DEFAULT_THEME_TRIE_NODES, address, checkSourceSpan, checkSpan, decodeScopeResult, readCString, u32, validateScopeLayout, validateThemeLayout, } from './abi.js';
-import { ScopeHighlightSession } from './session.js';
-import { ScopeTheme, buildThemePacket } from './theme.js';
-import { ScopeCompatError } from './types.js';
+import { DEFAULT_THEME_COMPILE_STEPS, DEFAULT_THEME_CONTEXT_RULES, DEFAULT_THEME_OWNED_BYTES, DEFAULT_THEME_PACKET_BYTES, DEFAULT_THEME_TRIE_NODES, address, checkSourceSpan, checkSpan, decodeScopeResult, readCString, u32, validateScopeLayout, validateThemeLayout, } from "./abi.js";
+import { ScopeHighlightSession } from "./session.js";
+import { ScopeTheme, buildThemePacket } from "./theme.js";
+import { ScopeCompatError } from "./types.js";
 const encoder = new TextEncoder();
 function internalAddress(target, label) {
     const pointer = address(target[0]);

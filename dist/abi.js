@@ -1,4 +1,4 @@
-import { ScopeCompatError } from './types.js';
+import { ScopeCompatError } from "./types.js";
 export const NONE = 0xffffffff;
 export const DEFAULT_THEME_PACKET_BYTES = 16 * 1024 * 1024;
 export const DEFAULT_THEME_COMPILE_STEPS = 4_000_000;

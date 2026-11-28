@@ -1,7 +1,7 @@
-import { ScopeHighlightSession } from './session.js';
-import { ScopeTheme } from './theme.js';
-import type { ThemeHost } from './theme.js';
-import type { CompileThemeOptions, HighlightOptions, PackDefinition, ScopeResult, TreeSitterBinding, TreeSitterLanguage, TreeSitterTextBuffer, TreeSitterTree, VscodeThemeInput } from './types.js';
+import { ScopeHighlightSession } from './session.ts';
+import { ScopeTheme } from './theme.ts';
+import type { ThemeHost } from './theme.ts';
+import type { CompileThemeOptions, HighlightOptions, PackDefinition, ScopeResult, TreeSitterBinding, TreeSitterLanguage, TreeSitterTextBuffer, TreeSitterTree, VscodeThemeInput } from './types.ts';
 export declare class ScopePack {
     #private;
     readonly language: TreeSitterLanguage;

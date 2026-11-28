@@ -1,6 +1,6 @@
-import type { ScopeCompat, ScopePack } from './runtime.js';
-import type { ScopeTheme } from './theme.js';
-import type { ResolveThemeOptions, ScopeLimits, ScopeResult, SessionChange, SessionInvalidation, StyledResult, TreeSitterTextBuffer, TreeSitterTree } from './types.js';
+import type { ScopeCompat, ScopePack } from './runtime.ts';
+import type { ScopeTheme } from './theme.ts';
+import type { ResolveThemeOptions, ScopeLimits, ScopeResult, SessionChange, SessionInvalidation, StyledResult, TreeSitterTextBuffer, TreeSitterTree } from './types.ts';
 export declare class ScopeHighlightSession {
     #private;
     constructor(compat: ScopeCompat, pack: ScopePack, languageId: string);

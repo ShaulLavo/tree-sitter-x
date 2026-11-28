@@ -1,5 +1,5 @@
-import { u32 } from './abi.js';
-import { ScopeCompatError } from './types.js';
+import { u32 } from "./abi.js";
+import { ScopeCompatError } from "./types.js";
 /**
  * Universal Zed-plus Tree-sitter capture-to-TextMate scope stack map.
  * Covers standard Zed, Neovim, Helix, and upstream Tree-sitter highlights.scm captures
@@ -135,6 +135,7 @@ export const ZED_PLUS_CAPTURE_MAP = Object.freeze({
     'markup.raw.block': Object.freeze(['markup.fenced_code.block']),
     'markup.raw.inline': Object.freeze(['markup.inline.raw.string']),
     'markup.inline.raw': Object.freeze(['markup.inline.raw.string']),
+    // Legacy Neovim/tree-sitter-md capture used for inline code spans (and indented code blocks when no finer block capture is emitted).
     'text.literal': Object.freeze(['markup.inline.raw.string']),
     'markup.link': Object.freeze(['meta.link']),
     'markup.link.label': Object.freeze(['string.other.link.title']),
